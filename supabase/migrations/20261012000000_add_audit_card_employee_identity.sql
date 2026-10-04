@@ -50,29 +50,33 @@ BEGIN
     FROM matching JOIN private.content_audit_events event ON event.id = matching.id
     ORDER BY matching.card_id, event.occurred_at DESC, event.id DESC
   ), page_cards AS MATERIALIZED (
-    SELECT * FROM cards ORDER BY occurred_at DESC, id DESC
+    SELECT cards.*, CASE WHEN entity_type = 'notification' THEN
+      jsonb_array_length(COALESCE(before_data -> 'recipients', '[]'::jsonb)) ELSE 0 END AS recipient_count
+    FROM cards ORDER BY occurred_at DESC, id DESC
     LIMIT p_page_size OFFSET p_page * p_page_size
   ), page AS (
     SELECT cards.card_id, cards.id, cards.operation_id, cards.entity_type, cards.entity_id,
       cards.action, cards.owner_admin_id, cards.owner_username, cards.actor_admin_id,
       cards.actor_username, cards.actor_role, cards.customer_id, cards.employee_id,
       CASE WHEN cards.entity_type = 'notification' THEN
-        CASE WHEN recipients.recipient_count = 1 THEN recipients.account_username
-          WHEN recipients.recipient_count > 1 THEN '收件員工 ' || recipients.recipient_count || ' 位'
+        CASE WHEN cards.recipient_count = 1 THEN recipients.account_username
+          WHEN cards.recipient_count > 1 THEN '收件員工 ' || cards.recipient_count || ' 位'
           ELSE NULL END
         ELSE COALESCE(cards.employee_account, archived.account_username,
           CASE WHEN employee.archived_at IS NULL THEN employee.username END) END AS employee_account,
-      CASE WHEN cards.entity_type = 'notification' THEN
-        CASE WHEN recipients.recipient_count = 1 THEN recipients.employee_number END
+      CASE WHEN cards.cleared_at IS NOT NULL THEN NULL
+        WHEN cards.entity_type = 'notification' THEN
+          CASE WHEN cards.recipient_count = 1 THEN recipients.employee_number END
         ELSE COALESCE(cards.before_data ->> 'employee_number', archived.employee_number,
           CASE WHEN employee.archived_at IS NULL THEN employee.employee_id END) END AS employee_number,
-      CASE WHEN cards.entity_type = 'notification' THEN
-        CASE WHEN recipients.recipient_count = 1 THEN recipients.employee_number_source END
+      CASE WHEN cards.cleared_at IS NOT NULL THEN NULL
+        WHEN cards.entity_type = 'notification' THEN
+          CASE WHEN cards.recipient_count = 1 THEN recipients.employee_number_source END
         WHEN cards.before_data ->> 'employee_number' IS NOT NULL THEN 'event_snapshot'
         WHEN archived.employee_number IS NOT NULL THEN 'archived_account'
         WHEN employee.archived_at IS NULL AND employee.employee_id IS NOT NULL THEN 'current_account'
         ELSE NULL END AS employee_number_source,
-      CASE WHEN cards.entity_type = 'notification' THEN recipients.recipient_count ELSE 0 END AS recipient_count,
+      cards.recipient_count,
       cards.occurred_at, cards.cleared_at, cards.clear_started_at,
       CASE WHEN cards.action = 'conversation_delete' THEN NULL
         ELSE left(COALESCE(cards.before_data -> 'message' ->> 'title',
@@ -93,15 +97,15 @@ BEGIN
     LEFT JOIN public.users employee ON employee.id = cards.employee_id
     LEFT JOIN private.deleted_employee_accounts archived ON archived.employee_id = cards.employee_id
     LEFT JOIN LATERAL (
-      SELECT count(*)::integer AS recipient_count,
-        max(COALESCE(record.account_username,
+      SELECT max(COALESCE(record.account_username,
           CASE WHEN recipient_user.archived_at IS NULL THEN recipient_user.username END)) AS account_username,
         max(COALESCE(record.employee_number,
           CASE WHEN recipient_user.archived_at IS NULL THEN recipient_user.employee_id END)) AS employee_number,
         max(CASE WHEN record.employee_number IS NOT NULL THEN 'archived_account'
           WHEN recipient_user.archived_at IS NULL AND recipient_user.employee_id IS NOT NULL THEN 'current_account'
           ELSE NULL END) AS employee_number_source
-      FROM jsonb_array_elements(COALESCE(cards.before_data -> 'recipients', '[]'::jsonb)) recipient(data)
+      FROM jsonb_array_elements(CASE WHEN cards.recipient_count = 1 THEN
+        cards.before_data -> 'recipients' ELSE '[]'::jsonb END) recipient(data)
       LEFT JOIN public.users recipient_user ON recipient_user.id = (recipient.data ->> 'recipient_id')::uuid
       LEFT JOIN private.deleted_employee_accounts record ON record.employee_id = (recipient.data ->> 'recipient_id')::uuid
     ) recipients ON cards.entity_type = 'notification'
