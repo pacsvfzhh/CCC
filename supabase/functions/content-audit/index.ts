@@ -178,6 +178,14 @@ Deno.serve(async (request) => {
       if (error) throw error;
       return response(data);
     }
+    if (body.action === 'prepare_conversation_delete') {
+      if (typeof body.eventId !== 'string' || !/^[\da-f-]{36}$/i.test(body.eventId)) return response({ error: 'Invalid conversation event ID.' }, 400);
+      const { data, error } = await db.rpc('prepare_content_audit_conversation_delete', {
+        p_admin_session_token: token, p_event_id: body.eventId,
+      });
+      if (error) throw error;
+      return response(data);
+    }
     if (body.action === 'prepare_delete') {
       const filters = body.filters;
       if (!filters || typeof filters !== 'object' || Array.isArray(filters)) return response({ error: 'Invalid audit filters.' }, 400);
