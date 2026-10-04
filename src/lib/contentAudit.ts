@@ -15,8 +15,12 @@ export async function mutateAuditedContent(
   const { data, error } = await supabase.functions.invoke('content-audit', {
     body: { action, targetIds, payload, employeeId, sessionToken: getAdminFinancialSessionToken() },
   });
-  if (error && typeof error === 'object' && 'context' in error && isSupabaseTransientError(error.context)) {
-    throw error.context;
+  if (error && typeof error === 'object' && 'context' in error) {
+    if (isSupabaseTransientError(error.context)) throw error.context;
+    if (error.context instanceof Response) {
+      const details = await error.context.clone().json().catch(() => null);
+      if (details && typeof details.error === 'string') throw new Error(details.error);
+    }
   }
   if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
   return data;

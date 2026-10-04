@@ -263,8 +263,9 @@ const fetchWithNetworkFallback: typeof fetch = async (input, init) => {
   try {
     return await nativeFetch(input, init);
   } catch (error) {
+    const method = getRequestMethod(input, init);
     if (!isNetworkFetchError(error)
-      || /\/rest\/v1\/rpc\/archive_employee_without_chats(?:\?|$)/.test(input instanceof Request ? input.url : input.toString())) throw error;
+      || (!['GET', 'HEAD', 'OPTIONS'].includes(method) && !isReadOnlyRpcRequest(input, method))) throw error;
     return fetchWithXhrFallback(input, init);
   }
 };
