@@ -30,6 +30,9 @@ interface AuditEvent {
   customer_id: string | null;
   employee_id: string | null;
   employee_account: string | null;
+  employee_number: string | null;
+  employee_number_source: 'event_snapshot' | 'archived_account' | 'current_account' | null;
+  recipient_count: number;
   message_count: number;
   cleared_count: number;
   occurred_at: string;
@@ -1056,7 +1059,9 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           owner_admin_id: employee.owner_admin_id, owner_username: employee.owner_username,
           actor_admin_id: employee.actor_admin_id, actor_username: employee.actor_username,
           actor_role: employee.actor_role, customer_id: customerId, employee_id: employee.employee_id,
-          employee_account: employee.account_username, message_count: 1, cleared_count: event.cleared_at ? 1 : 0,
+          employee_account: employee.account_username, employee_number: employee.employee_number,
+          employee_number_source: 'archived_account', recipient_count: 0,
+          message_count: 1, cleared_count: event.cleared_at ? 1 : 0,
           occurred_at: event.occurred_at, summary: '', cleared_at: event.cleared_at, clear_started_at: null });
         setSelectedId(cardId);
         setConversationPage(0);
@@ -1083,21 +1088,25 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           <div className="flex min-h-0 flex-1 flex-col">
             <section aria-label="稽核事件清單" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
               <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950 px-3 py-2.5"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
-              <div className="hidden grid-cols-[36px_134px_150px_minmax(140px,1fr)_112px_104px_148px] items-center gap-2 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#16243a,#111b2e)] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 xl:grid"><span>序號</span><span>資料類型</span><span>操作</span><span>內容摘要</span><span>所屬管理員</span><span>實際操作者</span><span>異動時間（UTC+8）</span></div>
+              <div className="hidden grid-cols-[36px_124px_minmax(130px,1.1fr)_100px_100px_134px_minmax(120px,1.4fr)_148px] items-center gap-2 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#16243a,#111b2e)] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 xl:grid"><span>序號</span><span>資料類型</span><span>員工帳號／ID</span><span>所屬管理員</span><span>實際操作者</span><span>操作</span><span>內容摘要</span><span>異動時間（UTC+8）</span></div>
               <ol className="min-w-0 divide-y divide-slate-700/50">
                 {events.length === 0 && !loading && !listLoadError && <li className="px-3 py-10 text-center text-xs text-slate-400">沒有符合條件的紀錄。</li>}
                 {events.map((item, index) => (
                   <li key={item.card_id}>
-                    <button type="button" onClick={() => selectEvent(item.card_id)} className={`grid w-full min-w-0 grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 border-l-[3px] px-3 py-2 text-left transition-colors xl:min-h-11 xl:grid-cols-[36px_134px_150px_minmax(140px,1fr)_112px_104px_148px] xl:gap-y-0 ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-400/15 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.14)]' : item.cleared_count > 0 ? 'border-slate-500 bg-slate-800/35 hover:bg-slate-800/60' : typeStyles[item.entity_type].row} ${buttonFocus}`}>
-                      <span className="row-span-4 self-start pt-1 text-[11px] font-bold tabular-nums text-slate-400 xl:row-span-1 xl:self-center xl:pt-0">{index + 1}.</span>
-                      <span title={item.entity_type === 'notification' ? notificationOriginLabel(item.notification_origin) : typeLabels[item.entity_type]} className={`min-w-0 truncate rounded-md border px-1.5 py-1 text-[11px] font-bold leading-none xl:py-1.5 ${item.entity_type === 'notification' ? notificationOriginStyles[item.notification_origin || 'unverified'] : typeStyles[item.entity_type].badge}`}>{item.entity_type === 'notification' ? notificationOriginLabel(item.notification_origin) : typeLabels[item.entity_type]}</span>
-                      <span className={`justify-self-end whitespace-nowrap rounded-md border px-1.5 py-1 text-[11px] font-bold leading-none xl:justify-self-start xl:py-1.5 ${actionStyles[item.action]}`}>{auditActionLabel(item.entity_type, item.action)}</span>
-                      <span className="col-span-2 col-start-2 min-w-0 truncate text-xs font-medium text-slate-100 xl:col-auto" title={readableText(item.summary)}>{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || '員工帳號未留存'}` : readableText(item.summary) || '（無摘要）'}{item.cleared_count > 0 ? <span className="ml-2 text-slate-400">· 已清除</span> : item.clear_started_at ? <span className="ml-2 text-amber-300">· 清除未完成</span> : null}</span>
+                    <button type="button" onClick={() => selectEvent(item.card_id)} className={`grid w-full min-w-0 grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 border-l-[3px] px-3 py-2 text-left transition-colors xl:min-h-11 xl:grid-cols-[36px_124px_minmax(130px,1.1fr)_100px_100px_134px_minmax(120px,1.4fr)_148px] xl:gap-y-0 ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-400/15 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.14)]' : item.cleared_count > 0 ? 'border-slate-500 bg-slate-800/35 hover:bg-slate-800/60' : typeStyles[item.entity_type].row} ${buttonFocus}`}>
+                      <span className="row-span-5 self-start pt-1 text-[11px] font-bold tabular-nums text-slate-400 xl:row-span-1 xl:self-center xl:pt-0">{index + 1}.</span>
+                      <span title={item.entity_type === 'notification' ? notificationOriginLabel(item.notification_origin) : typeLabels[item.entity_type]} className={`col-start-2 row-start-1 min-w-0 truncate rounded-md border px-1.5 py-1 text-[11px] font-bold leading-none xl:col-auto xl:row-auto xl:py-1.5 ${item.entity_type === 'notification' ? notificationOriginStyles[item.notification_origin || 'unverified'] : typeStyles[item.entity_type].badge}`}>{item.entity_type === 'notification' ? notificationOriginLabel(item.notification_origin) : typeLabels[item.entity_type]}</span>
+                      <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] xl:col-auto xl:row-auto xl:block">
+                        <span className="min-w-0 truncate font-bold text-white" title={item.employee_account || undefined}>{item.employee_account || (item.entity_type === 'notification' ? '收件員工未留存' : '員工帳號未留存')}</span>
+                        <span className="min-w-0 truncate whitespace-nowrap text-[10px] text-cyan-200 xl:block" title={item.employee_number ? `${item.employee_number}${item.employee_number_source === 'current_account' ? '（目前帳戶，非事件時快照）' : ''}` : undefined}>ID {item.entity_type === 'notification' && item.recipient_count > 1 ? '多位' : item.employee_number || '—'}</span>
+                      </span>
                       <span className="hidden min-w-0 truncate text-[11px] font-medium text-slate-300 xl:block" title={item.owner_username || item.owner_admin_id}>{item.owner_username || item.owner_admin_id}</span>
                       <span className="hidden min-w-0 truncate text-[11px] text-sky-200 xl:block" title={item.actor_username}>{item.actor_username}</span>
+                      <span className={`col-start-3 row-start-1 justify-self-end whitespace-nowrap rounded-md border px-1.5 py-1 text-[11px] font-bold leading-none xl:col-auto xl:row-auto xl:justify-self-start xl:py-1.5 ${actionStyles[item.action]}`}>{auditActionLabel(item.entity_type, item.action)}</span>
+                      <span className="col-span-2 col-start-2 row-start-3 min-w-0 truncate text-xs font-medium text-slate-100 xl:col-auto xl:row-auto" title={readableText(item.summary)}>{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則` : readableText(item.summary) || '（無摘要）'}{item.cleared_count > 0 ? <span className="ml-2 text-slate-400">· 已清除</span> : item.clear_started_at ? <span className="ml-2 text-amber-300">· 清除未完成</span> : null}</span>
                       <time className="hidden whitespace-nowrap text-[11px] tabular-nums text-slate-400 xl:block" dateTime={item.occurred_at}>{formatAuditTime(item.occurred_at, false)}</time>
-                      <span className="col-span-2 col-start-2 flex min-w-0 gap-1.5 text-[11px] xl:hidden"><span className="min-w-0 truncate text-slate-400" title={item.owner_username || item.owner_admin_id}>{item.owner_username || item.owner_admin_id}</span><span className="text-slate-600">/</span><span className="min-w-0 truncate text-sky-200" title={item.actor_username}>{item.actor_username}</span></span>
-                      <time className="col-span-2 col-start-2 text-[11px] tabular-nums text-slate-400 xl:hidden" dateTime={item.occurred_at}>{formatAuditTime(item.occurred_at)}</time>
+                      <span className="col-span-2 col-start-2 row-start-4 flex min-w-0 gap-1.5 text-[11px] xl:hidden"><span className="min-w-0 truncate text-slate-400" title={item.owner_username || item.owner_admin_id}>所屬 {item.owner_username || item.owner_admin_id}</span><span className="text-slate-600">/</span><span className="min-w-0 truncate text-sky-200" title={item.actor_username}>操作者 {item.actor_username}</span></span>
+                      <time className="col-span-2 col-start-2 row-start-5 text-[11px] tabular-nums text-slate-400 xl:hidden" dateTime={item.occurred_at}>{formatAuditTime(item.occurred_at)}</time>
                     </button>
                   </li>
                 ))}
