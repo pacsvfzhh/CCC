@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, ArrowLeft, Bell, ChevronRight, MessageCircle, Search, Trash2, UserRoundX, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Bell, ChevronRight, Megaphone, MessageCircle, Search, Trash2, UserRoundX, X } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { loadAuditedMedia } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
@@ -105,28 +105,55 @@ function ArchivedChatMedia({ eventId, path }: { eventId: string; path: string })
   return <div ref={containerRef} className="mt-2">{media?.type === 'video/mp4' ? <video src={media.url} controls preload="none" className="max-h-64 max-w-full rounded-lg" /> : media ? <button type="button" onClick={() => setExpanded(true)} aria-label="放大封存圖片" className={focusClass}><img src={media.url} alt="封存的聊天圖片" className="max-h-52 max-w-full rounded-lg object-contain" /></button> : error ? <button type="button" onClick={() => { setError(null); setRetryKey(value => value + 1); }} className={`text-xs text-cyan-200 underline ${focusClass}`}>圖片載入失敗，點此重試：{error}</button> : <span className="text-xs text-slate-400">圖片載入中…</span>}{expanded && media && createPortal(<div data-archive-media-preview className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/90 p-4" onClick={() => setExpanded(false)}><div role="dialog" aria-modal="true" aria-label="封存圖片預覽" className="relative" onClick={event => event.stopPropagation()}><button type="button" autoFocus onClick={() => setExpanded(false)} aria-label="關閉圖片預覽" className="absolute -right-2 -top-11 rounded-full bg-white/15 p-2 text-white"><X className="h-5 w-5" /></button><img src={media.url} alt="封存圖片預覽" className="max-h-[85vh] max-w-[95vw] object-contain" /></div></div>, document.body)}</div>;
 }
 
+function ArchivedRichContent({ html, eventId, attachments }: { html: string; eventId: string; attachments: Array<[string, string]> }) {
+  const parts = html.split(/(<img\b[^>]*>|<video\b[\s\S]*?<\/video>)/gi);
+  const inlinePaths = new Set(parts.filter(part => /^<(img|video)\b/i.test(part)).flatMap(part =>
+    attachments.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).map(([, path]) => path)));
+  return <div className="min-w-0 break-words text-sm leading-6 [&_p]:my-1 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal" style={{ overflowWrap: 'anywhere' }}>
+    {parts.map((part, index) => /^<(img|video)\b/i.test(part) ? (
+      attachments.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).length
+        ? attachments.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).map(([, path]) => <ArchivedChatMedia key={`${eventId}:${index}:${path}`} eventId={eventId} path={path} />)
+        : <p key={index} className="text-xs text-slate-400">原圖無法還原。</p>
+    ) : part ? <div key={index} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: sanitizeHTML(part, { allowedTags: ['p', 'br', 'div', 'span', 'strong', 'em', 'u', 's', 'b', 'i', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4'], allowedAttributes: [] }) }} /> : null)}
+    {attachments.filter(([, path]) => !inlinePaths.has(path)).map(([, path]) => <ArchivedChatMedia key={`${eventId}:${path}`} eventId={eventId} path={path} />)}
+  </div>;
+}
+
 function ArchivedChatCard({ event, workspace }: { event: RelatedEvidence; workspace: 'aaa_service' | 'ccc_service' }) {
+  const [cardOpen, setCardOpen] = useState(false);
   const snapshot = event.after_data?.message ? event.after_data : event.before_data;
   const message = snapshot?.message && typeof snapshot.message === 'object' ? snapshot.message as Record<string, unknown> : null;
-  const text = readableSnapshot(snapshot?.rendered_html || message?.message_content);
+  const content = typeof message?.message_content === 'string' ? message.message_content : '';
+  const cardHtml = typeof snapshot?.rendered_html === 'string' ? snapshot.rendered_html : content;
   const imageUrl = typeof message?.image_url === 'string' ? message.image_url : '';
   const sourceText = JSON.stringify(snapshot || {});
   const attachments = Object.entries(event.media_refs || {}).filter(([source]) => sourceText.includes(source) || sourceText.includes(source.replace(/&/g, '&amp;')));
+  const imagePath = attachments.find(([source]) => source === imageUrl)?.[1] || attachments[0]?.[1];
   const rating = message?.rating_data && typeof message.rating_data === 'object' ? message.rating_data as Record<string, unknown> : null;
   const sender = message?.sender_type === 'customer' ? readableSnapshot(snapshot?.customer_name) || '客戶' : readableSnapshot(snapshot?.employee_name) || '員工';
   const title = readableSnapshot(message?.title);
   const subtitle = readableSnapshot(message?.subtitle);
 
   const isCustomer = message?.sender_type === 'customer';
-  return <article className={`flex min-w-0 ${isCustomer ? 'justify-end' : 'justify-start'}`}>
+  useEffect(() => {
+    if (!cardOpen) return;
+    const onEscape = (keyboardEvent: KeyboardEvent) => {
+      if (keyboardEvent.key === 'Escape' && !document.querySelector('[data-archive-media-preview]')) setCardOpen(false);
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [cardOpen]);
+  return <><article className={`flex min-w-0 ${isCustomer ? 'justify-end' : 'justify-start'}`}>
     <div className={`max-w-[88%] min-w-0 sm:max-w-[74%] ${isCustomer ? 'text-right' : ''}`}>
       <div className={`mb-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 ${isCustomer ? 'justify-end' : ''}`}><strong className="text-slate-200">{sender}</strong></div>
-      <div className={`min-w-0 rounded-[20px] border-2 px-4 py-3 text-left text-sm leading-6 shadow-lg ${isCustomer ? workspace === 'aaa_service' ? 'rounded-tr-md border-orange-200/80 bg-white text-slate-800' : 'rounded-tr-md border-emerald-200/80 bg-white text-slate-800' : workspace === 'aaa_service' ? 'rounded-tl-md border-orange-300/35 bg-gradient-to-br from-slate-800 to-orange-950/70 text-slate-100' : 'rounded-tl-md border-emerald-300/35 bg-gradient-to-br from-slate-800 to-emerald-950/70 text-slate-100'}`}>
-        {event.cleared_at ? <p className="text-rose-600">此則內容已正式清除。</p> : <>{title && <p className="font-bold">{title}</p>}{subtitle && <p className={`text-xs ${isCustomer ? 'text-slate-500' : 'text-slate-300'}`}>{subtitle}</p>}{text && <p className="whitespace-pre-wrap break-words">{text}</p>}{message?.message_type === 'rating_request' && <p>評分請求</p>}{message?.message_type === 'rating_result' && <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p>}{message?.message_type === 'tip' && <p>打賞：{String(rating?.tip_amount ?? '—')}</p>}{attachments.map(([, path]) => <ArchivedChatMedia key={`${event.id}:${path}`} eventId={event.id} path={path} />)}{imageUrl && !attachments.length && <p className="text-slate-400">原圖無法還原。</p>}{!title && !subtitle && !text && !imageUrl && !attachments.length && !['rating_request', 'rating_result', 'tip'].includes(String(message?.message_type)) && <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}
-      </div>
+      {message?.message_type === 'rich_card' && !event.cleared_at ? <button type="button" onClick={() => setCardOpen(true)} className={`block w-[240px] max-w-full overflow-hidden rounded-2xl text-left shadow-[0_2px_12px_rgba(37,99,246,0.15)] transition hover:shadow-[0_8px_24px_rgba(37,99,246,0.22)] ${focusClass}`}><span className="flex items-start gap-2.5 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 px-4 pb-3.5 pt-4 text-white"><Megaphone className="mt-0.5 h-5 w-5 shrink-0" /><span className="min-w-0"><strong className="block break-words text-[13px] leading-snug">{title || '查看詳情'}</strong>{subtitle && <span className="mt-1 block break-words text-[11px] text-blue-100/80">{subtitle}</span>}</span></span><span className="flex items-center justify-between border-t border-blue-100 bg-white px-4 py-2 text-[11px] font-medium text-blue-600">查看詳情<ChevronRight className="h-4 w-4 text-blue-400" /></span></button> : <div className={`min-w-0 rounded-[20px] border-2 px-4 py-3 text-left text-sm leading-6 shadow-lg ${isCustomer ? workspace === 'aaa_service' ? 'rounded-tr-md border-orange-200/80 bg-white text-slate-800' : 'rounded-tr-md border-emerald-200/80 bg-white text-slate-800' : workspace === 'aaa_service' ? 'rounded-tl-md border-orange-300/35 bg-gradient-to-br from-slate-800 to-orange-950/70 text-slate-100' : 'rounded-tl-md border-emerald-300/35 bg-gradient-to-br from-slate-800 to-emerald-950/70 text-slate-100'}`}>
+        {event.cleared_at ? <p className="text-rose-600">此則內容已正式清除。</p> : message?.message_type === 'image' ? imagePath ? <ArchivedChatMedia eventId={event.id} path={imagePath} /> : <p className="text-slate-400">原圖無法還原。</p> : <>{message?.message_type === 'rating_request' ? <p>評分請求</p> : message?.message_type === 'rating_result' ? <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p> : message?.message_type === 'tip' ? <p>打賞：{String(rating?.tip_amount ?? '—')}</p> : content ? <ArchivedRichContent html={content} eventId={event.id} attachments={attachments} /> : <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}
+      </div>}
       <time className={`mt-1 block text-[10px] tabular-nums text-slate-400 ${isCustomer ? 'text-right' : ''}`}>{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</time>
     </div>
-  </article>;
+  </article>
+  {cardOpen && createPortal(<div data-archive-card-preview className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm xl:p-6" onClick={() => setCardOpen(false)}><section role="dialog" aria-modal="true" aria-labelledby={`archive-card-${event.id}`} className="flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl xl:h-auto xl:max-h-[85vh] xl:w-[680px] xl:rounded-2xl" onClick={clickEvent => clickEvent.stopPropagation()}><header className="relative shrink-0 bg-gradient-to-br from-blue-800 via-blue-600 to-blue-700 px-5 pb-5 pt-6 text-white"><button type="button" autoFocus onClick={() => setCardOpen(false)} aria-label="關閉卡片詳情" className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/15 hover:bg-white/25"><X className="h-4 w-4" /></button><p className="mb-3 text-xs text-blue-100">{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</p><div className="flex items-start gap-3 pr-10"><span className="rounded-xl border border-white/20 bg-white/15 p-2.5"><Megaphone className="h-6 w-6" /></span><div className="min-w-0"><h2 id={`archive-card-${event.id}`} className="break-words text-lg font-bold">{title || '訊息卡片'}</h2>{subtitle && <p className="mt-1 break-words text-sm text-blue-100">{subtitle}</p>}</div></div></header><div className="min-h-0 flex-1 overflow-y-auto p-5 text-slate-700 sm:p-6">{cardHtml ? <ArchivedRichContent html={cardHtml} eventId={event.id} attachments={attachments} /> : <p className="text-sm text-slate-500">此卡片的內容無法還原。</p>}</div><footer className="shrink-0 border-t border-slate-100 bg-slate-50 px-5 py-3"><button type="button" onClick={() => setCardOpen(false)} className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-3 text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-600">關閉</button></footer></section></div>, document.body)}
+  </>;
 }
 
 function groupRelatedEvents(items: RelatedEvidence[]) {
@@ -421,7 +448,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     if (!isActive || deletePreview || (!selectedId && !notificationId)) return;
     const onEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      if (document.querySelector('[data-archive-media-preview]')) return;
+      if (document.querySelector('[data-archive-media-preview], [data-archive-card-preview]')) return;
       if (notificationId) setNotificationId(null);
       else if (openConversation) setOpenConversation(null);
       else { setSelectedId(null); onSelectEmployee(null); }
