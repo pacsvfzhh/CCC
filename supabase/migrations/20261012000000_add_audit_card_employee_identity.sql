@@ -58,8 +58,9 @@ BEGIN
     SELECT cards.card_id, cards.id, cards.operation_id, cards.entity_type, cards.entity_id,
       cards.action, cards.owner_admin_id, cards.owner_username, cards.actor_admin_id,
       cards.actor_username, cards.actor_role, cards.customer_id, cards.employee_id,
-      CASE WHEN cards.entity_type = 'notification' THEN
-        CASE WHEN cards.recipient_count = 1 THEN recipients.account_username
+      CASE WHEN cards.cleared_at IS NOT NULL THEN NULL
+        WHEN cards.entity_type = 'notification' THEN
+          CASE WHEN cards.recipient_count = 1 THEN recipients.account_username
           WHEN cards.recipient_count > 1 THEN '收件員工 ' || cards.recipient_count || ' 位'
           ELSE NULL END
         ELSE COALESCE(cards.employee_account, archived.account_username,
