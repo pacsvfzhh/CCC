@@ -162,6 +162,7 @@ const actionStyles: Record<AuditAction, string> = {
   source_delete: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
 };
 const inputClass = 'mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus-visible:border-cyan-400 focus-visible:ring-2 focus-visible:ring-cyan-400/30';
+const compactInputClass = 'mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-2.5 py-1.5 text-xs text-white outline-none focus-visible:border-cyan-400 focus-visible:ring-2 focus-visible:ring-cyan-400/30';
 const buttonFocus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
 
 function formatAuditTime(value: string | null, includeZone = true): string {
@@ -872,7 +873,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   };
 
   const viewSwitch = <div role="group" aria-label="稽核面板" className="grid w-full grid-cols-2 gap-1 rounded-xl border border-white/10 bg-slate-950/80 p-1 shadow-inner">
-    {([['content', '內容稽核'], ['employees', '刪除員工']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => switchView(mode)} className={`flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-2.5 text-[11px] font-bold transition-colors sm:text-xs ${view === mode ? 'bg-gradient-to-br from-cyan-500 to-blue-700 text-white shadow-[0_4px_16px_rgba(8,145,178,0.35)]' : 'text-slate-400 hover:bg-white/[0.07] hover:text-white'} ${buttonFocus}`}>{mode === 'content' ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <UserRoundX className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}{label}</button>)}
+    {([['content', '內容稽核'], ['employees', '刪除員工']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => switchView(mode)} className={`flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[11px] font-bold transition-colors sm:text-xs ${view === mode ? 'bg-gradient-to-br from-cyan-500 to-blue-700 text-white shadow-[0_4px_16px_rgba(8,145,178,0.35)]' : 'text-slate-400 hover:bg-white/[0.07] hover:text-white'} ${buttonFocus}`}>{mode === 'content' ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <UserRoundX className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}{label}</button>)}
   </div>;
 
   const ownerOptions = filterCounts
@@ -886,8 +887,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       ?? (scopedTypes ? Object.values(scopedTypes).reduce((sum, count) => sum + count, 0) : null)
     : filterCounts?.total ?? null;
 
-  const filterForm = (showType: boolean) => (
-    <form onSubmit={applyFilters} className="space-y-3">
+  const filterForm = (showType: boolean, compact = false) => (
+    <form onSubmit={applyFilters} className={compact ? 'space-y-2' : 'space-y-3'}>
       {showType && <label className="block text-xs font-semibold text-slate-300">資料類型
         <select className={inputClass} value={draft.type} onChange={event => setDraft(previous => ({ ...previous, type: event.target.value as AuditFilters['type'] }))}>
           <option value="">全部類型{scopedTotal !== null ? `（${scopedTotal.toLocaleString()}）` : ''}</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}{scopedTypes ? `（${scopedTypes[value as AuditType].toLocaleString()}）` : ''}</option>)}
@@ -896,25 +897,25 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       {filterCountsError && <div role="alert" className="flex items-center justify-between gap-2 text-xs text-rose-300"><span className="min-w-0 break-words">稽核數量載入失敗：{filterCountsError}{availableAdmins.length > 0 ? '；管理員清單仍可選擇。' : ''}</span><button type="button" onClick={() => setFilterCountsRetryKey(key => key + 1)} className={`shrink-0 font-bold underline ${buttonFocus}`}>重試</button></div>}
       {ownerCountsError?.owner === filters.owner && <div role="alert" className="flex items-center justify-between gap-2 text-xs text-rose-300"><span className="min-w-0 break-words">管理員分類數量載入失敗：{ownerCountsError.message}</span><button type="button" onClick={() => setOwnerCountsRetryKey(key => key + 1)} className={`shrink-0 font-bold underline ${buttonFocus}`}>重試</button></div>}
       <label className="block text-xs font-semibold text-slate-300">操作類型
-        <select className={inputClass} value={draft.action} onChange={event => setDraft(previous => ({ ...previous, action: event.target.value as AuditFilters['action'] }))}>
+        <select className={compact ? compactInputClass : inputClass} value={draft.action} onChange={event => setDraft(previous => ({ ...previous, action: event.target.value as AuditFilters['action'] }))}>
           <option value="">全部操作</option>{Object.entries(actionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
       <label className="block text-xs font-semibold text-slate-300">{draft.type === 'notification' ? '通知內容搜尋' : draft.type ? '聊天內容搜尋' : '內容搜尋（聊天／通知）'}
-        <span className="relative block"><Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input className={`${inputClass} pl-9`} value={draft.contentSearch} onChange={event => setDraft(previous => ({ ...previous, contentSearch: event.target.value }))} placeholder={draft.type === 'notification' ? '通知標題或內文' : '訊息文字或卡片內容'} /></span>
+        <span className="relative block"><Search className={`pointer-events-none absolute left-3 h-4 w-4 text-slate-500 ${compact ? 'top-2.5' : 'top-4'}`} aria-hidden="true" /><input className={`${compact ? compactInputClass : inputClass} pl-9`} value={draft.contentSearch} onChange={event => setDraft(previous => ({ ...previous, contentSearch: event.target.value }))} placeholder={draft.type === 'notification' ? '通知標題或內文' : '訊息文字或卡片內容'} /></span>
       </label>
       <label className="block text-xs font-semibold text-slate-300">角色／員工／收件人搜尋
-        <span className="relative block"><User className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input className={`${inputClass} pl-9`} value={draft.identitySearch} onChange={event => setDraft(previous => ({ ...previous, identitySearch: event.target.value }))} placeholder="角色名稱、員工帳號或員工 ID" /></span>
-        <span className="mt-1 block text-[11px] font-normal text-slate-400">員工名稱為帳號；員工 ID 為建號時設定的編號，非系統 UID。</span>
+        <span className="relative block"><User className={`pointer-events-none absolute left-3 h-4 w-4 text-slate-500 ${compact ? 'top-2.5' : 'top-4'}`} aria-hidden="true" /><input className={`${compact ? compactInputClass : inputClass} pl-9`} value={draft.identitySearch} onChange={event => setDraft(previous => ({ ...previous, identitySearch: event.target.value }))} placeholder="角色名稱、員工帳號或員工 ID" /></span>
+        <span className="mt-1 block text-[11px] font-normal text-slate-400">{compact ? '員工名稱為帳號；員工 ID 非系統 UID。' : '員工名稱為帳號；員工 ID 為建號時設定的編號，非系統 UID。'}</span>
       </label>
       <div className="grid grid-cols-2 gap-2">
-        <label className="min-w-0 text-xs font-semibold text-slate-300">開始日期（UTC+8）<input type="date" className={`${inputClass} min-w-0 [color-scheme:dark]`} value={draft.from} onChange={event => setDraft(previous => ({ ...previous, from: event.target.value }))} /></label>
-        <label className="min-w-0 text-xs font-semibold text-slate-300">結束日期（UTC+8）<input type="date" className={`${inputClass} min-w-0 [color-scheme:dark]`} value={draft.to} onChange={event => setDraft(previous => ({ ...previous, to: event.target.value }))} /></label>
+        <label className="min-w-0 text-xs font-semibold text-slate-300">開始日期（UTC+8）<input type="date" className={`${compact ? compactInputClass : inputClass} min-w-0 [color-scheme:dark]`} value={draft.from} onChange={event => setDraft(previous => ({ ...previous, from: event.target.value }))} /></label>
+        <label className="min-w-0 text-xs font-semibold text-slate-300">結束日期（UTC+8）<input type="date" className={`${compact ? compactInputClass : inputClass} min-w-0 [color-scheme:dark]`} value={draft.to} onChange={event => setDraft(previous => ({ ...previous, to: event.target.value }))} /></label>
       </div>
       {filterError && <p role="alert" className="text-xs text-rose-300">{filterError}</p>}
-      <div className="flex gap-2 pt-1">
-        <button type="submit" className={`flex-1 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 py-2 text-xs font-bold text-white hover:from-cyan-500 hover:to-blue-600 ${buttonFocus}`}>套用篩選</button>
-        <button type="button" onClick={resetFilters} className={`rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 ${buttonFocus}`}>重設</button>
+      <div className={`flex gap-2 ${compact ? '' : 'pt-1'}`}>
+        <button type="submit" className={`flex-1 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 py-1.5 text-xs font-bold text-white hover:from-cyan-500 hover:to-blue-600 ${buttonFocus}`}>套用篩選</button>
+        <button type="button" onClick={resetFilters} className={`rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 ${buttonFocus}`}>重設</button>
       </div>
     </form>
   );
@@ -966,13 +967,16 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[270px_minmax(0,1fr)]">
-        <aside className="hidden min-h-0 flex-col gap-3 overflow-y-auto border-r border-cyan-300/10 bg-[radial-gradient(circle_at_0%_0%,rgba(34,211,238,0.11),transparent_38%),linear-gradient(180deg,#0a1526,#090f1d_72%,#0d1627)] p-3.5 scrollbar-dark lg:flex">
-          <div className="rounded-2xl border border-cyan-300/15 bg-[linear-gradient(135deg,rgba(30,58,89,0.7),rgba(15,23,42,0.8))] p-3 shadow-[0_12px_26px_rgba(2,6,23,0.2)]"><div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-200"><ShieldCheck className="h-4 w-4" /></span><div><p className="text-[10px] font-bold tracking-[0.16em] text-cyan-200/70">AUDIT WORKSPACE</p><p className="text-xs font-semibold text-white">監察工作台</p></div></div>{viewSwitch}</div>
-          <section className="relative z-20 rounded-2xl border border-white/10 bg-slate-900/60 p-3 shadow-[0_10px_24px_rgba(2,6,23,0.14)]"><p className="mb-2 text-[11px] font-semibold tracking-wide text-slate-400">所屬管理員</p><OwnerPicker wide selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></section>
-          <section className="rounded-2xl border border-white/10 bg-slate-900/45 p-2.5"><div className="mb-2 flex items-center justify-between px-1.5"><h3 className="text-[11px] font-bold tracking-wide text-slate-200">資料分類</h3><span className="text-[10px] text-slate-500">3 個工作區</span></div><div className="space-y-1">{([['', '全部事件'], ...Object.entries(typeLabels)] as Array<[AuditFilters['type'], string]>).map(([type, label]) => (
-            <button key={type} type="button" onClick={() => selectQuickFilter({ type })} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 py-2.5 text-left text-xs font-bold transition-colors ${filters.type === type ? 'border-cyan-300/30 bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-white shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'} ${buttonFocus}`}><span className="flex min-w-0 items-center gap-2">{type === 'notification' ? <Megaphone className="h-3.5 w-3.5 shrink-0 text-violet-300" /> : type ? <MessageCircle className={`h-3.5 w-3.5 shrink-0 ${type === 'aaa_service' ? 'text-amber-300' : 'text-teal-300'}`} /> : <Database className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}<span className="truncate">{label}</span></span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${filters.type === type ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{type ? scopedTypes?.[type]?.toLocaleString() ?? '…' : scopedTotal?.toLocaleString() ?? '…'}</span></button>
+        <aside className="relative z-20 hidden min-h-0 flex-col border-r border-cyan-300/10 bg-[radial-gradient(circle_at_0%_0%,rgba(34,211,238,0.08),transparent_45%),linear-gradient(180deg,#0a1526,#090f1d_72%,#0d1627)] p-2.5 lg:flex lg:overflow-visible [@media(max-height:760px)]:overflow-y-auto scrollbar-dark">
+          <div className="w-full rounded-xl border border-cyan-300/15 bg-[linear-gradient(160deg,rgba(30,58,89,0.45),rgba(15,23,42,0.8)_28%)] p-3 shadow-[0_12px_26px_rgba(2,6,23,0.2)]">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-cyan-100"><ShieldCheck className="h-4 w-4" aria-hidden="true" />監察工作台</div>
+            {viewSwitch}
+            <section className="relative mt-3 border-t border-white/10 pt-2.5"><p className="mb-1 text-[11px] font-semibold text-slate-300">所屬管理員</p><OwnerPicker wide selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></section>
+            <section className="mt-3 border-t border-white/10 pt-2.5"><h3 className="mb-1 text-[11px] font-bold text-slate-300">資料分類</h3><div className="space-y-0.5">{([['', '全部事件'], ...Object.entries(typeLabels)] as Array<[AuditFilters['type'], string]>).map(([type, label]) => (
+            <button key={type} type="button" onClick={() => selectQuickFilter({ type })} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1 text-left text-xs font-bold transition-colors ${filters.type === type ? 'border-cyan-300/30 bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-white shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'} ${buttonFocus}`}><span className="flex min-w-0 items-center gap-2">{type === 'notification' ? <Megaphone className="h-3.5 w-3.5 shrink-0 text-violet-300" /> : type ? <MessageCircle className={`h-3.5 w-3.5 shrink-0 ${type === 'aaa_service' ? 'text-amber-300' : 'text-teal-300'}`} /> : <Database className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}<span className="truncate">{label}</span></span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${filters.type === type ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{type ? scopedTypes?.[type]?.toLocaleString() ?? '…' : scopedTotal?.toLocaleString() ?? '…'}</span></button>
           ))}</div></section>
-          <section className="rounded-2xl border border-white/10 bg-slate-900/45 p-3"><div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-2.5"><Search className="h-3.5 w-3.5 text-cyan-300" /><h3 className="text-[11px] font-bold tracking-wide text-slate-200">進階篩選</h3></div>{filterForm(false)}</section>
+            <section className="mt-3 border-t border-white/10 pt-2.5"><div className="mb-2 flex items-center gap-2"><Search className="h-3.5 w-3.5 text-cyan-300" aria-hidden="true" /><h3 className="text-[11px] font-bold text-slate-300">進階篩選</h3></div>{filterForm(false, true)}</section>
+          </div>
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
