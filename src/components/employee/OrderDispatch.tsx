@@ -3203,8 +3203,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-white/50 bg-gradient-to-r from-blue-800 via-blue-700 to-cyan-700 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/15 px-3 py-2 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
                     <span className="h-2 w-2 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />
                     {t.dispatch.autoDispatch}
                   </div>
@@ -3212,13 +3212,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     type="button"
                     onClick={() => void handleStopWork(false).catch(() => undefined)}
                     disabled={isProcessing}
-                    className={`group flex w-full items-center justify-center gap-3 rounded-xl border border-orange-200 bg-white px-5 py-3 text-orange-700 shadow-sm transition-all duration-200 hover:border-orange-300 hover:bg-orange-50 disabled:cursor-wait md:w-auto md:min-w-56 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    className={`group flex w-full items-center justify-center gap-3 rounded-xl border border-red-200 bg-white px-5 py-3 text-red-700 shadow-[0_10px_24px_-12px_rgba(15,23,42,0.55)] transition-all duration-200 hover:border-red-300 hover:bg-red-50 hover:shadow-[0_12px_28px_-12px_rgba(185,28,28,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:w-auto md:min-w-56 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     {isProcessing ? (
-                      <><span className="h-5 w-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-600" /><span className="font-bold">{t.dispatch.endingSession}</span></>
+                      <><span className="h-5 w-5 animate-spin rounded-full border-2 border-red-200 border-t-red-600" /><span className="font-bold">{t.dispatch.endingSession}</span></>
                     ) : (
-                      <><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /><span className="text-left"><span className="block text-sm font-bold">{t.dispatch.endSession}</span><span className="hidden text-[11px] text-orange-600/75 md:block">{t.dispatch.stopAccepting}</span></span></>
+                      <><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition-colors group-hover:bg-red-100"><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /></span><span className="text-left"><span className="block text-sm font-bold">{t.dispatch.endSession}</span><span className="hidden text-[11px] text-red-600/75 md:block">{t.dispatch.stopAccepting}</span></span></>
                     )}
                   </button>
                 </div>
