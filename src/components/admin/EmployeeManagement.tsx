@@ -1751,7 +1751,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       })).filter(g => g.employees.length > 0 || g.admin.role === 'super_admin' || g.admin.role === 'secondary_admin'));
       setDeletingEmployee(null);
       setDeleteError(null);
-      setDeleteFeedback({ type: 'success', message: `員工「${employee.username}」已刪除，相關資料已封存。` });
+      setDeleteFeedback({ type: 'success', message: `員工「${employee.username}」已刪除。` });
     } catch (error: unknown) {
       if (isFinancialAdminSessionError(error)) {
         void logout(false);
@@ -1764,7 +1764,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         if (!refreshError && snapshot && Array.isArray(snapshot.admins) && Array.isArray(snapshot.employees)
           && !snapshot.employees.some(item => item.id === employee.id)) {
           setDeletingEmployee(null);
-          setDeleteFeedback({ type: 'success', message: `已核對員工「${employee.username}」不在員工列表中；可到已刪員工紀錄核對封存資料。` });
+          setDeleteFeedback({ type: 'success', message: `已核對員工「${employee.username}」不在員工列表中。` });
           void guardedLoadEmployeesRef.current?.(true);
           return;
         }
@@ -1772,9 +1772,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         setDeleteFeedback({ type: 'error', message: '刪除結果尚未確認，請刷新員工列表核對後再操作。' });
         void guardedLoadEmployeesRef.current?.(true);
       } else {
-        const message = formatSupabaseError(error) || '刪除員工失敗。';
-        setDeleteError(message);
-        setDeleteFeedback({ type: 'error', message: `刪除員工未完成：${message}` });
+        setDeleteError('刪除員工未完成，請重新整理列表核對狀態後再試。');
+        setDeleteFeedback({ type: 'error', message: '刪除員工未完成，請重新整理列表核對狀態後再試。' });
       }
     } finally {
       setIsDeleting(false);
@@ -5519,7 +5518,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-300">員工管理 · 刪除確認</p>
                     <h3 id="delete-employee-title" className="mt-1 text-xl font-bold tracking-tight text-white">刪除員工帳戶？</h3>
-                    <p className="mt-1 text-xs text-slate-400">請核對目標帳戶與操作影響</p>
+                    <p className="mt-1 text-xs text-slate-400">請確認要刪除的員工帳戶</p>
                   </div>
                 </div>
                 <button type="button" onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} aria-label="關閉刪除員工" className="rounded-xl border border-rose-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-rose-300/40 hover:bg-rose-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
@@ -5544,11 +5543,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   <p className="mt-0.5 truncate text-[11px] font-mono font-medium tracking-wide text-rose-200/70">員工 ID：{deletingEmployee.employee_id}</p>
                 </div>
               </div>
-              <div className="rounded-2xl border border-rose-300/25 bg-rose-500/5 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-300">操作影響</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-white">帳戶將立即停用並從員工列表移除，相關對話亦會從原頁移除。</p>
-                <p className="mt-3 border-t border-rose-300/15 pt-3 text-xs leading-5 text-slate-300">帳戶、訂單與財務等歷史紀錄仍會保留，超管可在「已刪員工紀錄」核對；此處不會永久清除歷史資料。</p>
-              </div>
+              <p className="text-xs text-slate-400">請確認以上帳戶資訊無誤。</p>
             </div>
             <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-rose-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
               <button type="button" onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">取消</button>

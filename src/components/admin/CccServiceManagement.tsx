@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Plus, Send, Trash2, AlertTriangle, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw, Megaphone, AlignLeft, AlignCenter, AlignRight, Palette } from 'lucide-react';
+import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw, Megaphone, AlignLeft, AlignCenter, AlignRight, Palette } from 'lucide-react';
 import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import CustomerAutoMessages, { type AutoMessageDraft } from './CustomerAutoMessages';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
@@ -2517,9 +2517,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             setSelectedEmployee(null);
           }
           setCustomers(prev => prev.filter(c => c.id !== customerId));
-          setNotification({ type: 'success', text: '經理及其對話已刪除，相關內容已保留稽核紀錄。' });
-        } catch (error: unknown) {
-          setNotification({ type: 'error', text: getCccErrorMessage(error, '刪除經理失敗') });
+          setNotification({ type: 'success', text: '經理及其對話已刪除。' });
+        } catch {
+          setNotification({ type: 'error', text: '刪除經理未完成，請重新整理後核對。' });
         } finally {
           setConfirmDeleting(false);
           setConfirmDialog(null);
@@ -2971,11 +2971,11 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
               (conversationMessagesCacheRef.current.get(cacheKey) || []).filter(message => message.id !== messageId));
           }
           setMessages(previous => previous.filter(message => message.id !== messageId));
-          setNotification({ type: 'success', text: '聊天訊息已刪除，原內容已保留稽核紀錄。' });
+          setNotification({ type: 'success', text: '聊天訊息已刪除。' });
           void loadMessages();
           void loadConversationHistory();
-        } catch (error: unknown) {
-          setNotification({ type: 'error', text: getCccErrorMessage(error, '刪除訊息失敗') });
+        } catch {
+          setNotification({ type: 'error', text: '刪除訊息未完成，請重新整理後核對。' });
         } finally {
           setConfirmDeleting(false);
           setConfirmDialog(null);
@@ -3197,11 +3197,11 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           await mutateAuditedContent('conversation_delete', [selectedCustomer.id], {}, selectedEmployee.id);
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
-          setNotification({ type: 'success', text: '整段對話已刪除，原內容已保留稽核紀錄。' });
+          setNotification({ type: 'success', text: '整段對話已刪除。' });
           void loadConversationHistory();
         } catch (error: unknown) {
           console.error('Delete conversation failed:', formatSupabaseError(error));
-          setNotification({ type: 'error', text: getCccErrorMessage(error, '刪除對話失敗') });
+          setNotification({ type: 'error', text: '刪除對話未完成，請重新整理後核對。' });
         } finally {
           setConfirmDeleting(false);
           setConfirmDialog(null);
@@ -6172,13 +6172,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             <div className="h-1 bg-gradient-to-r from-rose-600 via-red-400 to-orange-400" />
             <header className="flex items-start gap-3 border-b border-white/10 bg-gradient-to-br from-rose-500/10 via-slate-900 to-slate-900 px-5 py-5 sm:px-6">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-300/30 bg-rose-500/15 text-rose-200"><Trash2 className="h-5 w-5" aria-hidden="true" /></div>
-              <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300">經理頁 · 刪除確認</p><h3 id="manager-chat-delete-title" className="mt-1 text-lg font-bold tracking-tight text-white">{confirmDialog.title}</h3><p className="mt-1 text-xs text-slate-400">請核對影響範圍後再繼續</p></div>
+              <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300">經理頁 · 刪除確認</p><h3 id="manager-chat-delete-title" className="mt-1 text-lg font-bold tracking-tight text-white">{confirmDialog.title}</h3><p className="mt-1 text-xs text-slate-400">請確認要刪除的內容</p></div>
               <button type="button" onClick={() => setConfirmDialog(null)} disabled={confirmDeleting} aria-label="關閉刪除確認" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"><X className="h-4 w-4" /></button>
             </header>
             <div className="space-y-4 px-5 py-5 sm:px-6">
               <p className="text-sm leading-6 text-slate-200">{confirmDialog.message}</p>
-              <div className="rounded-xl border border-white/10 bg-slate-950/50 p-4"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">影響範圍</p><p className="mt-2 text-sm font-semibold text-white">{confirmDialog.scope === 'customer' ? '此經理及其全部對話' : confirmDialog.scope === 'conversation' ? '目前整段對話' : '目前這則聊天訊息'}</p></div>
-              <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true" />刪除後將從原頁移除，無法在原頁直接復原。</p>
+              <div className="rounded-xl border border-white/10 bg-slate-950/50 p-4"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">刪除對象</p><p className="mt-2 text-sm font-semibold text-white">{confirmDialog.scope === 'customer' ? '此經理及其全部對話' : confirmDialog.scope === 'conversation' ? '目前整段對話' : '目前這則聊天訊息'}</p></div>
             </div>
             <footer className="grid grid-cols-2 gap-3 border-t border-white/10 bg-slate-950/40 px-5 py-4 sm:px-6">
               <button type="button" autoFocus onClick={() => setConfirmDialog(null)} disabled={confirmDeleting} className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">取消</button>

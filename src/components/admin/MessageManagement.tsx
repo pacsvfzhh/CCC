@@ -2730,7 +2730,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300">已發送訊息 · 刪除確認</p>
                 <h3 id="notification-delete-title" className="mt-1 text-lg font-bold tracking-tight text-white">{deleteMode === 'selected' ? '刪除所選通知？' : '刪除可管理通知？'}</h3>
-                <p className="mt-1 text-xs text-slate-400">確認後將從已發送列表與收件端移除。</p>
+                <p className="mt-1 text-xs text-slate-400">請確認要刪除的通知</p>
               </div>
               <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={deleting} aria-label="關閉刪除確認" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"><X className="h-4 w-4" /></button>
             </header>
@@ -2743,7 +2743,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </div>
                 {deleteMode === 'all' && messageOriginFilter !== 'manual' && <p className="mt-2 text-xs text-slate-400">不包含自動化通知</p>}
               </div>
-              <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true" />刪除後無法在原頁直接復原，請確認刪除範圍。</p>
+              <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true" />請核對通知數量後再確認刪除。</p>
               {deleting && deleteProgress && deleteProgress.total > 1 && <div role="progressbar" aria-label="刪除中" aria-valuemin={0} aria-valuemax={deleteProgress.total} aria-valuenow={deleteProgress.completed} className="h-1.5 overflow-hidden rounded-full bg-slate-700"><div className="h-full rounded-full bg-rose-400 transition-all" style={{ width: `${deleteProgress.completed / deleteProgress.total * 100}%` }} /></div>}
             </div>
             <footer className="grid grid-cols-2 gap-3 border-t border-white/10 bg-slate-950/40 px-5 py-4 sm:px-6">
