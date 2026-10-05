@@ -2606,7 +2606,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         waitingPanelActive
           ? 'dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
           : currentOrder?.status === 'pending'
-          ? 'bg-[linear-gradient(125deg,#0c2b70_0%,#12489a_55%,#08699f_100%)] border border-blue-400/50 shadow-[0_22px_60px_-16px_rgba(12,43,112,0.46)]'
+          ? 'bg-[linear-gradient(125deg,#164c9b_0%,#2370bd_55%,#167da9_100%)] border border-blue-400/50 shadow-[0_22px_60px_-16px_rgba(12,43,112,0.32)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
@@ -2620,7 +2620,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div className="pointer-events-none absolute -right-12 -top-20 h-60 w-60 rounded-full border border-cyan-200/25 md:-right-16 md:-top-32 md:h-[28rem] md:w-[28rem]" />
             <div className="pointer-events-none absolute -bottom-36 -left-28 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl md:h-96 md:w-96" />
             <div className="pointer-events-none absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'radial-gradient(circle, rgba(186,230,253,0.65) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-blue-950/15 md:h-32" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-blue-950/5 md:h-32" />
           </>
         )}
         {waitingPanelActive && (
