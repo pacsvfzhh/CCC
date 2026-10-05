@@ -52,7 +52,6 @@ type RecoveryOutcome =
   | { state: 'idle' | 'ended' | 'stale' };
 
 const PAUSED_DISPATCH_CHECK_MS = 5 * 60 * 1000;
-const DISPATCH_RIPPLE_PATH = 'M 590 88 C 670 90 698 125 766 118 C 832 102 910 138 941 178 C 984 205 1010 187 1034 247 C 1062 300 1004 318 989 365 C 973 406 921 385 871 421 C 812 463 761 450 696 453 C 627 477 600 449 531 470 C 460 483 421 440 356 430 C 294 420 230 434 208 384 C 184 345 147 337 171 288 C 193 238 199 225 242 217 C 292 205 282 156 359 156 C 432 157 442 94 520 105 C 552 109 558 95 590 88 Z';
 
 function getOrderDispatchErrorMessage(error: unknown) {
   return formatSupabaseError(error);
@@ -2613,13 +2612,6 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         {!waitingPanelActive && (
           <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
         )}
-        {waitingPanelActive && !performanceSettings.reduceTransitions && (
-          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1200 580" preserveAspectRatio="none" fill="none" aria-hidden="true">
-            <path d={DISPATCH_RIPPLE_PATH} className="dispatch-water-ripple" />
-            <path d={DISPATCH_RIPPLE_PATH} className="dispatch-water-ripple" style={{ animationDelay: '-2.6s' }} />
-            <path d={DISPATCH_RIPPLE_PATH} className="dispatch-water-ripple" style={{ animationDelay: '-5.2s' }} />
-          </svg>
-        )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
           waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-blue-700 via-cyan-400 to-sky-500' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
@@ -3176,26 +3168,28 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-800 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
                       <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-700 md:text-[10px]">{t.dispatch.live}</span>
                     </div>
-                    <div className="mb-7 flex items-start justify-center gap-2.5 md:mb-6 md:gap-5">
-                      <div className="text-center">
-                        <div className="dispatch-timer-surface rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
-                          <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
-                            <span key={Math.floor(waitingTime / 60)} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</span>
+                    <div className="dispatch-timer-aura relative isolate mx-auto mb-7 w-fit max-w-full md:mb-6">
+                      <div className="relative z-10 flex items-start justify-center gap-2.5 md:gap-5">
+                        <div className="text-center">
+                          <div className="dispatch-timer-surface rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
+                            <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
+                              <span key={Math.floor(waitingTime / 60)} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</span>
+                            </div>
                           </div>
+                          <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-700/70 md:mt-3 md:text-xs">{t.dispatch.min}</div>
                         </div>
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-700/70 md:mt-3 md:text-xs">{t.dispatch.min}</div>
-                      </div>
-                      <div aria-hidden="true" className="flex self-center flex-col items-center justify-center gap-2 pb-5 md:gap-3 md:pb-6">
-                        <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
-                        <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
-                      </div>
-                      <div className="text-center">
-                        <div className="dispatch-timer-surface dispatch-timer-surface-cyan rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
-                          <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
-                            <span key={waitingTime % 60} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(waitingTime % 60).padStart(2, '0')}</span>
+                        <div aria-hidden="true" className="flex self-center flex-col items-center justify-center gap-2 pb-5 md:gap-3 md:pb-6">
+                          <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
+                          <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
+                        </div>
+                        <div className="text-center">
+                          <div className="dispatch-timer-surface dispatch-timer-surface-cyan rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
+                            <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
+                              <span key={waitingTime % 60} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(waitingTime % 60).padStart(2, '0')}</span>
+                            </div>
                           </div>
+                          <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-800/70 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                         </div>
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-800/70 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                       </div>
                     </div>
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>

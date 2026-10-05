@@ -1293,35 +1293,37 @@ body {
   to { transform: translate3d(2%, -1%, 0) scale(1.08); opacity: 1; }
 }
 
-@keyframes dispatchWaterRipple {
-  0% { transform: rotate(-7deg) scale(0.1); opacity: 0; }
-  17% { opacity: 0.42; }
-  55% { opacity: 0.27; }
-  100% { transform: rotate(8deg) scale(1.7); opacity: 0; }
+.dispatch-timer-aura::before,
+.dispatch-timer-aura::after {
+  content: '';
+  position: absolute;
+  inset: -42% -24%;
+  pointer-events: none;
+  border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
+  background: radial-gradient(ellipse at 48% 52%, transparent 21%, rgb(59 130 246 / 14%) 38%, rgb(34 211 238 / 25%) 54%, transparent 77%);
+  opacity: 0.36;
 }
 
-.dispatch-water-ripple {
-  stroke: rgb(37 99 235 / 56%);
-  stroke-width: 2.5;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  stroke-dasharray: 420 26 205 14 280 30;
-  vector-effect: non-scaling-stroke;
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  opacity: 0;
-  animation: dispatchWaterRipple 7.8s ease-out infinite;
-  will-change: transform, opacity;
+.dispatch-timer-aura::after {
+  inset: -48% -28%;
+  border-radius: 54% 46% 58% 42% / 42% 57% 43% 58%;
+  background: radial-gradient(ellipse at 53% 48%, transparent 23%, rgb(6 182 212 / 13%) 43%, rgb(96 165 250 / 23%) 57%, transparent 78%);
+  opacity: 0.25;
 }
 
-.dispatch-water-ripple:nth-child(2) {
-  stroke: rgb(8 145 178 / 48%);
-  stroke-dasharray: 260 18 450 25 170 18;
+.dispatch-waiting-surface-animated .dispatch-timer-aura::before,
+.dispatch-waiting-surface-animated .dispatch-timer-aura::after {
+  animation: dispatchTimerBreath 5.2s ease-out infinite;
 }
 
-.dispatch-water-ripple:nth-child(3) {
-  stroke: rgb(14 116 213 / 40%);
-  stroke-dasharray: 360 34 220 16 240 24;
+.dispatch-waiting-surface-animated .dispatch-timer-aura::after {
+  animation-delay: -2.6s;
+}
+
+@keyframes dispatchTimerBreath {
+  0% { transform: scale(0.78); opacity: 0; }
+  32% { opacity: 0.72; }
+  100% { transform: scale(1.32); opacity: 0; }
 }
 
 .dispatch-timer-surface {
@@ -1386,8 +1388,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dispatch-water-ripple { display: none; }
   .dispatch-waiting-surface-animated::before,
+  .dispatch-waiting-surface-animated .dispatch-timer-aura::before,
+  .dispatch-waiting-surface-animated .dispatch-timer-aura::after,
   .dispatch-waiting-surface-animated .dispatch-timer-surface,
   .dispatch-waiting-surface-animated .dispatch-waiting-digits,
   .dispatch-timer-tick { animation: none; }
