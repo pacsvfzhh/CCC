@@ -1269,39 +1269,128 @@ body {
   will-change: transform, opacity, filter;
 }
 
+.dispatch-waiting-surface {
+  isolation: isolate;
+  background: linear-gradient(112deg, #c7defb 0%, #e2f0ff 27%, #fff 52%, #e7f7ff 76%, #b8d7f9 100%);
+}
+
+.dispatch-waiting-surface::before {
+  content: '';
+  position: absolute;
+  inset: -15%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 35% 38% at 21% 42%, rgb(59 130 246 / 22%), transparent 85%),
+    radial-gradient(ellipse 28% 38% at 79% 52%, rgb(6 182 212 / 18%), transparent 88%),
+    radial-gradient(ellipse 31% 22% at 53% 8%, rgb(255 255 255 / 86%), transparent 90%);
+}
+
+.dispatch-waiting-surface-animated::before {
+  animation: dispatchSurfaceDrift 12s ease-in-out infinite alternate;
+}
+
+@keyframes dispatchSurfaceDrift {
+  from { transform: translate3d(-2%, 1%, 0) scale(1); opacity: 0.7; }
+  to { transform: translate3d(2%, -1%, 0) scale(1.08); opacity: 1; }
+}
+
 @keyframes dispatchWaterRipple {
-  0% { transform: translate(-50%, -50%) rotate(-8deg) scale(0.12); opacity: 0; }
-  18% { opacity: 0.52; }
-  54% { transform: translate(-50%, -50%) rotate(1deg) scale(0.78); opacity: 0.34; }
-  100% { transform: translate(-50%, -50%) rotate(9deg) scale(1.5); opacity: 0; }
+  0% { transform: rotate(-7deg) scale(0.1); opacity: 0; }
+  17% { opacity: 0.42; }
+  55% { opacity: 0.27; }
+  100% { transform: rotate(8deg) scale(1.7); opacity: 0; }
 }
 
 .dispatch-water-ripple {
-  position: absolute;
-  top: 46%;
-  left: 50%;
-  width: 108%;
-  height: 94%;
-  border: 2px solid rgb(37 99 235 / 34%);
-  border-radius: 56% 44% 61% 39% / 43% 58% 42% 57%;
-  box-shadow: 0 0 0 14px rgb(56 189 248 / 7%), 0 0 32px rgb(37 99 235 / 20%), inset 0 0 26px rgb(56 189 248 / 12%);
+  stroke: rgb(37 99 235 / 56%);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 420 26 205 14 280 30;
+  vector-effect: non-scaling-stroke;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
   opacity: 0;
-  animation: dispatchWaterRipple 8.4s ease-out infinite;
+  animation: dispatchWaterRipple 7.8s ease-out infinite;
   will-change: transform, opacity;
 }
 
 .dispatch-water-ripple:nth-child(2) {
-  border-radius: 42% 58% 48% 52% / 61% 39% 56% 44%;
-  border-color: rgb(8 145 178 / 30%);
+  stroke: rgb(8 145 178 / 48%);
+  stroke-dasharray: 260 18 450 25 170 18;
 }
 
 .dispatch-water-ripple:nth-child(3) {
-  border-radius: 63% 37% 53% 47% / 46% 55% 45% 54%;
-  border-color: rgb(59 130 246 / 26%);
+  stroke: rgb(14 116 213 / 40%);
+  stroke-dasharray: 360 34 220 16 240 24;
+}
+
+.dispatch-timer-surface {
+  min-width: 5.5rem;
+  border: 1px solid rgb(255 255 255 / 92%);
+  background: linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(219 234 254 / 90%), rgb(224 247 255 / 94%), rgb(255 255 255 / 96%));
+  background-size: 200% 200%;
+  box-shadow: 0 16px 32px -20px rgb(29 78 216 / 36%), inset 0 1px rgb(255 255 255 / 95%);
+}
+
+.dispatch-timer-surface-cyan {
+  background: linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(207 245 252 / 84%), rgb(219 234 254 / 90%), rgb(255 255 255 / 96%));
+  background-size: 200% 200%;
+  box-shadow: 0 16px 32px -20px rgb(8 145 178 / 36%), inset 0 1px rgb(255 255 255 / 95%);
+}
+
+.dispatch-waiting-surface-animated .dispatch-timer-surface {
+  animation: dispatchTimerSurface 8s ease-in-out infinite alternate;
+}
+
+.dispatch-waiting-surface-animated .dispatch-timer-surface-cyan {
+  animation-delay: -4s;
+}
+
+@keyframes dispatchTimerSurface {
+  from { background-position: 0% 50%; border-color: rgb(255 255 255 / 92%); box-shadow: 0 16px 32px -20px rgb(29 78 216 / 36%), inset 0 1px rgb(255 255 255 / 95%); }
+  to { background-position: 100% 50%; border-color: rgb(125 211 252 / 70%); box-shadow: 0 17px 38px -18px rgb(8 145 178 / 34%), inset 0 1px rgb(255 255 255 / 95%); }
+}
+
+.dispatch-waiting-digits {
+  display: inline-block;
+  color: #1d4ed8;
+  filter: drop-shadow(0 4px 9px rgb(37 99 235 / 15%));
+}
+
+.dispatch-waiting-surface-animated .dispatch-waiting-digits {
+  animation: dispatchDigitColor 7s ease-in-out infinite alternate;
+}
+
+.dispatch-waiting-digits span {
+  background: linear-gradient(105deg, #1e40af 0%, #2563eb 35%, #0891b2 52%, #2563eb 70%, #1e40af 100%);
+  background-size: 240% 100%;
+  background-position: inherit;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes dispatchDigitColor {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+.dispatch-timer-tick {
+  display: inline-block;
+  animation: dispatchTimerTick 0.48s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@keyframes dispatchTimerTick {
+  from { transform: translateY(6px) scale(0.96); opacity: 0.55; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dispatch-water-ripple { display: none; }
+  .dispatch-waiting-surface-animated::before,
+  .dispatch-waiting-surface-animated .dispatch-timer-surface,
+  .dispatch-waiting-surface-animated .dispatch-waiting-digits,
+  .dispatch-timer-tick { animation: none; }
 }
 
 .animate-color-shift-glow {

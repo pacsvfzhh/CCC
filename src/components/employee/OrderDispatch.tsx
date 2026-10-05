@@ -7,7 +7,6 @@ import { Play, Square, CheckCircle, XCircle, Clock, Package, TrendingUp, AlertTr
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
-import productPhotoWall from '../../assets/order-dispatch-product-wall.webp';
 import type { Employee } from '../../types';
 
 interface DispatchAssignment {
@@ -53,6 +52,7 @@ type RecoveryOutcome =
   | { state: 'idle' | 'ended' | 'stale' };
 
 const PAUSED_DISPATCH_CHECK_MS = 5 * 60 * 1000;
+const DISPATCH_RIPPLE_PATH = 'M 590 88 C 670 90 698 125 766 118 C 832 102 910 138 941 178 C 984 205 1010 187 1034 247 C 1062 300 1004 318 989 365 C 973 406 921 385 871 421 C 812 463 761 450 696 453 C 627 477 600 449 531 470 C 460 483 421 440 356 430 C 294 420 230 434 208 384 C 184 345 147 337 171 288 C 193 238 199 225 242 217 C 292 205 282 156 359 156 C 432 157 442 94 520 105 C 552 109 558 95 590 88 Z';
 
 function getOrderDispatchErrorMessage(error: unknown) {
   return formatSupabaseError(error);
@@ -2605,30 +2605,24 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
-          ? 'bg-blue-100 border-2 border-blue-300/80 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.28),0_8px_28px_-12px_rgba(37,99,235,0.18)]'
+          ? `dispatch-waiting-surface ${performanceSettings.reduceTransitions ? '' : 'dispatch-waiting-surface-animated'} border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]`
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
-        {waitingPanelActive ? (
-          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-            <img src={productPhotoWall} alt="" className="h-full w-full object-cover object-center" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(239,246,255,0.78)_0%,rgba(239,246,255,0.65)_22%,rgba(219,234,254,0.28)_61%,rgba(191,219,254,0.12)_100%)]" />
-            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-blue-50/75 to-transparent" />
-          </div>
-        ) : (
+        {!waitingPanelActive && (
           <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
         )}
         {waitingPanelActive && !performanceSettings.reduceTransitions && (
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <div className="dispatch-water-ripple" />
-            <div className="dispatch-water-ripple" style={{ animationDelay: '-2.8s' }} />
-            <div className="dispatch-water-ripple" style={{ animationDelay: '-5.6s' }} />
-          </div>
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1200 580" preserveAspectRatio="none" fill="none" aria-hidden="true">
+            <path d={DISPATCH_RIPPLE_PATH} className="dispatch-water-ripple" />
+            <path d={DISPATCH_RIPPLE_PATH} className="dispatch-water-ripple" style={{ animationDelay: '-2.6s' }} />
+            <path d={DISPATCH_RIPPLE_PATH} className="dispatch-water-ripple" style={{ animationDelay: '-5.2s' }} />
+          </svg>
         )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
-          waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-blue-600 via-sky-400 to-blue-600' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+          waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-blue-700 via-cyan-400 to-sky-500' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
         }`}></div>
 
         {/* Content */}
@@ -2640,7 +2634,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <>{/* Header Section - Tablet optimized horizontal layout */}
           {isTablet ? (
             /* TABLET: Compact horizontal layout */
-            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-blue-300/55 pb-5' : 'mb-6'}`}>
+            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-white/65 pb-5' : 'mb-6'}`}>
               {/* Left: Logo + Title */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Icon */}
@@ -2668,7 +2662,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             </div>
           ) : (
             /* DESKTOP & MOBILE: Blue/White premium layout */
-            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-blue-300/55 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
+            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-white/65 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
               {/* Mobile: Full-width status banner */}
               <div className="w-full md:w-auto">
                 <div className="flex items-center gap-3 md:gap-4">
@@ -2695,7 +2689,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 ${
                         waitingPanelActive
-                          ? 'bg-blue-50/70 border border-blue-200/80'
+                          ? 'bg-white/70 border border-white/90 shadow-sm shadow-blue-300/20'
                           : session.isWorking
                           ? 'bg-green-50 border border-green-200'
                           : 'bg-slate-50 border border-slate-200'
@@ -3177,29 +3171,37 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <div>
                 <div className="relative min-h-[240px] overflow-hidden py-7 md:py-10">
                   <div className="relative z-10 text-center">
-                    <div className="mb-7 flex items-center justify-center gap-2 md:mb-9">
+                    <div className="mb-7 flex items-center justify-center gap-2 md:mb-6">
                       <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.38)] animate-pulse" />
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-800 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
                       <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-700 md:text-[10px]">{t.dispatch.live}</span>
                     </div>
-                    <div className="mb-7 flex items-start justify-center gap-3 md:mb-9 md:gap-5">
+                    <div className="mb-7 flex items-start justify-center gap-2.5 md:mb-6 md:gap-5">
                       <div className="text-center">
-                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-blue-700 drop-shadow-[0_8px_20px_rgba(37,99,235,0.16)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 md:mt-3 md:text-xs">{t.dispatch.min}</div>
+                        <div className="dispatch-timer-surface rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
+                          <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
+                            <span key={Math.floor(waitingTime / 60)} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</span>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-700/70 md:mt-3 md:text-xs">{t.dispatch.min}</div>
                       </div>
-                      <div aria-hidden="true" className="-mt-1 flex flex-col items-center justify-center gap-2 md:gap-3">
+                      <div aria-hidden="true" className="flex self-center flex-col items-center justify-center gap-2 pb-5 md:gap-3 md:pb-6">
                         <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
                         <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
                       </div>
                       <div className="text-center">
-                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-blue-700 drop-shadow-[0_8px_20px_rgba(37,99,235,0.16)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
+                        <div className="dispatch-timer-surface dispatch-timer-surface-cyan rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
+                          <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
+                            <span key={waitingTime % 60} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(waitingTime % 60).padStart(2, '0')}</span>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-800/70 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                       </div>
                     </div>
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-400/35 bg-gradient-to-r from-blue-800/90 via-blue-700/85 to-blue-800/90 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
+                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-white/50 bg-gradient-to-r from-blue-800 via-blue-700 to-cyan-700 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
                   <div className="flex items-center gap-2 text-xs font-semibold text-white">
                     <span className="h-2 w-2 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />
                     {t.dispatch.autoDispatch}
