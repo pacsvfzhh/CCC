@@ -3121,7 +3121,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             {waitingPanelActive && (
               <div>
                 <div className="relative min-h-[240px] overflow-visible py-7 md:overflow-hidden md:py-10">
-                  <div className="absolute -top-1 right-0 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:hidden">
+                  <div className="absolute -top-4 right-0 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:hidden">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
                     <span>{t.dispatch.autoDispatch}</span>
                   </div>
