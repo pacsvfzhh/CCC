@@ -2569,7 +2569,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         {waitingPanelActive ? (
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             <img src={productPhotoWall} alt="" className="h-full w-full object-cover object-center" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(239,246,255,0.84)_0%,rgba(239,246,255,0.72)_22%,rgba(219,234,254,0.36)_61%,rgba(191,219,254,0.2)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(239,246,255,0.78)_0%,rgba(239,246,255,0.65)_22%,rgba(219,234,254,0.28)_61%,rgba(191,219,254,0.12)_100%)]" />
+            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-blue-50/75 to-transparent" />
           </div>
         ) : (
           <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />

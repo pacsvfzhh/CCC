@@ -1270,24 +1270,34 @@ body {
 }
 
 @keyframes dispatchWaterRipple {
-  0% { transform: translate(-50%, -50%) scale(0.28); opacity: 0; }
-  22% { opacity: 0.5; }
-  68% { opacity: 0.25; }
-  100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0; }
+  0% { transform: translate(-50%, -50%) rotate(-8deg) scale(0.12); opacity: 0; }
+  18% { opacity: 0.52; }
+  54% { transform: translate(-50%, -50%) rotate(1deg) scale(0.78); opacity: 0.34; }
+  100% { transform: translate(-50%, -50%) rotate(9deg) scale(1.5); opacity: 0; }
 }
 
 .dispatch-water-ripple {
   position: absolute;
-  top: 50%;
+  top: 46%;
   left: 50%;
-  width: 120%;
-  height: 120%;
-  border: 2px solid rgb(37 99 235 / 22%);
-  border-radius: 50%;
-  box-shadow: 0 0 0 18px rgb(56 189 248 / 5%), 0 0 30px rgb(37 99 235 / 12%), inset 0 0 24px rgb(56 189 248 / 8%);
+  width: 108%;
+  height: 94%;
+  border: 2px solid rgb(37 99 235 / 34%);
+  border-radius: 56% 44% 61% 39% / 43% 58% 42% 57%;
+  box-shadow: 0 0 0 14px rgb(56 189 248 / 7%), 0 0 32px rgb(37 99 235 / 20%), inset 0 0 26px rgb(56 189 248 / 12%);
   opacity: 0;
-  animation: dispatchWaterRipple 8s ease-out infinite;
+  animation: dispatchWaterRipple 8.4s ease-out infinite;
   will-change: transform, opacity;
+}
+
+.dispatch-water-ripple:nth-child(2) {
+  border-radius: 42% 58% 48% 52% / 61% 39% 56% 44%;
+  border-color: rgb(8 145 178 / 30%);
+}
+
+.dispatch-water-ripple:nth-child(3) {
+  border-radius: 63% 37% 53% 47% / 46% 55% 45% 54%;
+  border-color: rgb(59 130 246 / 26%);
 }
 
 @media (prefers-reduced-motion: reduce) {
