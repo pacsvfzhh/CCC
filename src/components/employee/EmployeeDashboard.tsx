@@ -530,6 +530,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     result: RealtimeNotificationClaim,
     session: EmployeeFinancialSession,
   ) => {
+    if (financialSessionInvalidRef.current) return;
     const recipientId = result.recipient.id;
     const completionPayload = {
       p_user_id: employee.id,
@@ -542,13 +543,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     let completion = await supabase.rpc('complete_notification_delivery', completionPayload);
     if (completion.error && navigator.onLine && isSupabaseTransientError(completion.error)) {
       await new Promise(resolve => window.setTimeout(resolve, 300));
+      if (financialSessionInvalidRef.current) return;
       completion = await supabase.rpc('complete_notification_delivery', completionPayload);
     }
     if (completion.error) throw completion.error;
     if (!(completion.data as { success?: boolean } | null)?.success) {
       throw new Error('Notification delivery could not be confirmed.');
     }
-    if (financialSessionInvalidRef.current || deliveredRecipientIdsRef.current.has(recipientId)) return;
+    if (deliveredRecipientIdsRef.current.has(recipientId)) return;
 
     deliveredRecipientIdsRef.current.add(recipientId);
     playNotificationSound();

@@ -850,7 +850,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
     showNotification({
       type: 'error', title: 'Dispatch Session Ended',
       message: financialSessionValid === null
-        ? 'Your employee session could not be verified. Please sign in again.'
+        ? 'Your session could not be verified. Check your connection and start work again, or sign in again.'
         : 'Your work session has ended. Start again to resume dispatch.',
       duration: 0,
     });
