@@ -15,50 +15,119 @@ CREATE TABLE private.retained_employee_chat_images (
 );
 REVOKE ALL ON private.retained_employee_chat_images FROM PUBLIC, anon, authenticated;
 
-CREATE FUNCTION private.employee_chat_image_in_use(p_path text)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+CREATE TABLE private.employee_chat_image_deletion_claims (
+  path text PRIMARY KEY,
+  job_id uuid NOT NULL,
+  claimed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  deleted_at timestamptz
+);
+REVOKE ALL ON private.employee_chat_image_deletion_claims FROM PUBLIC, anon, authenticated;
+
+CREATE FUNCTION private.guard_employee_chat_image_reference()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
-  SELECT p_path IS NULL OR p_path = ''
-    OR EXISTS (SELECT 1 FROM public.customer_employee_conversations conversation
-      WHERE strpos(COALESCE(conversation.image_url, ''), p_path) > 0
-        OR strpos(COALESCE(conversation.message_content, ''), p_path) > 0
-        OR strpos(COALESCE(conversation.rating_data::text, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.messages message
-      WHERE strpos(COALESCE(message.content, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.broadcast_messages message
-      WHERE strpos(COALESCE(message.image_url, ''), p_path) > 0
-        OR strpos(COALESCE(message.message_content, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.announcements announcement
-      WHERE strpos(COALESCE(announcement.content, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.cs_message_templates template
-      WHERE strpos(COALESCE(template.content, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.customer_auto_messages automated
-      WHERE strpos(COALESCE(automated.content, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.rich_card_contents card
-      WHERE strpos(COALESCE(card.html_content, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.message_templates template
-      WHERE strpos(COALESCE(template.content, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.notification_automation_tasks task
-      WHERE strpos(COALESCE(task.content_template, ''), p_path) > 0
-        OR strpos(COALESCE(task.title_template, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.simulated_customers customer
-      WHERE strpos(COALESCE(customer.custom_avatar_url, ''), p_path) > 0
-        OR strpos(COALESCE(customer.customer_avatar, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.admin_configs config
-      WHERE strpos(COALESCE(config.icon_custom_url, ''), p_path) > 0
-        OR strpos(COALESCE(config.config_value, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.system_configs config
-      WHERE strpos(COALESCE(config.value::text, ''), p_path) > 0)
-    OR EXISTS (SELECT 1 FROM public.financial_operations operation
-      WHERE strpos(operation.request_data::text, p_path) > 0
-        OR strpos(operation.result::text, p_path) > 0)
-    OR EXISTS (SELECT 1 FROM private.content_audit_events event
-      WHERE strpos(COALESCE(event.before_data::text, ''), p_path) > 0
-        OR strpos(COALESCE(event.after_data::text, ''), p_path) > 0
-        OR strpos(event.media_refs::text, p_path) > 0)
-    OR EXISTS (SELECT 1 FROM private.deleted_employee_notifications notification
-      WHERE strpos(COALESCE(notification.message_data::text, ''), p_path) > 0
-        OR strpos(COALESCE(notification.recipient_data::text, ''), p_path) > 0);
+BEGIN
+  PERFORM pg_advisory_xact_lock_shared(hashtext('employee-chat-image-references'));
+  IF EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
+    WHERE strpos(to_jsonb(NEW)::text, claim.path) > 0) THEN
+    RAISE EXCEPTION 'The image has been reserved for permanent deletion. Upload or select another image.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION private.guard_employee_chat_image_reference() FROM PUBLIC, anon, authenticated;
+
+DO $reference_guards$
+DECLARE target record;
+BEGIN
+  FOR target IN SELECT * FROM (VALUES
+    ('public', 'customer_employee_conversations', 'image_url, message_content, rating_data'),
+    ('public', 'messages', 'content'),
+    ('public', 'broadcast_messages', 'image_url, message_content'),
+    ('public', 'announcements', 'content'),
+    ('public', 'cs_message_templates', 'content'),
+    ('public', 'customer_auto_messages', 'content'),
+    ('public', 'rich_card_contents', 'html_content'),
+    ('public', 'message_templates', 'content'),
+    ('public', 'notification_automation_tasks', 'content_template, title_template'),
+    ('public', 'notification_automation_executions', 'title_snapshot, content_snapshot'),
+    ('public', 'simulated_customers', 'custom_avatar_url, customer_avatar'),
+    ('public', 'admin_configs', 'icon_custom_url, config_value'),
+    ('public', 'system_configs', 'value'),
+    ('public', 'financial_operations', 'request_data, result'),
+    ('private', 'content_audit_events', 'before_data, after_data, media_refs'),
+    ('private', 'deleted_employee_notifications', 'message_data, recipient_data')
+  ) AS sources(schema_name, table_name, columns_to_guard) LOOP
+    EXECUTE format('CREATE TRIGGER guard_employee_chat_image_reference BEFORE INSERT OR UPDATE OF %s ON %I.%I FOR EACH ROW EXECUTE FUNCTION private.guard_employee_chat_image_reference()',
+      target.columns_to_guard, target.schema_name, target.table_name);
+  END LOOP;
+END;
+$reference_guards$;
+
+CREATE FUNCTION public.allow_employee_chat_image_upload(p_path text)
+RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path = pg_catalog, private, pg_temp AS $$
+BEGIN
+  PERFORM pg_advisory_xact_lock_shared(hashtext('employee-chat-image-references'));
+  RETURN NOT EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims WHERE path = p_path);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.allow_employee_chat_image_upload(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.allow_employee_chat_image_upload(text) TO anon, authenticated;
+DROP POLICY "Anyone can upload chat images" ON storage.objects;
+CREATE POLICY "Anyone can upload chat images" ON storage.objects FOR INSERT TO public
+WITH CHECK (bucket_id = 'chat-images' AND public.allow_employee_chat_image_upload(name));
+
+CREATE FUNCTION private.employee_chat_image_in_use(p_path text)
+RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+BEGIN
+  IF p_path IS NULL OR p_path = '' THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.cs_message_templates template
+    WHERE strpos(COALESCE(template.content, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.customer_employee_conversations conversation
+    WHERE strpos(COALESCE(conversation.image_url, ''), p_path) > 0
+      OR strpos(COALESCE(conversation.message_content, ''), p_path) > 0
+      OR strpos(COALESCE(conversation.rating_data::text, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.messages message
+    WHERE strpos(COALESCE(message.content, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.broadcast_messages message
+    WHERE strpos(COALESCE(message.image_url, ''), p_path) > 0
+      OR strpos(COALESCE(message.message_content, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.announcements announcement
+    WHERE strpos(COALESCE(announcement.content, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.customer_auto_messages automated
+    WHERE strpos(COALESCE(automated.content, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.message_templates template
+    WHERE strpos(COALESCE(template.content, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.notification_automation_tasks task
+    WHERE strpos(COALESCE(task.content_template, ''), p_path) > 0
+      OR strpos(COALESCE(task.title_template, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.notification_automation_executions execution
+    WHERE strpos(COALESCE(execution.title_snapshot, ''), p_path) > 0
+      OR strpos(COALESCE(execution.content_snapshot, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.simulated_customers customer
+    WHERE strpos(COALESCE(customer.custom_avatar_url, ''), p_path) > 0
+      OR strpos(COALESCE(customer.customer_avatar, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.admin_configs config
+    WHERE strpos(COALESCE(config.icon_custom_url, ''), p_path) > 0
+      OR strpos(COALESCE(config.config_value, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.system_configs config
+    WHERE strpos(COALESCE(config.value::text, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.financial_operations operation
+    WHERE strpos(operation.request_data::text, p_path) > 0
+      OR strpos(operation.result::text, p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM private.content_audit_events event
+    WHERE strpos(COALESCE(event.before_data::text, ''), p_path) > 0
+      OR strpos(COALESCE(event.after_data::text, ''), p_path) > 0
+      OR strpos(event.media_refs::text, p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM private.deleted_employee_notifications notification
+    WHERE strpos(COALESCE(notification.message_data::text, ''), p_path) > 0
+      OR strpos(COALESCE(notification.recipient_data::text, ''), p_path) > 0) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.rich_card_contents card
+    WHERE strpos(COALESCE(card.html_content, ''), p_path) > 0) THEN RETURN true; END IF;
+  RETURN false;
+END;
 $$;
 REVOKE ALL ON FUNCTION private.employee_chat_image_in_use(text) FROM PUBLIC, anon, authenticated;
 
@@ -251,6 +320,25 @@ BEGIN
 END;
 $purge_patch$;
 
+DO $complete_media_purge$
+DECLARE definition text;
+BEGIN
+  definition := pg_get_functiondef('public.complete_deleted_employee_archive_delete(uuid, uuid)'::regprocedure);
+  IF strpos(definition, 'DELETE FROM private.deleted_employee_delete_jobs WHERE id = p_job_id;') = 0 THEN
+    RAISE EXCEPTION 'Unexpected employee media completion definition.';
+  END IF;
+  definition := replace(definition,
+    'DELETE FROM private.deleted_employee_delete_jobs WHERE id = p_job_id;',
+    $completed_images$
+    UPDATE private.employee_chat_image_deletion_claims
+    SET deleted_at = clock_timestamp()
+    WHERE job_id = p_job_id AND deleted_at IS NULL;
+    DELETE FROM private.deleted_employee_delete_jobs WHERE id = p_job_id;
+    $completed_images$);
+  EXECUTE definition;
+END;
+$complete_media_purge$;
+
 CREATE FUNCTION public.recheck_deleted_employee_archive_media(
   p_admin_session_token uuid, p_job_id uuid, p_paths text[]
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
@@ -266,6 +354,11 @@ BEGIN
     RAISE EXCEPTION 'Employee deletion has not finished.';
   END IF;
   IF cardinality(p_paths) NOT BETWEEN 1 AND 20 THEN RAISE EXCEPTION 'Invalid media batch.'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtext('employee-chat-image-references'));
+  IF EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
+    WHERE claim.path = ANY(p_paths) AND claim.job_id <> p_job_id) THEN
+    RAISE EXCEPTION 'An image is already reserved by another employee deletion. Retry after that deletion finishes.';
+  END IF;
   WITH checked AS MATERIALIZED (
     SELECT item.data ->> 'path' AS path, private.employee_chat_image_in_use(item.data ->> 'path') AS in_use
     FROM jsonb_array_elements(v_job.paths_to_remove) item(data)
@@ -280,6 +373,11 @@ BEGIN
   WHERE checked.in_use IS DISTINCT FROM true;
   INSERT INTO private.retained_employee_chat_images(path)
   SELECT DISTINCT unnest(v_shared_paths) ON CONFLICT (path) DO NOTHING;
+  INSERT INTO private.employee_chat_image_deletion_claims(path, job_id)
+  SELECT DISTINCT item.data ->> 'path', p_job_id
+  FROM jsonb_array_elements(v_paths) item(data)
+  WHERE item.data ->> 'bucket' = 'chat-images' AND item.data ->> 'path' = ANY(p_paths)
+  ON CONFLICT (path) DO NOTHING;
   UPDATE private.deleted_employee_delete_jobs
   SET paths_to_remove = v_paths, retained_shared_images = retained_shared_images + v_retained
   WHERE id = p_job_id RETURNING * INTO v_job;
