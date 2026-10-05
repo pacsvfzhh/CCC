@@ -346,32 +346,61 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
     void reconcileLoginAndNotifications();
 
+    let recoveryQueued = false;
+    let recoveryFailures = 0;
+    let recoveryRetryAt = 0;
+    let transientWarningShown = false;
+    let cancelled = false;
+
     const recoverWhileActive = () => {
       if (
-        financialSessionInvalidRef.current
+        cancelled
+        || recoveryQueued
+        || Date.now() < recoveryRetryAt
+        || financialSessionInvalidRef.current
         || document.visibilityState !== 'visible'
         || !navigator.onLine
         || notificationChannelStatusRef.current !== 'SUBSCRIBED'
       ) return;
 
+      recoveryQueued = true;
       void loadUnreadCountRef.current?.();
       realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
-        .then(() => recoverRealtimeNotificationsRef.current?.())
+        .then(async () => {
+          if (cancelled || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+          await recoverRealtimeNotificationsRef.current?.();
+          recoveryFailures = 0;
+          recoveryRetryAt = 0;
+          transientWarningShown = false;
+        })
         .catch(error => {
+          if (cancelled) return;
           if (isExpiredEmployeeSession(error)) {
             financialSessionInvalidRef.current = true;
             setShowSessionExpired(true);
             return;
           }
+          if (isSupabaseTransientError(error)) {
+            recoveryFailures += 1;
+            recoveryRetryAt = Date.now() + Math.min(30000 * 2 ** (recoveryFailures - 1), 300000);
+            if (!transientWarningShown) {
+              console.warn('Realtime notification recovery temporarily unavailable; retrying automatically:', formatSupabaseError(error));
+              transientWarningShown = true;
+            }
+            return;
+          }
           console.error('Error recovering realtime notifications:', formatSupabaseError(error));
-        });
+        })
+        .finally(() => { recoveryQueued = false; });
     };
 
     const recoverAfterInterruption = () => {
-      if (financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
+      if (cancelled || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
 
+      recoveryRetryAt = 0;
       void loadUnreadCountRef.current?.();
       if (notificationChannelStatusRef.current === 'SUBSCRIBED') {
+        recoverWhileActive();
         void checkLoginPopupMessagesRef.current?.(true);
       }
     };
@@ -425,6 +454,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     }, 0);
 
     return () => {
+      cancelled = true;
       window.removeEventListener('online', recoverAfterInterruption);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(recoveryTimer);

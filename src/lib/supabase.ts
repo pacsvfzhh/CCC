@@ -87,6 +87,7 @@ export function isSupabaseTransientError(error: unknown): boolean {
     || [408, 425, 429, 500, 502, 503, 504].includes(status)
     || message.includes('failed to fetch')
     || message.includes('networkerror')
+    || message.includes('unable to connect to supabase')
     || message.includes('timed out');
 }
 
