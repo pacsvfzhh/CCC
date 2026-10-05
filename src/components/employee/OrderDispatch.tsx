@@ -114,6 +114,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const [hasTimeout, setHasTimeout] = useState(false);
   const [hasFiveMinuteWarning, setHasFiveMinuteWarning] = useState(false);
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
+  const [waitingTime, setWaitingTime] = useState(0);
   const [, setTotalWorkTime] = useState(0);
   const [, setUnacceptedCount] = useState(0);
   const [showAutoStopModal, setShowAutoStopModal] = useState(false);
@@ -391,6 +392,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     }
   }, [session.isWorking]);
+
+  useEffect(() => {
+    if (!session.isWorking || currentOrder) {
+      setWaitingTime(0);
+      return;
+    }
+    if (showGrabFailedModal) return;
+    const interval = setInterval(() => setWaitingTime(previous => previous + 1), 1000);
+    return () => clearInterval(interval);
+  }, [session.isWorking, currentOrder, showGrabFailedModal]);
 
   // Keep the async timer guards in sync before setting up per-order timers.
   useEffect(() => {
@@ -3073,29 +3084,31 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           ) : (
             <>
             {session.isWorking && !(isTransitioning && transitionType === 'start') && (
-              <div role="status" className="relative overflow-hidden rounded-2xl border border-blue-400/30 bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 p-5 text-white shadow-xl shadow-blue-900/20 md:rounded-3xl md:p-8">
-                <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
-                <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8">
-                  <div className="flex flex-col justify-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 bg-white/10"><Package className="h-6 w-6 text-cyan-200" aria-hidden="true" /></span>
-                      <div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-[0.15em] text-cyan-200">{t.dispatch.orderProcessing}</p><p className="mt-1 text-sm font-semibold text-white">{dispatchPause ? t.dispatch.waitingForOrders : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p></div>
-                      <button type="button" onClick={() => void handleStopWork(false).catch(() => undefined)} disabled={isProcessing} aria-label={t.dispatch.goOffline} title={t.dispatch.goOffline} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-blue-100 transition-colors hover:border-rose-300/60 hover:bg-rose-500/25 hover:text-white disabled:cursor-wait disabled:opacity-50"><Square className="h-3.5 w-3.5" aria-hidden="true" /></button>
+              <div role="status" className="relative isolate overflow-hidden rounded-2xl border border-blue-400/30 bg-blue-800 px-5 py-10 text-white shadow-xl shadow-blue-900/20 md:rounded-3xl md:px-10 md:py-12">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,60,0.98)_0%,rgba(30,58,138,0.88)_47%,rgba(59,130,246,0.35)_100%)]" />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="h-52 w-52 rounded-full bg-blue-400/30 blur-3xl animate-breath-ripple md:h-72 md:w-72" />
+                  <div className="absolute h-64 w-64 rounded-full border border-sky-300/20 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
+                </div>
+                <button type="button" onClick={() => void handleStopWork(false).catch(() => undefined)} disabled={isProcessing} aria-label={t.dispatch.goOffline} title={t.dispatch.goOffline} className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-blue-100 transition-colors hover:border-rose-300/60 hover:bg-rose-500/25 hover:text-white disabled:cursor-wait disabled:opacity-50 md:right-6 md:top-6"><Square className="h-3.5 w-3.5" aria-hidden="true" /></button>
+                <div className="relative z-10 text-center">
+                  <div className="mb-6 flex items-center justify-center gap-2 md:mb-8">
+                    <span className="h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)] animate-pulse" />
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-white md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
+                    <span className="rounded-full border border-white/25 bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 md:text-[10px]">{t.dispatch.live}</span>
+                  </div>
+                  <div className="mb-7 flex items-start justify-center gap-3 md:mb-8 md:gap-5">
+                    <div className="text-center">
+                      <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
+                      <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.min}</div>
                     </div>
-                    <p className="text-sm leading-6 text-blue-100/80">{t.dispatch.waitingForOrders}</p>
-                    <div className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wider">
-                      <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1.5 text-emerald-200">{t.dispatch.verified}</span>
-                      <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1.5 text-cyan-100">{t.dispatch.encryptedLabel}</span>
+                    <span aria-hidden="true" className="-mt-1 text-4xl font-bold text-sky-300 md:text-7xl">:</span>
+                    <div className="text-center">
+                      <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
+                      <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-white/15 bg-white/[0.08] p-5 shadow-inner shadow-blue-950/20 md:p-6">
-                    <div className="flex items-center gap-2 border-b border-white/10 pb-3 text-sm font-bold text-blue-100"><FileText className="h-4 w-4 text-cyan-200" aria-hidden="true" />{t.dispatch.orderDetails}</div>
-                    <div className="flex min-h-32 flex-col items-center justify-center gap-3 text-center">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10"><Package className="h-6 w-6 text-blue-200" aria-hidden="true" /></span>
-                      <p className="text-sm font-semibold text-white">{t.dispatch.waitingForOrders}</p>
-                      <p className="text-xs text-blue-200/80">{t.dispatch.acceptToUnlock}</p>
-                    </div>
-                  </div>
+                  <p className="text-xs font-medium text-blue-100/80 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                 </div>
               </div>
             )}
