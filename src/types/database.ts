@@ -3830,30 +3830,18 @@ export interface Database {
         };
         Returns: string;
       };
-      log_employee_logout: {
+      log_employee_logout_secure: {
         Args: {
-          p_employee_id: string;
-          p_ip_address: string;
-          p_session_id?: string | null;
-          p_user_agent?: string;
+          p_device_info: unknown | null;
+          p_financial_token: string;
+          p_session_id: string;
+          p_tab_id: string;
+          p_user_agent: string | null;
           p_user_id: string;
-          p_username: string;
         };
         Returns: string;
       };
       log_employee_login_with_device_info: {
-        Args: {
-          p_device_info?: unknown | null;
-          p_employee_id: string;
-          p_ip_address: string;
-          p_session_id?: string | null;
-          p_user_agent?: string;
-          p_user_id: string;
-          p_username: string;
-        };
-        Returns: string;
-      };
-      log_employee_logout_with_device_info: {
         Args: {
           p_device_info?: unknown | null;
           p_employee_id: string;

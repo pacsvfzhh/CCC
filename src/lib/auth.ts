@@ -166,8 +166,8 @@ export async function logout(isUserInitiated: boolean = true) {
         })(),
         logEmployeeLogout(
           auth.user.id,
-          auth.user.username,
-          auth.user.employee_id,
+          auth.financialSessionToken,
+          auth.tabId,
           auth.sessionToken,
         ).catch(() => undefined),
       );

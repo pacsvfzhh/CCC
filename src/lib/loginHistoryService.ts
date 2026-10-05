@@ -66,44 +66,23 @@ export async function logEmployeeLogin(
 
 export async function logEmployeeLogout(
   userId: string,
-  username: string,
-  employeeId: string,
-  sessionId?: string
+  financialToken: string,
+  tabId: string,
+  sessionId: string
 ): Promise<void> {
   try {
     const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
-    const [ipAddress, deviceInfo] = await Promise.all([
-      getUserIP(),
-      collectLoginDeviceInfo().catch(() => parseLoginDeviceInfo(userAgent)),
-    ]);
-
-    const { error: structuredError } = await supabase.rpc('log_employee_logout_with_device_info', {
+    const deviceInfo = await collectLoginDeviceInfo().catch(() => parseLoginDeviceInfo(userAgent));
+    const { error } = await supabase.rpc('log_employee_logout_secure', {
       p_user_id: userId,
-      p_username: username,
-      p_employee_id: employeeId,
-      p_ip_address: ipAddress,
-      p_user_agent: userAgent,
-      p_session_id: sessionId || null,
+      p_financial_token: financialToken,
+      p_tab_id: tabId,
+      p_session_id: sessionId,
+      p_user_agent: userAgent || null,
       p_device_info: deviceInfo,
     });
 
-    if (!structuredError) return;
-
-    const { error: fallbackError } = await supabase.rpc('log_employee_logout', {
-      p_user_id: userId,
-      p_username: username,
-      p_employee_id: employeeId,
-      p_ip_address: ipAddress,
-      p_user_agent: userAgent,
-      p_session_id: sessionId || null,
-    });
-
-    if (fallbackError) {
-      console.error(
-        'Error logging employee logout:',
-        `${formatSupabaseError(fallbackError)} (structured RPC: ${formatSupabaseError(structuredError)})`,
-      );
-    }
+    if (error) console.error('Error logging employee logout:', formatSupabaseError(error));
   } catch (error) {
     console.error('Error in logEmployeeLogout:', formatSupabaseError(error));
   }
