@@ -1,3 +1,6 @@
+CREATE INDEX content_audit_events_employee_id_idx ON private.content_audit_events(employee_id)
+WHERE employee_id IS NOT NULL;
+
 CREATE OR REPLACE FUNCTION public.list_unpurged_archived_employees(p_admin_session_token uuid)
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
@@ -8,8 +11,8 @@ BEGIN
 
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
     'employee_id', employee.id,
-    'username', employee.username,
-    'employee_number', employee.employee_id,
+    'original_username', identity.original_username,
+    'archived_alias', employee.username,
     'owner_username', owner.username,
     'archived_at', employee.archived_at,
     'order_count', (SELECT count(*) FROM public.orders item WHERE item.user_id = employee.id),
@@ -30,6 +33,12 @@ BEGIN
   FROM public.users employee
   LEFT JOIN public.admins owner ON owner.id = employee.created_by
   LEFT JOIN LATERAL (
+    SELECT CASE WHEN count(DISTINCT history.username) = 1 THEN min(history.username) ELSE NULL END AS original_username
+    FROM public.employee_login_history history
+    WHERE history.user_id = employee.id AND history.username <> employee.username
+      AND history.username NOT LIKE 'archived-%'
+  ) identity ON true
+  LEFT JOIN LATERAL (
     SELECT count(*) AS candidate_count,
       count(*) FILTER (WHERE EXISTS (
         SELECT 1 FROM public.cs_message_templates template
@@ -46,5 +55,36 @@ BEGIN
   WHERE employee.archived_at IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM private.deleted_employee_accounts record WHERE record.employee_id = employee.id);
   RETURN v_result;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.prepare_unpurged_archived_employee_delete(
+  p_admin_session_token uuid, p_employee_id uuid
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE v_admin uuid; v_role text; v_employee public.users%ROWTYPE;
+  v_original_username text; v_job uuid;
+BEGIN
+  SELECT admin_id, admin_role INTO v_admin, v_role
+  FROM private.get_financial_admin_context(p_admin_session_token);
+  IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
+  SELECT * INTO v_employee FROM public.users WHERE id = p_employee_id AND archived_at IS NOT NULL FOR UPDATE;
+  IF v_employee.id IS NULL OR EXISTS (
+    SELECT 1 FROM private.deleted_employee_accounts WHERE employee_id = p_employee_id
+  ) THEN RAISE EXCEPTION 'Archived employee without a private record is not available.'; END IF;
+  SELECT CASE WHEN count(DISTINCT history.username) = 1 THEN min(history.username) ELSE NULL END
+  INTO v_original_username
+  FROM public.employee_login_history history
+  WHERE history.user_id = v_employee.id AND history.username <> v_employee.username
+    AND history.username NOT LIKE 'archived-%';
+  IF v_original_username IS NULL THEN RAISE EXCEPTION 'Archived employee identity cannot be uniquely verified.'; END IF;
+  INSERT INTO private.deleted_employee_delete_jobs(
+    admin_id, token_hash, account_ids, notification_ids, notification_count,
+    account_fingerprint, notification_fingerprint, orphan_employee_ids, orphan_fingerprint
+  ) VALUES (v_admin, private.hash_financial_token(p_admin_session_token), '{}'::uuid[], '{}'::uuid[], 0,
+    md5('[]'), md5('[]'), ARRAY[p_employee_id], md5(to_jsonb(v_employee)::text))
+  RETURNING id INTO v_job;
+  RETURN jsonb_build_object('job_id', v_job, 'account_count', 1, 'notification_count', 0,
+    'original_username', v_original_username);
 END;
 $$;

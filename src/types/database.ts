@@ -2372,8 +2372,8 @@ export interface Database {
         Args: { p_admin_session_token: string };
         Returns: Array<{
           employee_id: string;
-          username: string;
-          employee_number: string | null;
+          original_username: string | null;
+          archived_alias: string;
           owner_username: string | null;
           archived_at: string;
           order_count: number;
@@ -2391,7 +2391,7 @@ export interface Database {
       };
       prepare_unpurged_archived_employee_delete: {
         Args: { p_admin_session_token: string; p_employee_id: string };
-        Returns: { job_id: string; account_count: number; notification_count: number };
+        Returns: { job_id: string; account_count: number; notification_count: number; original_username: string };
       };
       list_deleted_employee_notifications: {
         Args: { p_admin_session_token: string; p_record_id: string; p_page?: number; p_page_size?: number };

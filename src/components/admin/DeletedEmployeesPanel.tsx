@@ -35,8 +35,8 @@ type NotificationRow = { id: string; title: string | null; sender_username: stri
 type NotificationDetail = { id: string; message_data: Record<string, unknown> | null; recipient_data: Record<string, unknown> | null; cleared_at: string | null };
 type LegacyArchivedEmployee = {
   employee_id: string;
-  username: string;
-  employee_number: string | null;
+  original_username: string | null;
+  archived_alias: string;
   owner_username: string | null;
   archived_at: string;
   order_count: number;
@@ -269,6 +269,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [legacyLoading, setLegacyLoading] = useState(false);
   const [legacyBusy, setLegacyBusy] = useState(false);
   const [legacyError, setLegacyError] = useState<string | null>(null);
+  const [legacySuccess, setLegacySuccess] = useState<string | null>(null);
   const [legacyPreview, setLegacyPreview] = useState<{ jobId: string; employee: LegacyArchivedEmployee } | null>(null);
   const [legacyConfirmation, setLegacyConfirmation] = useState('');
   const filtersRef = useRef(filters);
@@ -307,8 +308,10 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         p_admin_session_token: getAdminFinancialSessionToken(),
       });
       if (error) throw error;
-      if (!Array.isArray(data) || !data.every(item => typeof item.employee_id === 'string' && typeof item.username === 'string'
-        && typeof item.order_count === 'number' && typeof item.candidate_image_count === 'number')) {
+      if (!Array.isArray(data) || !data.every(item => typeof item.employee_id === 'string'
+        && (item.original_username === null || typeof item.original_username === 'string')
+        && typeof item.archived_alias === 'string' && typeof item.order_count === 'number'
+        && typeof item.candidate_image_count === 'number')) {
         throw new Error('舊歸檔核對服務尚未更新，暫時無法安全預覽。');
       }
       setLegacyItems(data);
@@ -326,15 +329,18 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     if (legacyBusy || legacyLoading) return;
     setLegacyBusy(true);
     setLegacyError(null);
+    setLegacySuccess(null);
     try {
       const employee = (await loadLegacy()).find(item => item.employee_id === employeeId);
       if (!employee) throw new Error('此員工已不在待清理名單，請重新核對。');
+      if (!employee.original_username) throw new Error('無法唯一核實此員工的原帳號，已停止刪除。');
       if (employee.active_chat_count) throw new Error('此員工仍有即時聊天紀錄，服務端將拒絕永久刪除。');
       const { data, error } = await supabase.rpc('prepare_unpurged_archived_employee_delete', {
         p_admin_session_token: getAdminFinancialSessionToken(), p_employee_id: employeeId,
       });
       if (error) throw error;
-      if (!data || typeof data.job_id !== 'string' || data.account_count !== 1 || data.notification_count !== 0) throw new Error('刪除範圍格式不正確。');
+      if (!data || typeof data.job_id !== 'string' || data.account_count !== 1 || data.notification_count !== 0
+        || data.original_username !== employee.original_username) throw new Error('刪除範圍或原帳號已變更，請重新核對。');
       setLegacyConfirmation('');
       setLegacyPreview({ jobId: data.job_id, employee });
     } catch (error) {
@@ -345,14 +351,17 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   };
 
   const confirmLegacyDeletion = async () => {
-    if (!legacyPreview || legacyBusy || legacyConfirmation !== legacyPreview.employee.username) return;
+    if (!legacyPreview || legacyBusy || !legacyPreview.employee.original_username
+      || legacyConfirmation !== legacyPreview.employee.original_username) return;
     setLegacyBusy(true);
     setLegacyError(null);
+    setLegacySuccess(null);
     try {
       const result = await executeEmployeeArchiveDeletion(legacyPreview.jobId);
       setRetainedSharedImages(result.retained_shared_images);
       setLegacyPreview(null);
       setLegacyConfirmation('');
+      setLegacySuccess(`${legacyPreview.employee.original_username} 已永久刪除；${result.retained_shared_images} 張仍被其他內容引用的原圖已保留。`);
       onDeleted();
       await loadLegacy().catch(() => {});
     } catch (error) {
@@ -362,10 +371,10 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       try {
         const jobs = await listPendingEmployeeArchiveDeletions();
         setPendingCleanup(jobs);
+        await loadLegacy().catch(() => {});
         setLegacyError(jobs.some(job => job.job_id === legacyPreview.jobId)
           ? `員工資料已移除，但媒體仍待清理：${formatSupabaseError(error)}。請關閉此視窗，從主頁的待清理提示重試。`
           : `無法確認刪除結果：${formatSupabaseError(error)}。請重新載入並核對資料。`);
-        await loadLegacy().catch(() => {});
       } catch {
         setLegacyError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對資料與待清理檔案。`);
       }
@@ -837,7 +846,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section aria-label="已刪員工帳戶列表" className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-900`}>
           <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 py-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div><p className="mt-1 text-[10px] text-slate-400">刪除涵蓋目前篩選中尚未載入的檔案</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => { setShowLegacy(true); void loadLegacy().catch(() => {}); }} className={`rounded-lg border border-slate-600 px-2 py-2 text-[11px] font-bold text-slate-200 hover:bg-slate-800 ${focusClass}`}>舊歸檔核對</button><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 text-[11px] font-bold text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button></div></div>
+            <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div><p className="mt-1 text-[10px] text-slate-400">刪除涵蓋目前篩選中尚未載入的檔案</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => { setShowLegacy(true); setLegacySuccess(null); void loadLegacy().catch(() => {}); }} className={`rounded-lg border border-slate-600 px-2 py-2 text-[11px] font-bold text-slate-200 hover:bg-slate-800 ${focusClass}`}>舊歸檔核對</button><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 text-[11px] font-bold text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button></div></div>
             {deleteError && !selectedId && <p role="alert" className="mt-2 text-xs text-rose-300">{deleteError}</p>}
             {pendingCleanup.map(job => <button key={job.job_id} type="button" disabled={deleting} onClick={() => void retryPendingCleanup(job.job_id)} className={`mt-2 block text-left text-xs text-amber-200 underline disabled:opacity-50 ${focusClass}`}>上次刪除的附件或原圖尚有 {job.file_count} 個待核對，點此重試清理</button>)}
             {retainedSharedImages !== null && retainedSharedImages > 0 && <p role="status" className="mt-2 text-xs text-amber-200">有 {retainedSharedImages} 張原圖仍被其他內容引用，為避免影響共用內容已保留。</p>}
@@ -920,25 +929,26 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
           </header>
           <div className="min-h-0 space-y-3 overflow-y-auto p-4 sm:p-5">
             {legacyError && <p role="alert" className="rounded-lg border border-rose-400/25 bg-rose-500/10 p-3 text-xs text-rose-200">{legacyError}</p>}
+            {legacySuccess && <p role="status" className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-3 text-xs text-emerald-200">{legacySuccess}</p>}
             {legacyPreview ? <>
-              <p className="text-sm font-bold text-rose-200">確認永久刪除 {legacyPreview.employee.username}（{legacyPreview.employee.employee_number || '無員工編號'}）</p>
-              <p className="break-all text-xs text-slate-400">員工識別：{legacyPreview.employee.employee_id}</p>
+              <p className="text-sm font-bold text-rose-200">確認永久刪除原帳號 {legacyPreview.employee.original_username}</p>
+              <p className="break-all text-xs text-slate-400">員工識別：{legacyPreview.employee.employee_id} · 歸檔別名：{legacyPreview.employee.archived_alias}</p>
               <p className="text-xs leading-5 text-slate-300">會一併刪除此員工的帳戶、訂單、錢包與財務資料、提現紀錄及私有聊天留證；即使有處理中訂單或待審核提現，也不會保留。其他內容正在使用的原圖會在刪除時重新核對並保留。此操作無法復原。</p>
               <div className="rounded-lg border border-white/10 bg-slate-950/50 p-3 text-xs leading-6 text-slate-300">
                 <p>目前訂單 {legacyPreview.employee.order_count} 筆（處理中 {legacyPreview.employee.processing_order_count} 筆）；歷史訂單 {legacyPreview.employee.historical_order_count} 筆</p>
                 <p>提現 {legacyPreview.employee.withdrawal_count} 筆（待審核 {legacyPreview.employee.pending_withdrawal_count} 筆）；可用／凍結 $ {legacyPreview.employee.available_balance ?? 0} / $ {legacyPreview.employee.frozen_balance ?? 0}</p>
-                <p>聊天留證 {legacyPreview.employee.audit_count} 筆；目前聊天 {legacyPreview.employee.active_chat_count} 筆（有聊天將拒絕刪除）</p>
+                <p>內容留證 {legacyPreview.employee.audit_count} 筆；目前聊天 {legacyPreview.employee.active_chat_count} 筆（有聊天將拒絕刪除）</p>
                 <p>候選原圖 {legacyPreview.employee.candidate_image_count} 張；目前快速發送範本仍引用 {legacyPreview.employee.quick_send_image_count} 張，實際保留數以執行時復核為準</p>
               </div>
-              <label htmlFor="legacy-archive-confirm" className="block text-xs text-slate-300">請輸入完整帳號 <strong className="text-white">{legacyPreview.employee.username}</strong> 確認刪除</label>
+              <label htmlFor="legacy-archive-confirm" className="block text-xs text-slate-300">請輸入原始登入帳號 <strong className="text-white">{legacyPreview.employee.original_username}</strong> 確認刪除</label>
               <input id="legacy-archive-confirm" type="text" autoComplete="off" spellCheck={false} value={legacyConfirmation} onChange={event => setLegacyConfirmation(event.target.value)} disabled={legacyBusy} className={inputClass} />
-              <div className="flex justify-end gap-2"><button type="button" disabled={legacyBusy} onClick={() => { setLegacyPreview(null); setLegacyConfirmation(''); }} className={`rounded-lg border border-slate-600 px-4 py-2 text-xs disabled:opacity-40 ${focusClass}`}>返回核對</button><button type="button" disabled={legacyBusy || legacyConfirmation !== legacyPreview.employee.username} onClick={() => void confirmLegacyDeletion()} className={`rounded-lg bg-rose-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40 ${focusClass}`}>{legacyBusy ? '清理中…' : '永久刪除此員工'}</button></div>
+              <div className="flex justify-end gap-2"><button type="button" disabled={legacyBusy} onClick={() => { setLegacyPreview(null); setLegacyConfirmation(''); }} className={`rounded-lg border border-slate-600 px-4 py-2 text-xs disabled:opacity-40 ${focusClass}`}>返回核對</button><button type="button" disabled={legacyBusy || legacyConfirmation !== legacyPreview.employee.original_username} onClick={() => void confirmLegacyDeletion()} className={`rounded-lg bg-rose-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40 ${focusClass}`}>{legacyBusy ? '清理中…' : '永久刪除此員工'}</button></div>
             </> : <>
               <div className="flex justify-between gap-3 text-xs text-slate-400"><p>以下資料不會出現在現有的員工清單或「全部刪除」範圍。</p><button type="button" disabled={legacyLoading || legacyBusy} onClick={() => void loadLegacy().catch(() => {})} className={`shrink-0 text-cyan-200 underline disabled:opacity-40 ${focusClass}`}>刷新</button></div>
               {legacyLoading ? <p role="status" className="py-5 text-center text-xs text-slate-400">正在核對舊歸檔員工…</p> : !legacyError && !legacyItems.length ? <p className="py-5 text-center text-xs text-slate-400">沒有需要清理的舊歸檔員工。</p> : null}
               {!legacyLoading && legacyItems.map(employee => <article key={employee.employee_id} className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-xs sm:p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-bold text-white">{employee.username} · {employee.employee_number || '無員工編號'}</h3><p className="mt-1 break-all text-slate-400">員工識別：{employee.employee_id}</p><p className="mt-1 text-slate-400">所屬管理員：{employee.owner_username || '已不存在'} · 歸檔：{displayTime(employee.archived_at)}</p></div><button type="button" disabled={legacyBusy || legacyLoading} onClick={() => void prepareLegacyDeletion(employee.employee_id)} className={`rounded-lg border border-rose-400/40 px-3 py-2 font-bold text-rose-200 hover:bg-rose-500/10 disabled:opacity-40 ${focusClass}`}>預覽單人刪除</button></div>
-                <p className="mt-2 text-slate-300">訂單 {employee.order_count}（處理中 {employee.processing_order_count}） · 提現 {employee.withdrawal_count}（待審核 {employee.pending_withdrawal_count}） · 聊天留證 {employee.audit_count}</p>
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-bold text-white">{employee.original_username || '原帳號無法核實'}</h3><p className="mt-1 break-all text-slate-400">員工識別：{employee.employee_id} · 歸檔別名：{employee.archived_alias}</p><p className="mt-1 text-slate-400">目前關聯管理員：{employee.owner_username || '已不存在'} · 歸檔：{displayTime(employee.archived_at)}</p></div><button type="button" disabled={legacyBusy || legacyLoading || !employee.original_username || employee.active_chat_count > 0} onClick={() => void prepareLegacyDeletion(employee.employee_id)} className={`rounded-lg border border-rose-400/40 px-3 py-2 font-bold text-rose-200 hover:bg-rose-500/10 disabled:opacity-40 ${focusClass}`}>預覽單人刪除</button></div>
+                <p className="mt-2 text-slate-300">訂單 {employee.order_count}（處理中 {employee.processing_order_count}） · 提現 {employee.withdrawal_count}（待審核 {employee.pending_withdrawal_count}） · 留證 {employee.audit_count}</p>{!employee.original_username && <p className="mt-1 text-amber-200">原帳號無法唯一核實，禁止刪除。</p>}{employee.active_chat_count > 0 && <p className="mt-1 text-amber-200">仍有即時聊天紀錄，服務端禁止刪除。</p>}
               </article>)}
             </>}
           </div>
