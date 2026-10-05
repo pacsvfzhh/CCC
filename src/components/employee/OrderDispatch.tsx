@@ -3123,18 +3123,18 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex items-center justify-center border-t border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] md:-mx-10 md:-mb-10 md:px-10 md:py-5">
+                <div className="-mx-5 -mb-5 flex items-center justify-end border-t border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] md:-mx-10 md:-mb-10 md:px-10 md:py-5">
                   <button
                     type="button"
                     onClick={() => void handleStopWork(false).catch(() => undefined)}
                     disabled={isProcessing}
-                    className={`group flex min-h-[52px] w-full max-w-[260px] items-center justify-center gap-2 rounded-xl border border-orange-200/75 bg-gradient-to-r from-[#ca4811] via-[#d03922] to-[#c62650] px-5 py-2.5 text-white shadow-[0_10px_24px_-10px_rgba(116,38,24,0.5),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all duration-200 hover:border-orange-200 hover:from-[#b9430e] hover:via-[#c5321e] hover:to-[#ad1d47] hover:shadow-[0_14px_28px_-10px_rgba(116,38,24,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-h-[58px] md:gap-3 md:px-6 md:py-3 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    className={`group flex min-h-[52px] w-full max-w-[260px] items-center justify-center gap-2 rounded-xl border border-cyan-200/50 bg-gradient-to-r from-[#113064] via-[#143e74] to-[#115473] px-5 py-2.5 text-white shadow-[0_12px_24px_-12px_rgba(7,25,64,0.7),inset_0_1px_0_rgba(255,255,255,0.16)] transition-all duration-200 hover:border-cyan-100/70 hover:from-[#19407b] hover:via-[#195284] hover:to-[#176982] hover:shadow-[0_16px_28px_-12px_rgba(7,25,64,0.8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-h-[58px] md:gap-3 md:px-6 md:py-3 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     {isProcessing ? (
                       <><span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" /><span className="text-xs font-bold md:text-sm">{t.dispatch.endingSession}</span></>
                     ) : (
-                      <><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/25 bg-white/15 text-white shadow-inner shadow-white/10 transition-colors group-hover:bg-white/25 md:h-8 md:w-8"><Square className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true" /></span><span className="text-left"><span className="block text-xs font-bold md:text-sm">{t.dispatch.endSession}</span><span className="hidden text-[11px] font-semibold text-white/90 md:block">{t.dispatch.stopAccepting}</span></span></>
+                      <><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-rose-300/50 bg-gradient-to-br from-rose-500 to-orange-500 text-white shadow-[0_5px_12px_-4px_rgba(244,63,94,0.6)] transition-all group-hover:from-rose-400 group-hover:to-orange-400 md:h-8 md:w-8"><Square className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true" /></span><span className="text-left"><span className="block text-xs font-bold md:text-sm">{t.dispatch.endSession}</span><span className="hidden text-[11px] font-semibold text-cyan-100/90 md:block">{t.dispatch.stopAccepting}</span></span></>
                     )}
                   </button>
                 </div>
