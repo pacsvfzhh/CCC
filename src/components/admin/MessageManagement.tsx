@@ -12,7 +12,7 @@ import {
   Send, Users, Bell, AlertCircle, X, Search,
   Check, CheckSquare, Square, Trash2, AlertTriangle,
   Pencil, Save, ChevronDown,
-  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles, ShieldCheck, Eye, Filter
+  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles, ShieldCheck, Eye
 } from 'lucide-react';
 
 interface AdminGroup {
@@ -195,7 +195,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [editForm, setEditForm] = useState({ title: '', content: '' });
   const [saving, setSaving] = useState(false);
 
-  const [manualOnlyFilter, setManualOnlyFilter] = useState(false);
+  const [messageOriginFilter, setMessageOriginFilter] = useState<'all' | 'manual' | 'automation'>('all');
   const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | NotificationDeliveryMode>('all');
   const [messageScopeFilter] = useState<'all' | 'broadcast' | 'targeted'>('all');
   const [readStatusFilter, setReadStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
@@ -1118,9 +1118,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       read_percentage: totalRecipients > 0 ? Math.round((readCount / totalRecipients) * 100) : 0,
     };
   };
-  const visibleGroupMessages = manualOnlyFilter
-    ? selectedGroupMessages.filter(message => message.audit_origin === 'manual_admin' && message.automation_execution_id === null)
-    : selectedGroupMessages;
+  const visibleGroupMessages = selectedGroupMessages.filter(message =>
+    messageOriginFilter === 'all'
+      || (messageOriginFilter === 'manual' && message.audit_origin === 'manual_admin' && message.automation_execution_id === null)
+      || (messageOriginFilter === 'automation' && (message.audit_origin === 'automation' || message.automation_execution_id !== null))
+  );
   const manageableGroupMessages = visibleGroupMessages.filter(message => message.automation_execution_id === null && message.audit_origin !== 'automation');
   const sentMessageReadSummary = visibleGroupMessages.reduce(
     (summary, message) => {
@@ -1160,7 +1162,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   useEffect(() => {
     setSelectedMessageIds(new Set());
-  }, [selectedAdminId, manualOnlyFilter, messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
+  }, [selectedAdminId, messageOriginFilter, messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
 
   const selectableMessages = filteredMessages.filter(message => message.automation_execution_id === null && message.audit_origin !== 'automation');
   const allSelectableSelected = selectableMessages.length > 0 && selectableMessages.every(message => selectedMessageIds.has(message.id));
@@ -1914,21 +1916,24 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
               <h3 className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">已發送訊息</h3>
-              <button
-                type="button"
-                aria-pressed={manualOnlyFilter}
-                aria-label={manualOnlyFilter ? '取消手動通知篩選' : '只顯示管理員手動發送的通知'}
-                onClick={() => setManualOnlyFilter(previous => !previous)}
-                className={`group flex h-8 w-[140px] shrink-0 items-center overflow-hidden rounded-lg border text-[10px] font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${manualOnlyFilter
-                  ? 'border-cyan-200 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_14px_rgba(34,211,238,0.38)] hover:from-cyan-400 hover:to-blue-500'
-                  : 'border-slate-500/80 bg-slate-950/70 text-slate-300 hover:border-cyan-300/70 hover:bg-cyan-950/70 hover:text-cyan-100'
-                }`}
-              >
-                <span className="flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap"><Bell className="h-3 w-3 shrink-0" />手動通知</span>
-                <span className={`flex h-full w-11 shrink-0 items-center justify-center gap-0.5 border-l ${manualOnlyFilter ? 'border-red-200 bg-red-600 text-white shadow-[inset_1px_0_0_rgba(255,255,255,0.18)] group-hover:bg-red-500' : 'border-slate-600 bg-slate-800/70'}`}>
-                  {manualOnlyFilter ? <><X className="h-3 w-3" /><span>取消</span></> : <Filter className="h-3.5 w-3.5" />}
-                </span>
-              </button>
+              <div role="group" aria-label="已發送訊息來源" className="grid h-8 w-[168px] shrink-0 grid-cols-[42px_1fr_1fr] gap-0.5 rounded-lg border border-slate-600 bg-slate-950/80 p-0.5 shadow-inner">
+                {([['all', '全部'], ['manual', '手動通知'], ['automation', '自動通知']] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={messageOriginFilter === value}
+                    onClick={() => { setMessageOriginFilter(value); exitSelectionMode(); }}
+                    className={`min-w-0 whitespace-nowrap rounded-md text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${messageOriginFilter === value
+                      ? value === 'manual'
+                        ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
+                        : value === 'automation'
+                          ? 'bg-violet-500 text-white shadow-sm shadow-violet-500/30'
+                          : 'bg-blue-500 text-white shadow-sm shadow-blue-500/30'
+                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    }`}
+                  >{label}</button>
+                ))}
+              </div>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="relative min-w-0 flex-1">
@@ -1998,8 +2003,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       type="button"
                       onClick={() => { setDeleteMode('all'); setShowDeleteConfirm(true); }}
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-red-400/40 bg-red-500/15 text-red-200 transition-colors hover:border-red-300/70 hover:bg-red-500/25"
-                      title={manualOnlyFilter ? '清除全部手動通知' : '清除全部可管理通知（不含自動化）'}
-                      aria-label={manualOnlyFilter ? '清除全部手動通知' : '清除全部可管理通知（不含自動化）'}
+                      title={messageOriginFilter === 'manual' ? '清除全部手動通知' : '清除全部可管理通知（不含自動化）'}
+                      aria-label={messageOriginFilter === 'manual' ? '清除全部手動通知' : '清除全部可管理通知（不含自動化）'}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -2011,7 +2016,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {/* Filter tabs */}
             <div className="space-y-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold tracking-[0.12em] text-slate-500">訊息類型</p>
+                  <p className="w-[58px] shrink-0 rounded-md border border-cyan-300/45 bg-cyan-400/15 px-0.5 py-1 text-center text-[10px] font-extrabold tracking-wide text-cyan-100">訊息類型</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([['all', '全部'], ['realtime_with_login_fallback', '結合'], ['realtime_only', '即時'], ['login_only', '登入']] as const).map(([val, label]) => {
                       const activeClass = val === 'realtime_with_login_fallback'
@@ -2038,7 +2043,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold tracking-[0.12em] text-slate-500">閱讀狀態</p>
+                  <p className="w-[58px] shrink-0 rounded-md border border-violet-300/45 bg-violet-400/15 px-0.5 py-1 text-center text-[10px] font-extrabold tracking-wide text-violet-100">閱讀狀態</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([
                       ['all', '全部', sentMessageReadSummary.total],
@@ -2073,7 +2078,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {messagesLoading ? (
               <div className="text-center py-10 text-slate-500 text-xs">載入中...</div>
             ) : visibleGroupMessages.length === 0 ? (
-              <div className="text-center py-10 text-slate-600 text-xs font-medium">{manualOnlyFilter ? '尚無手動發送的通知' : '尚無訊息'}</div>
+              <div className="text-center py-10 text-slate-600 text-xs font-medium">{messageOriginFilter === 'manual' ? '尚無手動發送的通知' : messageOriginFilter === 'automation' ? '尚無自動通知' : '尚無訊息'}</div>
             ) : filteredMessages.length === 0 ? (
               <div className="text-center py-10 text-slate-600 text-xs font-medium">沒有符合的結果</div>
             ) : (
@@ -2735,7 +2740,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </p>
                 ) : (
                   <p className="text-sm text-slate-300">
-                    您即將刪除所選管理員群組的<span className="font-semibold text-white">{manualOnlyFilter ? '全部手動通知' : '全部可管理通知（不含自動化）'}</span>。
+                    您即將刪除所選管理員群組的<span className="font-semibold text-white">{messageOriginFilter === 'manual' ? '全部手動通知' : '全部可管理通知（不含自動化）'}</span>。
                     {(deleteProgress?.total ?? manageableGroupMessages.length) > 0 && (
                       <span className="block mt-1 text-slate-400">（將刪除 {deleteProgress?.total ?? manageableGroupMessages.length} 則訊息）</span>
                     )}
