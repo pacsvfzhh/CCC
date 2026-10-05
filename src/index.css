@@ -1271,7 +1271,17 @@ body {
 
 .dispatch-waiting-surface {
   isolation: isolate;
-  background: linear-gradient(112deg, #c7defb 0%, #e2f0ff 27%, #fff 52%, #e7f7ff 76%, #b8d7f9 100%);
+  background: linear-gradient(112deg, #a9cbfa 0%, #dcecff 24%, #fff 45%, #cef4fc 69%, #9fc7f5 88%, #e9f5ff 100%);
+  background-size: 180% 180%;
+}
+
+.dispatch-waiting-surface-animated {
+  animation: dispatchPanelGradient 12s ease-in-out infinite alternate;
+}
+
+@keyframes dispatchPanelGradient {
+  from { background-position: 0% 30%; }
+  to { background-position: 100% 70%; }
 }
 
 .dispatch-waiting-surface::before {
@@ -1308,7 +1318,7 @@ body {
   border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
   -webkit-mask-image: radial-gradient(ellipse closest-side, #000 26%, rgb(0 0 0 / 90%) 44%, rgb(0 0 0 / 48%) 70%, transparent 100%);
   mask-image: radial-gradient(ellipse closest-side, #000 26%, rgb(0 0 0 / 90%) 44%, rgb(0 0 0 / 48%) 70%, transparent 100%);
-  background: radial-gradient(ellipse at 48% 52%, transparent 16%, rgb(37 99 235 / 18%) 36%, rgb(8 145 178 / 33%) 53%, rgb(125 211 252 / 17%) 68%, transparent 89%);
+  background: radial-gradient(ellipse at 48% 52%, transparent 16%, rgb(37 99 235 / 32%) 35%, rgb(6 182 212 / 49%) 53%, rgb(186 230 253 / 20%) 70%, transparent 89%);
   opacity: 0;
   animation: dispatchPanelBreath 8s ease-out infinite;
   will-change: transform, opacity;
@@ -1316,19 +1326,19 @@ body {
 
 .dispatch-panel-wave-2 {
   border-radius: 54% 46% 58% 42% / 42% 57% 43% 58%;
-  background: radial-gradient(ellipse at 53% 48%, transparent 18%, rgb(6 182 212 / 21%) 41%, rgb(59 130 246 / 30%) 58%, rgb(219 234 254 / 18%) 72%, transparent 90%);
+  background: radial-gradient(ellipse at 53% 48%, transparent 18%, rgb(8 145 178 / 35%) 40%, rgb(56 189 248 / 48%) 58%, rgb(240 249 255 / 26%) 72%, transparent 90%);
   animation-delay: -2s;
 }
 
 .dispatch-panel-wave-3 {
   border-radius: 44% 56% 51% 49% / 52% 49% 51% 48%;
-  background: radial-gradient(ellipse at 45% 53%, rgb(255 255 255 / 40%) 6%, transparent 28%, rgb(29 78 216 / 22%) 47%, rgb(34 211 238 / 28%) 61%, rgb(224 242 254 / 15%) 74%, transparent 91%);
+  background: radial-gradient(ellipse at 45% 53%, rgb(255 255 255 / 54%) 6%, transparent 28%, rgb(67 56 202 / 34%) 46%, rgb(34 211 238 / 44%) 61%, rgb(240 249 255 / 24%) 76%, transparent 91%);
   animation-delay: -4s;
 }
 
 .dispatch-panel-wave-4 {
   border-radius: 58% 42% 54% 46% / 43% 54% 46% 57%;
-  background: radial-gradient(ellipse at 52% 48%, transparent 25%, rgb(14 165 233 / 23%) 46%, rgb(96 165 250 / 31%) 63%, rgb(239 246 255 / 17%) 76%, transparent 92%);
+  background: radial-gradient(ellipse at 52% 48%, transparent 25%, rgb(14 165 233 / 35%) 45%, rgb(37 99 235 / 46%) 63%, rgb(239 246 255 / 26%) 78%, transparent 92%);
   animation-delay: -6s;
 }
 
@@ -1405,6 +1415,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dispatch-waiting-surface-animated { animation: none; }
   .dispatch-waiting-surface-animated::before,
   .dispatch-panel-wave { display: none; }
   .dispatch-waiting-surface-animated .dispatch-timer-surface,
