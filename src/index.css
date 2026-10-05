@@ -1370,7 +1370,7 @@ body {
   .dispatch-panel-ship {
     width: min(1020px, 84%);
     right: auto;
-    left: 61.8%;
+    left: 38.2%;
     bottom: 100px;
     transform: translateX(-50%);
   }
