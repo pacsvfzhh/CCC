@@ -164,9 +164,7 @@ BEGIN
   definition := replace(definition,
     'v_operation_ids text[];',
     'v_operation_ids text[];' || E'\n  ' ||
-    'v_original_paths text[];' || E'\n  ' ||
-    'v_public_paths jsonb;' || E'\n  ' ||
-    'v_retained_shared_images integer;' || E'\n  ' || 'v_shared_paths text[];');
+    'v_original_paths text[];' || E'\n  ' || 'v_public_paths jsonb;');
   definition := replace(definition,
     'SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids',
     $capture_original_images$
@@ -262,31 +260,19 @@ BEGIN
     DELETE FROM private.content_audit_recipient_versions
     WHERE recipient_id = ANY(v_employee_ids);
 
-    WITH image_references AS MATERIALIZED (
-      SELECT candidate.path, private.employee_chat_image_in_use(candidate.path) AS in_use
-      FROM (SELECT DISTINCT unnest(v_original_paths) AS path) candidate
-      JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = candidate.path
-    )
-    SELECT COALESCE(jsonb_agg(jsonb_build_object('bucket', 'chat-images', 'path', path))
-        FILTER (WHERE NOT in_use), '[]'::jsonb),
-      count(*) FILTER (WHERE in_use),
-      COALESCE(array_agg(path) FILTER (WHERE in_use), '{}'::text[])
-    INTO v_public_paths, v_retained_shared_images, v_shared_paths FROM image_references;
-    INSERT INTO private.retained_employee_chat_images(path)
-    SELECT DISTINCT unnest(v_shared_paths) ON CONFLICT (path) DO NOTHING;
+    SELECT COALESCE(jsonb_agg(jsonb_build_object('bucket', 'chat-images', 'path', candidate.path)), '[]'::jsonb)
+    INTO v_public_paths
+    FROM (SELECT DISTINCT unnest(v_original_paths) AS path) candidate
+    JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = candidate.path;
     v_paths := v_paths || v_public_paths;
     $after_user_delete$);
 
-  definition := replace(definition,
-    'SET finished_at = clock_timestamp(), paths_to_remove = v_paths WHERE id = p_job_id;',
-    'SET finished_at = clock_timestamp(), paths_to_remove = v_paths, ' ||
-    'retained_shared_images = COALESCE(v_retained_shared_images, 0) WHERE id = p_job_id;');
   definition := replace(definition,
     $$'paths_to_remove', v_job.paths_to_remove)$$,
     $$'paths_to_remove', v_job.paths_to_remove, 'retained_shared_images', v_job.retained_shared_images)$$);
   definition := replace(definition,
     $$'paths_to_remove', v_paths)$$,
-    $$'paths_to_remove', v_paths, 'retained_shared_images', COALESCE(v_retained_shared_images, 0))$$);
+    $$'paths_to_remove', v_paths, 'retained_shared_images', 0)$$);
 
   definition := replace(definition,
     'DELETE FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids);',
