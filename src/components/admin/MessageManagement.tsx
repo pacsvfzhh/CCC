@@ -12,7 +12,7 @@ import {
   Send, Users, Bell, AlertCircle, X, Search,
   Check, CheckSquare, Square, Trash2, AlertTriangle,
   Pencil, Save, ChevronDown,
-  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles, ShieldCheck, Eye
+  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles, ShieldCheck, Eye, Filter
 } from 'lucide-react';
 
 interface AdminGroup {
@@ -51,6 +51,8 @@ interface Message {
   reward_amount?: number | null;
   reward_currency?: string | null;
   created_at: string;
+  audit_origin: 'manual_admin' | 'automation' | 'unverified';
+  automation_execution_id: string | null;
   recipient_ids?: string[];
 }
 
@@ -193,6 +195,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [editForm, setEditForm] = useState({ title: '', content: '' });
   const [saving, setSaving] = useState(false);
 
+  const [manualOnlyFilter, setManualOnlyFilter] = useState(false);
   const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | NotificationDeliveryMode>('all');
   const [messageScopeFilter] = useState<'all' | 'broadcast' | 'targeted'>('all');
   const [readStatusFilter, setReadStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
@@ -822,7 +825,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       let query = supabase
         .from('messages')
         .select('*')
-        .is('automation_execution_id', null)
         .order('created_at', { ascending: false });
 
       if (admin.role !== 'super_admin' && !admin.is_super_admin) {
@@ -996,8 +998,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   const handleConfirmDelete = async () => {
     const messageIds = deleteMode === 'selected'
-      ? Array.from(selectedMessageIds)
-      : deleteMode === 'all' ? selectedAdminManualMessages.map(message => message.id) : [];
+      ? Array.from(selectedMessageIds).filter(id => manageableGroupMessages.some(message => message.id === id))
+      : deleteMode === 'all' ? manageableGroupMessages.map(message => message.id) : [];
     if (deleting || messageIds.length === 0) return;
 
     setDeleting(true);
@@ -1116,8 +1118,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       read_percentage: totalRecipients > 0 ? Math.round((readCount / totalRecipients) * 100) : 0,
     };
   };
-  const selectedAdminManualMessages = selectedGroupMessages;
-  const sentMessageReadSummary = selectedGroupMessages.reduce(
+  const visibleGroupMessages = manualOnlyFilter
+    ? selectedGroupMessages.filter(message => message.audit_origin === 'manual_admin' && message.automation_execution_id === null)
+    : selectedGroupMessages;
+  const manageableGroupMessages = visibleGroupMessages.filter(message => message.automation_execution_id === null && message.audit_origin !== 'automation');
+  const sentMessageReadSummary = visibleGroupMessages.reduce(
     (summary, message) => {
       const stats = getSelectedGroupMessageStats(message);
       const isFullyRead = stats.total_recipients > 0 && stats.read_count === stats.total_recipients;
@@ -1126,10 +1131,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       else summary.unread += 1;
       return summary;
     },
-    { total: selectedGroupMessages.length, read: 0, unread: 0 },
+    { total: visibleGroupMessages.length, read: 0, unread: 0 },
   );
 
-  const filteredMessages = selectedGroupMessages.filter(msg => {
+  const filteredMessages = visibleGroupMessages.filter(msg => {
     if (messageTypeFilter !== 'all' && getDeliveryMode(msg) !== messageTypeFilter) return false;
     if (messageScopeFilter !== 'all') {
       const isBroadcast = !msg.recipient_ids || msg.recipient_ids.length === 0;
@@ -1155,18 +1160,15 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   useEffect(() => {
     setSelectedMessageIds(new Set());
-  }, [selectedAdminId, messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
+  }, [selectedAdminId, manualOnlyFilter, messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
 
+  const selectableMessages = filteredMessages.filter(message => message.automation_execution_id === null && message.audit_origin !== 'automation');
+  const allSelectableSelected = selectableMessages.length > 0 && selectableMessages.every(message => selectedMessageIds.has(message.id));
   const toggleSelectAll = () => {
-    if (selectedMessageIds.size === filteredMessages.length && filteredMessages.every(m => selectedMessageIds.has(m.id))) {
-      const newSelection = new Set(selectedMessageIds);
-      filteredMessages.forEach(m => newSelection.delete(m.id));
-      setSelectedMessageIds(newSelection);
-    } else {
-      const newSelection = new Set(selectedMessageIds);
-      filteredMessages.forEach(m => newSelection.add(m.id));
-      setSelectedMessageIds(newSelection);
-    }
+    const nextSelection = new Set(selectedMessageIds);
+    if (allSelectableSelected) selectableMessages.forEach(message => nextSelection.delete(message.id));
+    else selectableMessages.forEach(message => nextSelection.add(message.id));
+    setSelectedMessageIds(nextSelection);
   };
 
   useEffect(() => {
@@ -1912,21 +1914,51 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
               <h3 className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">已發送訊息</h3>
-              {selectedAdminManualMessages.length > 0 && (
+              <button
+                type="button"
+                aria-pressed={manualOnlyFilter}
+                aria-label={manualOnlyFilter ? '取消手動通知篩選' : '只顯示管理員手動發送的通知'}
+                onClick={() => setManualOnlyFilter(previous => !previous)}
+                className={`group flex h-8 w-[140px] shrink-0 items-center overflow-hidden rounded-lg border text-[10px] font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${manualOnlyFilter
+                  ? 'border-cyan-200 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_14px_rgba(34,211,238,0.38)] hover:from-cyan-400 hover:to-blue-500'
+                  : 'border-slate-500/80 bg-slate-950/70 text-slate-300 hover:border-cyan-300/70 hover:bg-cyan-950/70 hover:text-cyan-100'
+                }`}
+              >
+                <span className="flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap"><Bell className="h-3 w-3 shrink-0" />手動通知</span>
+                <span className={`flex h-full w-11 shrink-0 items-center justify-center gap-0.5 border-l ${manualOnlyFilter ? 'border-white/40 bg-slate-900/30 group-hover:bg-slate-900/45' : 'border-slate-600 bg-slate-800/70'}`}>
+                  {manualOnlyFilter ? <><X className="h-3 w-3" /><span>取消</span></> : <Filter className="h-3.5 w-3.5" />}
+                </span>
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+                <input type="text" value={sentMessagesSearchQuery} onChange={(e) => setSentMessagesSearchQuery(e.target.value)}
+                  placeholder="搜尋員工帳號／ID..."
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-7 pr-7 text-[11px] text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+                {sentMessagesSearchQuery && (
+                  <button onClick={() => setSentMessagesSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700">
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {manageableGroupMessages.length > 0 && (
                 selectionMode ? (
                   <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
                       onClick={toggleSelectAll}
-                      title={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? '取消全選' : '全選'}
-                      aria-label={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? '取消全選訊息' : '全選訊息'}
-                      className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
-                        selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 && filteredMessages.every(message => selectedMessageIds.has(message.id))
+                      disabled={selectableMessages.length === 0}
+                      title={allSelectableSelected ? '取消全選' : '全選可管理訊息'}
+                      aria-label={allSelectableSelected ? '取消全選訊息' : '全選可管理訊息'}
+                      className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                        allSelectableSelected
                           ? 'border-cyan-300/60 bg-cyan-500/25 text-cyan-100 hover:bg-cyan-500/35'
                           : 'border-blue-400/40 bg-blue-500/15 text-blue-200 hover:border-blue-300/70 hover:bg-blue-500/25'
                       }`}
                     >
-                      {selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 && filteredMessages.every(message => selectedMessageIds.has(message.id))
+                      {allSelectableSelected
                         ? <CheckSquare className="h-3.5 w-3.5" />
                         : <Square className="h-3.5 w-3.5" />}
                     </button>
@@ -1966,28 +1998,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       type="button"
                       onClick={() => { setDeleteMode('all'); setShowDeleteConfirm(true); }}
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-red-400/40 bg-red-500/15 text-red-200 transition-colors hover:border-red-300/70 hover:bg-red-500/25"
-                      title="清除全部手動發送訊息"
-                      aria-label="清除全部手動發送訊息"
+                      title={manualOnlyFilter ? '清除全部手動通知' : '清除全部可管理通知（不含自動化）'}
+                      aria-label={manualOnlyFilter ? '清除全部手動通知' : '清除全部可管理通知（不含自動化）'}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 )
               )}
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
-                <input type="text" value={sentMessagesSearchQuery} onChange={(e) => setSentMessagesSearchQuery(e.target.value)}
-                  placeholder="搜尋員工帳號／ID..."
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-7 pr-7 text-[11px] text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-                {sentMessagesSearchQuery && (
-                  <button onClick={() => setSentMessagesSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700">
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
             </div>
 
             {/* Filter tabs */}
@@ -2054,8 +2072,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           <div className="min-h-0 flex-1 space-y-1 overflow-y-auto border-b border-slate-700/60 p-1.5 scrollbar-dark">
             {messagesLoading ? (
               <div className="text-center py-10 text-slate-500 text-xs">載入中...</div>
-            ) : selectedGroupMessages.length === 0 ? (
-              <div className="text-center py-10 text-slate-600 text-xs font-medium">尚無訊息</div>
+            ) : visibleGroupMessages.length === 0 ? (
+              <div className="text-center py-10 text-slate-600 text-xs font-medium">{manualOnlyFilter ? '尚無手動發送的通知' : '尚無訊息'}</div>
             ) : filteredMessages.length === 0 ? (
               <div className="text-center py-10 text-slate-600 text-xs font-medium">沒有符合的結果</div>
             ) : (
@@ -2081,7 +2099,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     key={msg.id}
                     onClick={() => {
                       if (selectionMode) {
-                        toggleMessageSelection(msg.id);
+                        if (msg.automation_execution_id === null && msg.audit_origin !== 'automation') toggleMessageSelection(msg.id);
                       } else {
                         setSelectedMessageDetail(msg);
                         setRecipientSearchQuery('');
@@ -2090,14 +2108,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         void loadRecipientDetailsRef.current?.(msg.id);
                       }
                     }}
-                    className={`cursor-pointer rounded-md border border-l-[3px] px-2.5 py-2 transition-[transform,box-shadow,border-color,filter] duration-150 hover:translate-x-0.5 hover:brightness-110 ${
+                    className={`${selectionMode && (msg.automation_execution_id !== null || msg.audit_origin === 'automation') ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} rounded-md border border-l-[3px] px-2.5 py-2 transition-[transform,box-shadow,border-color,filter] duration-150 hover:translate-x-0.5 hover:brightness-110 ${
                       selectionMode && isSelectedMsg
                         ? 'border-blue-400/50 border-l-blue-400 bg-blue-600/20 ring-1 ring-blue-500/30 hover:border-blue-300/80 hover:shadow-[0_6px_18px_rgba(59,130,246,0.24)]'
                         : cardTone
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      {selectionMode && (
+                      {selectionMode && msg.automation_execution_id === null && msg.audit_origin !== 'automation' && (
                         <div className="flex-shrink-0 mt-0.5">
                           {isSelectedMsg ? <CheckSquare className="w-3.5 h-3.5 text-blue-400" /> : <Square className="w-3.5 h-3.5 text-slate-600" />}
                         </div>
@@ -2129,6 +2147,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                   : 'border-blue-500/30 bg-blue-500/15 text-blue-300'
                             }`}>
                               {getNotificationDeliveryLabel(getDeliveryMode(msg))}
+                            </span>
+                            <span className={`shrink-0 rounded-full border px-1.5 py-px text-[7px] font-semibold ${msg.audit_origin === 'automation' || msg.automation_execution_id !== null ? 'border-violet-400/35 bg-violet-500/15 text-violet-200' : msg.audit_origin === 'manual_admin' ? 'border-cyan-400/35 bg-cyan-500/15 text-cyan-200' : 'border-slate-500/40 bg-slate-700/50 text-slate-300'}`}>
+                              {msg.audit_origin === 'automation' || msg.automation_execution_id !== null ? '自動' : msg.audit_origin === 'manual_admin' ? '手動' : '待核實'}
                             </span>
                           </div>
                           <div className="flex shrink-0 items-center gap-1.5">
@@ -2188,14 +2209,16 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </>
                 ) : (
                   <>
-                    <button type="button" onClick={() => handleStartEdit(selectedMessageDetail)}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-700 bg-blue-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-blue-600 hover:bg-blue-500">
-                      <Pencil className="h-3.5 w-3.5" /> 編輯
-                    </button>
-                    <button type="button" onClick={() => { setSelectedMessageIds(new Set([selectedMessageDetail.id])); setDeleteMode('selected'); setShowDeleteConfirm(true); }}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-700 bg-red-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-red-600 hover:bg-red-500">
-                      <Trash2 className="h-3.5 w-3.5" /> 刪除
-                    </button>
+                    {selectedMessageDetail.automation_execution_id === null && selectedMessageDetail.audit_origin !== 'automation' && <>
+                      <button type="button" onClick={() => handleStartEdit(selectedMessageDetail)}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-700 bg-blue-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-blue-600 hover:bg-blue-500">
+                        <Pencil className="h-3.5 w-3.5" /> 編輯
+                      </button>
+                      <button type="button" onClick={() => { setSelectedMessageIds(new Set([selectedMessageDetail.id])); setDeleteMode('selected'); setShowDeleteConfirm(true); }}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-700 bg-red-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-red-600 hover:bg-red-500">
+                        <Trash2 className="h-3.5 w-3.5" /> 刪除
+                      </button>
+                    </>}
                     <div className="ml-1 border-l border-cyan-200/20 pl-2">
                       <button type="button" onClick={() => { setSelectedMessageDetail(null); setEditingMessage(false); }}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-200/25 bg-white/10 text-cyan-50 backdrop-blur-sm transition-colors hover:border-cyan-100/50 hover:bg-white/20 hover:text-white"
@@ -2712,9 +2735,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </p>
                 ) : (
                   <p className="text-sm text-slate-300">
-                    您即將刪除所選管理員群組的<span className="font-semibold text-white">全部手動發送訊息</span>。
-                    {(deleteProgress?.total ?? selectedAdminManualMessages.length) > 0 && (
-                      <span className="block mt-1 text-slate-400">（將刪除 {deleteProgress?.total ?? selectedAdminManualMessages.length} 則訊息）</span>
+                    您即將刪除所選管理員群組的<span className="font-semibold text-white">{manualOnlyFilter ? '全部手動通知' : '全部可管理通知（不含自動化）'}</span>。
+                    {(deleteProgress?.total ?? manageableGroupMessages.length) > 0 && (
+                      <span className="block mt-1 text-slate-400">（將刪除 {deleteProgress?.total ?? manageableGroupMessages.length} 則訊息）</span>
                     )}
                   </p>
                 )}
