@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AUTH_STORAGE_KEY, getStoredAuth } from '../../lib/auth';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { getTodayStartUTC } from '../../lib/dateUtils';
 import { Play, Square, CheckCircle, XCircle, Clock, Package, TrendingUp, AlertTriangle, AlertCircle, Zap, Timer, FileText, ShieldAlert, CheckSquare, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
@@ -54,8 +54,12 @@ type RecoveryOutcome =
 const PAUSED_DISPATCH_CHECK_MS = 5 * 60 * 1000;
 
 function getOrderDispatchErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message :
-    error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Unknown error occurred';
+  return formatSupabaseError(error);
+}
+
+function isInvalidDispatchSession(message: string) {
+  return message.includes('Employee work session is invalid, offline, or stale.')
+    || message.includes('Employee session is invalid or expired.');
 }
 
 interface OrderDispatchProps {
@@ -829,7 +833,18 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         }
       }
     } catch (error) {
-      console.error('Error sending heartbeat:', error);
+      const message = getOrderDispatchErrorMessage(error);
+      console.error('Error sending heartbeat:', message);
+      if (componentMountedRef.current && sessionIdRef.current === currentSessionId && isInvalidDispatchSession(message)) {
+        stopLocalWorkingState(currentSessionId);
+        showNotification({
+          type: 'error', title: 'Dispatch Session Ended',
+          message: message.includes('Employee session is invalid or expired.')
+            ? 'Your employee session has expired. Please sign in again.'
+            : 'Your work session has ended. Start again to resume dispatch.',
+          duration: 0,
+        });
+      }
     }
   };
   sendHeartbeatRef.current = sendHeartbeat;
@@ -1531,8 +1546,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       armDispatchTimer(nextSelection, generation);
     } catch (error) {
       if (isCurrentDispatch(sessionId, generation) && membershipRevision === membershipRevisionRef.current) {
-        console.error('Failed to prepare dispatch:', error);
-        pauseDispatch('error', getOrderDispatchErrorMessage(error), sessionId, generation);
+        const message = getOrderDispatchErrorMessage(error);
+        console.error('Failed to prepare dispatch:', message);
+        if (isInvalidDispatchSession(message)) {
+          stopLocalWorkingState(sessionId);
+          showNotification({
+            type: 'error', title: 'Dispatch Session Ended',
+            message: message.includes('Employee session is invalid or expired.')
+              ? 'Your employee session has expired. Please sign in again.'
+              : 'Your work session has ended. Start again to resume dispatch.',
+            duration: 0,
+          });
+        } else {
+          pauseDispatch('error', message, sessionId, generation);
+        }
       }
     } finally {
       if (preparingDispatchRef.current === preparation) {
