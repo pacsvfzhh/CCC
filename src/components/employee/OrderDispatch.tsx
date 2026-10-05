@@ -124,6 +124,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
   const [, setTotalWorkTime] = useState(0);
   const [, setUnacceptedCount] = useState(0);
   const [showAutoStopModal, setShowAutoStopModal] = useState(false);
+  const [autoStopReason, setAutoStopReason] = useState<'missed' | 'inactivity' | 'ended' | 'unverified'>('missed');
   const [showTimeoutStopModal, setShowTimeoutStopModal] = useState(false);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<DispatchAssignment | null>(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
@@ -567,13 +568,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         if (!timedOut || !isCurrentDispatch(sessionId, generation)) return;
         // Only a confirmed server timeout can end the local work session.
         setTimeoutStopMinutes(timeoutMinutes);
-        await handleStopWork(true);
-        showNotification({
-          type: 'error',
-          title: t.dispatch.processingEnded,
-          message: `Order not completed within ${timeoutMinutes} minutes. Session has been stopped.`,
-          duration: 0,
-        });
+        await handleStopWork(true, 'order');
       } catch (error) {
         if (isCurrentDispatch(sessionId, generation) && currentOrderRef.current?.id === order.id) {
           console.error('Could not confirm assignment timeout:', error);
@@ -717,10 +712,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       if (!data.recovered) {
         if (expectedSessionId) {
           stopLocalWorkingState(expectedSessionId);
-          showNotification({
-            type: 'error', title: 'Dispatch Session Ended',
-            message: 'Your work session is no longer active. Start again to resume dispatch.', duration: 0,
-          });
+          setAutoStopReason('ended');
+          setShowAutoStopModal(true);
         }
         return { state: 'ended' };
       }
@@ -806,10 +799,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
     const stoppedGeneration = lifecycleGenerationRef.current;
 
     if (!message.includes('Employee session is invalid or expired.') && !message.includes('Employee session has expired.')) {
-      showNotification({
-        type: 'error', title: 'Dispatch Session Ended',
-        message: 'Your work session has ended. Start again to resume dispatch.', duration: 0,
-      });
+      setAutoStopReason('ended');
+      setShowAutoStopModal(true);
       return;
     }
 
@@ -846,13 +837,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       onSessionExpired?.();
       return;
     }
-    showNotification({
-      type: 'error', title: 'Dispatch Session Ended',
-      message: financialSessionValid === null
-        ? 'Your session could not be verified. Check your connection and start work again, or sign in again.'
-        : 'Your work session has ended. Start again to resume dispatch.',
-      duration: 0,
-    });
+    setAutoStopReason(financialSessionValid === null ? 'unverified' : 'ended');
+    setShowAutoStopModal(true);
   };
 
   const sendHeartbeat = async () => {
@@ -887,6 +873,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           await restartSessionAfterLifecycleGap();
         } else if (sessionIdRef.current === currentSessionId) {
           stopLocalWorkingState(currentSessionId);
+          setAutoStopReason('ended');
+          setShowAutoStopModal(true);
         }
       }
     } catch (error) {
@@ -1032,7 +1020,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       if (!currentOrderRef.current && !selectedDispatchRef.current && !dispatchPausedRef.current &&
           timeSinceLastActivity >= configRef.current.session_timeout_minutes) {
-        void handleStopWork(true).catch(() => {
+        void handleStopWork(true, 'inactivity').catch(() => {
           // The handler reports the failure and preserves active state for retry.
         });
       }
@@ -1292,7 +1280,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
     }, 150); // End of setTimeout for button press feedback
   };
 
-  const handleStopWork = async (timeout: boolean = false) => {
+  const handleStopWork = async (timeout: boolean = false, stopReason: 'order' | 'inactivity' = 'order') => {
     if (isProcessing && !timeout) return;
     const stoppingSessionId = sessionIdRef.current;
 
@@ -1422,8 +1410,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           onStatusChange(false, false);
         }
 
-        // Show timeout modal instead of blocking alert
-        setShowTimeoutStopModal(true);
+        if (stopReason === 'inactivity') {
+          setAutoStopReason('inactivity');
+          setShowAutoStopModal(true);
+        } else {
+          setShowTimeoutStopModal(true);
+        }
       } else {
         // Wait for animation to complete before updating UI state
         await animationPromise;
@@ -1578,6 +1570,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       const prepared = data;
       if (prepared?.auto_stopped) {
         stopLocalWorkingState(sessionId);
+        setAutoStopReason('missed');
         setShowAutoStopModal(true);
         return;
       }
@@ -1637,6 +1630,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       const result = data;
       if (result?.auto_stopped) {
         stopLocalWorkingState(selection.sessionId);
+        setAutoStopReason('missed');
         setShowAutoStopModal(true);
         return;
       }
@@ -1756,6 +1750,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       if (result?.auto_stopped) {
         stopLocalWorkingState(currentSessionId);
+        setAutoStopReason('missed');
         setShowAutoStopModal(true);
         return;
       }
@@ -2247,48 +2242,50 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         </div>
       )}
 
-      {/* Auto-Stop Order Processing Modal */}
       {showAutoStopModal && createPortal(
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[3px] animate-in fade-in duration-200"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-stop-title" aria-describedby="dispatch-stop-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white shadow-[0_28px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+            <div className="relative overflow-hidden bg-[#12356d] px-6 pb-6 pt-8 sm:px-8">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400" />
+              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-amber-200 shadow-inner shadow-white/10">
+                  <AlertTriangle className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-lg font-bold text-white">{t.dispatch.processingEnded}</h3>
+                <div>
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-200">{t.dispatch.autoDispatch}</p>
+                  <h3 id="dispatch-stop-title" className="text-xl font-bold tracking-tight text-white">{autoStopReason === 'missed' ? t.dispatch.processingEnded : t.dispatch.sessionEnded}</h3>
+                </div>
               </div>
             </div>
-
-            <div className="px-6 py-5">
-              {/* Stop reason */}
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {t.dispatch.autoStopMsg} <span className="font-bold text-rose-600">{t.dispatch.fiveOrdersInRow}</span>.
+            <div className="px-6 py-6 sm:px-8 sm:py-7">
+              <p id="dispatch-stop-description" className="text-sm leading-relaxed text-slate-700">
+                {autoStopReason === 'missed' ? (
+                  <>{t.dispatch.autoStopMsg} <strong className="font-bold text-rose-700">{t.dispatch.fiveOrdersInRow}</strong>.</>
+                ) : autoStopReason === 'inactivity' ? (
+                  `Your work session was automatically stopped after ${config.session_timeout_minutes} minutes without an active order.`
+                ) : autoStopReason === 'unverified' ? (
+                  'Your session could not be verified. Check your connection and start work again, or sign in again.'
+                ) : (
+                  'Your work session is no longer active. Start again to resume dispatch.'
+                )}
+              </p>
+              <div className="mt-5 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5">
+                <Play className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
+                <p className="text-xs font-medium leading-relaxed text-slate-600">
+                  {t.dispatch.resumeMsg} <strong className="font-bold text-blue-700">{t.dispatch.start}</strong> {t.dispatch.resumeMsg2}
                 </p>
               </div>
-
-              {/* Resume hint */}
-              <div className="flex items-center gap-3 px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-5">
-                <Play className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                <p className="text-xs text-gray-600 font-medium">
-                  {t.dispatch.resumeMsg} <span className="font-bold text-blue-700">{t.dispatch.start}</span> {t.dispatch.resumeMsg2}
-                </p>
-              </div>
-
-              {/* Button */}
               <button
+                type="button"
+                autoFocus
                 onClick={() => setShowAutoStopModal(false)}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 active:scale-[0.98] text-white rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+                className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-700 hover:shadow-[0_16px_30px_-10px_rgba(37,99,235,0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]"
               >
-                <CheckCircle className="w-4 h-4" />
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 <span>{t.dispatch.iUnderstand}</span>
               </button>
             </div>
