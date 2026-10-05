@@ -2583,12 +2583,18 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           </>
         )}
         {waitingPanelActive && (
-          <div className="dispatch-panel-waves pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <span className="dispatch-panel-wave" />
-            <span className="dispatch-panel-wave dispatch-panel-wave-2" />
-            <span className="dispatch-panel-wave dispatch-panel-wave-3" />
-            <span className="dispatch-panel-wave dispatch-panel-wave-4" />
-          </div>
+          <>
+            <div className="dispatch-panel-waves pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+              <span className="dispatch-panel-wave" />
+              <span className="dispatch-panel-wave dispatch-panel-wave-2" />
+              <span className="dispatch-panel-wave dispatch-panel-wave-3" />
+              <span className="dispatch-panel-wave dispatch-panel-wave-4" />
+            </div>
+            <div className="absolute right-5 top-5 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
+              <span>{t.dispatch.autoDispatch}</span>
+            </div>
+          </>
         )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
@@ -2632,7 +2638,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             </div>
           ) : (
             /* DESKTOP & MOBILE: Blue/White premium layout */
-            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-white/65 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
+            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-white/65 pb-5 pt-11 md:mb-6 md:pb-6 md:pt-0' : 'mb-5 md:mb-10'}`}>
               {/* Mobile: Full-width status banner */}
               <div className="w-full md:w-auto">
                 <div className="flex items-center gap-3 md:gap-4">
@@ -3117,16 +3123,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex items-center justify-between gap-2 border-t border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] md:-mx-10 md:-mb-10 md:gap-4 md:px-10 md:py-6">
-                  <div className="flex min-w-0 items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-2 text-xs font-semibold text-white shadow-sm backdrop-blur-sm md:gap-2 md:px-3">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />
-                    <span className="truncate">{t.dispatch.autoDispatch}</span>
-                  </div>
+                <div className="-mx-5 -mb-5 flex items-center justify-center border-t border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] md:-mx-10 md:-mb-10 md:px-10 md:py-5">
                   <button
                     type="button"
                     onClick={() => void handleStopWork(false).catch(() => undefined)}
                     disabled={isProcessing}
-                    className={`group flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-orange-200/75 bg-gradient-to-r from-[#ca4811] via-[#d03922] to-[#c62650] px-2.5 py-2 text-white shadow-[0_10px_24px_-10px_rgba(116,38,24,0.5),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all duration-200 hover:border-orange-200 hover:from-[#b9430e] hover:via-[#c5321e] hover:to-[#ad1d47] hover:shadow-[0_14px_28px_-10px_rgba(116,38,24,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-w-56 md:gap-3 md:px-5 md:py-3 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    className={`group flex min-h-[52px] w-full max-w-[260px] items-center justify-center gap-2 rounded-xl border border-orange-200/75 bg-gradient-to-r from-[#ca4811] via-[#d03922] to-[#c62650] px-5 py-2.5 text-white shadow-[0_10px_24px_-10px_rgba(116,38,24,0.5),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all duration-200 hover:border-orange-200 hover:from-[#b9430e] hover:via-[#c5321e] hover:to-[#ad1d47] hover:shadow-[0_14px_28px_-10px_rgba(116,38,24,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-h-[58px] md:gap-3 md:px-6 md:py-3 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     {isProcessing ? (
