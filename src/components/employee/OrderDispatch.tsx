@@ -2590,6 +2590,28 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <span className="dispatch-panel-wave dispatch-panel-wave-3" />
               <span className="dispatch-panel-wave dispatch-panel-wave-4" />
             </div>
+            <div className="dispatch-panel-pattern pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden="true">
+              <svg className="dispatch-panel-pattern-right" viewBox="0 0 190 206" fill="none">
+                <rect x="77" y="4" width="68" height="68" rx="19" fill="#0891b2" fillOpacity="0.24" />
+                <rect x="153" y="4" width="28" height="68" rx="12" fill="#3b82f6" fillOpacity="0.22" />
+                <rect x="27" y="80" width="42" height="42" rx="13" fill="#38bdf8" fillOpacity="0.28" />
+                <rect x="77" y="80" width="68" height="74" rx="19" fill="#2563eb" fillOpacity="0.19" />
+                <rect x="153" y="80" width="28" height="74" rx="12" fill="#fde68a" fillOpacity="0.56" />
+                <rect x="27" y="130" width="42" height="42" rx="13" fill="#2563eb" fillOpacity="0.14" />
+                <rect x="77" y="162" width="68" height="36" rx="14" fill="#06b6d4" fillOpacity="0.28" />
+                <rect x="153" y="162" width="28" height="36" rx="12" fill="#7dd3fc" fillOpacity="0.38" />
+              </svg>
+              <svg className="dispatch-panel-pattern-left" viewBox="0 0 182 182" fill="none">
+                <rect x="4" y="5" width="76" height="38" rx="13" fill="#2563eb" fillOpacity="0.17" />
+                <rect x="88" y="5" width="42" height="38" rx="13" fill="#67e8f9" fillOpacity="0.39" />
+                <rect x="4" y="51" width="76" height="78" rx="20" fill="#06b6d4" fillOpacity="0.24" />
+                <rect x="88" y="51" width="42" height="78" rx="15" fill="#3b82f6" fillOpacity="0.22" />
+                <rect x="138" y="51" width="34" height="34" rx="11" fill="#fde68a" fillOpacity="0.61" />
+                <rect x="4" y="137" width="38" height="34" rx="12" fill="#fde68a" fillOpacity="0.53" />
+                <rect x="50" y="137" width="80" height="34" rx="12" fill="#60a5fa" fillOpacity="0.27" />
+                <rect x="138" y="93" width="34" height="78" rx="12" fill="#0891b2" fillOpacity="0.23" />
+              </svg>
+            </div>
             <div className="absolute right-5 top-5 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10">
               <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
               <span>{t.dispatch.autoDispatch}</span>
