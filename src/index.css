@@ -1299,53 +1299,56 @@ body {
   mask-image: radial-gradient(ellipse 82% 85% at 50% 53%, #000 21%, rgb(0 0 0 / 86%) 45%, rgb(0 0 0 / 46%) 69%, rgb(0 0 0 / 16%) 86%, transparent 100%);
 }
 
-.dispatch-panel-corner {
+.dispatch-panel-arc {
   position: absolute;
-  width: 156px;
-  height: 100px;
-  border: 1px solid rgb(255 255 255 / 62%);
-  border-radius: 28px;
-  box-shadow: inset 0 1px rgb(255 255 255 / 65%), 0 10px 30px rgb(14 116 144 / 4%);
+  width: 178px;
+  height: 178px;
+  border: 26px solid rgb(125 211 252 / 15%);
+  border-radius: 50%;
 }
 
-.dispatch-panel-corner::after {
+.dispatch-panel-arc::after {
   content: '';
   position: absolute;
-  right: 13px;
-  bottom: 12px;
-  width: 56px;
-  height: 27px;
-  border: 1px solid rgb(255 255 255 / 58%);
-  border-radius: 9px;
-  background: rgb(255 255 255 / 32%);
+  inset: 13px;
+  border: 1px solid rgb(56 189 248 / 18%);
+  border-radius: 50%;
 }
 
-.dispatch-panel-corner-top-left {
-  top: -48px;
-  left: -64px;
-  transform: rotate(-16deg);
-  background: linear-gradient(130deg, rgb(125 211 252 / 23%), rgb(186 230 253 / 11%));
+.dispatch-panel-arc-top-left {
+  top: -111px;
+  left: -112px;
 }
 
-.dispatch-panel-corner-top-right {
-  top: -45px;
-  right: -69px;
-  transform: rotate(18deg);
-  background: linear-gradient(220deg, rgb(103 232 249 / 23%), rgb(191 219 254 / 11%));
+.dispatch-panel-arc-top-right {
+  top: -114px;
+  right: -114px;
+  border-color: rgb(103 232 249 / 16%);
 }
 
-.dispatch-panel-corner-bottom-left {
-  bottom: 91px;
-  left: -67px;
-  transform: rotate(15deg);
-  background: linear-gradient(45deg, rgb(147 197 253 / 24%), rgb(207 250 254 / 12%));
+.dispatch-panel-arc-bottom-left {
+  bottom: -112px;
+  left: -113px;
+  border-color: rgb(147 197 253 / 17%);
 }
 
-.dispatch-panel-corner-bottom-right {
-  bottom: 93px;
-  right: -72px;
-  transform: rotate(-17deg);
-  background: linear-gradient(315deg, rgb(253 230 138 / 19%), rgb(125 211 252 / 11%));
+.dispatch-panel-arc-bottom-right {
+  bottom: -114px;
+  right: -114px;
+  border-color: rgb(253 230 138 / 19%);
+}
+
+@media (min-width: 768px) {
+  .dispatch-panel-arc {
+    width: 240px;
+    height: 240px;
+    border-width: 34px;
+  }
+
+  .dispatch-panel-arc-top-left { top: -151px; left: -148px; }
+  .dispatch-panel-arc-top-right { top: -156px; right: -154px; }
+  .dispatch-panel-arc-bottom-left { bottom: -150px; left: -148px; }
+  .dispatch-panel-arc-bottom-right { bottom: -153px; right: -151px; }
 }
 
 .dispatch-panel-ship {
