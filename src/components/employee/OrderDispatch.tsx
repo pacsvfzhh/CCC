@@ -2992,19 +2992,19 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       <button
                         onClick={handleAcceptOrder}
                         disabled={isAccepting}
-                        className={`group relative w-full overflow-hidden rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-blue-950 shadow-[0_16px_36px_-12px_rgba(3,25,73,0.65)] touch-manipulation disabled:cursor-not-allowed md:px-6 md:py-4 md:text-base ${
+                        className={`group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-[0_16px_36px_-12px_rgba(3,25,73,0.65)] touch-manipulation disabled:cursor-not-allowed md:px-6 md:py-4 md:text-base ${
                           performanceSettings.reduceTransitions
                             ? 'transition-opacity duration-150 active:opacity-80'
-                            : 'transition-all duration-200 hover:scale-[1.03] hover:bg-amber-300 hover:shadow-[0_20px_40px_-12px_rgba(3,25,73,0.75)] active:scale-[0.98]'
+                            : 'transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_20px_40px_-12px_rgba(3,25,73,0.75)] active:scale-[0.98]'
                         }`}
                       >
                         {!performanceSettings.reduceTransitions && (
-                          <div className="absolute inset-0 bg-white/15 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          <div className="absolute inset-0 bg-amber-950/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                         )}
                         <div className="relative flex items-center justify-center space-x-2">
                           {isAccepting ? (
                             <>
-                              <div className="keep-animation h-4 w-4 animate-spin rounded-full border-2 border-blue-900/25 border-t-blue-900 md:h-5 md:w-5" />
+                              <div className="keep-animation h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white md:h-5 md:w-5" />
                               <span>{t.dispatch.accepting}</span>
                             </>
                           ) : (
@@ -3071,12 +3071,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <button
                       onClick={handleAcceptOrder}
                       disabled={isAccepting}
-                      className="flex min-h-12 w-full touch-manipulation items-center justify-center space-x-1.5 rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-blue-950 shadow-[0_14px_28px_-10px_rgba(3,25,73,0.6)] transition-all duration-150 active:scale-[0.98] active:bg-amber-300 disabled:cursor-not-allowed"
+                      className="flex min-h-12 w-full touch-manipulation items-center justify-center space-x-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-[0_14px_28px_-10px_rgba(3,25,73,0.6)] transition-all duration-150 active:scale-[0.98] active:brightness-90 disabled:cursor-not-allowed"
                       style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       {isAccepting ? (
                         <>
-                          <div className="keep-animation h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-blue-900/25 border-t-blue-900" />
+                          <div className="keep-animation h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                           <span>{t.dispatch.accepting}</span>
                         </>
                       ) : (
