@@ -1925,7 +1925,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 }`}
               >
                 <span className="flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap"><Bell className="h-3 w-3 shrink-0" />手動通知</span>
-                <span className={`flex h-full w-11 shrink-0 items-center justify-center gap-0.5 border-l ${manualOnlyFilter ? 'border-rose-200/80 bg-gradient-to-r from-rose-500 to-red-600 text-white group-hover:from-rose-400 group-hover:to-red-500' : 'border-slate-600 bg-slate-800/70'}`}>
+                <span className={`flex h-full w-11 shrink-0 items-center justify-center gap-0.5 border-l ${manualOnlyFilter ? 'border-red-200 bg-red-600 text-white shadow-[inset_1px_0_0_rgba(255,255,255,0.18)] group-hover:bg-red-500' : 'border-slate-600 bg-slate-800/70'}`}>
                   {manualOnlyFilter ? <><X className="h-3 w-3" /><span>取消</span></> : <Filter className="h-3.5 w-3.5" />}
                 </span>
               </button>
