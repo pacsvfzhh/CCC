@@ -1269,6 +1269,43 @@ body {
   will-change: transform, opacity, filter;
 }
 
+.employee-ambient-glow {
+  position: absolute;
+  width: min(78vw, 840px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: employeeAmbientBreath 12s ease-in-out infinite alternate;
+}
+
+.employee-ambient-glow-blue {
+  top: -22%;
+  right: -14%;
+  background: radial-gradient(circle, rgb(96 165 250 / 21%) 0%, rgb(191 219 254 / 12%) 44%, transparent 74%);
+}
+
+.employee-ambient-glow-cyan {
+  bottom: -25%;
+  left: -17%;
+  background: radial-gradient(circle, rgb(34 211 238 / 14%) 0%, rgb(125 211 252 / 11%) 45%, transparent 74%);
+  animation-delay: -6s;
+}
+
+@keyframes employeeAmbientBreath {
+  from { transform: scale(0.84); opacity: 0.5; }
+  to { transform: scale(1.35); opacity: 1; }
+}
+
+@media (max-width: 767px) {
+  .employee-ambient-glow { width: 110vw; }
+  .employee-ambient-glow-blue { top: 1%; right: -42%; }
+  .employee-ambient-glow-cyan { bottom: 6%; left: -45%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .employee-ambient-glow { animation: none; transform: none; opacity: 0.7; }
+}
+
 .dispatch-waiting-surface {
   isolation: isolate;
   background: linear-gradient(112deg, #c7defb 0%, #e2f0ff 27%, #fff 52%, #e7f7ff 76%, #b8d7f9 100%);
@@ -1294,36 +1331,67 @@ body {
 }
 
 .dispatch-timer-aura::before,
-.dispatch-timer-aura::after {
+.dispatch-timer-aura::after,
+.dispatch-timer-wave {
   content: '';
   position: absolute;
-  inset: -42% -24%;
+  inset: -72% -68%;
   pointer-events: none;
   border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
-  background: radial-gradient(ellipse at 48% 52%, transparent 21%, rgb(59 130 246 / 14%) 38%, rgb(34 211 238 / 25%) 54%, transparent 77%);
-  opacity: 0.36;
+  background: radial-gradient(ellipse at 48% 52%, transparent 17%, rgb(59 130 246 / 13%) 34%, rgb(34 211 238 / 26%) 52%, transparent 77%);
+  opacity: 0.42;
 }
 
 .dispatch-timer-aura::after {
-  inset: -48% -28%;
+  inset: -84% -78%;
   border-radius: 54% 46% 58% 42% / 42% 57% 43% 58%;
-  background: radial-gradient(ellipse at 53% 48%, transparent 23%, rgb(6 182 212 / 13%) 43%, rgb(96 165 250 / 23%) 57%, transparent 78%);
-  opacity: 0.25;
+  background: radial-gradient(ellipse at 53% 48%, transparent 18%, rgb(6 182 212 / 14%) 41%, rgb(96 165 250 / 24%) 57%, transparent 79%);
+  opacity: 0.32;
+}
+
+.dispatch-timer-wave {
+  inset: -64% -54%;
+  border-radius: 44% 56% 51% 49% / 52% 49% 51% 48%;
+  background: radial-gradient(ellipse at 45% 53%, rgb(219 234 254 / 32%) 7%, transparent 27%, rgb(37 99 235 / 20%) 45%, rgb(103 232 249 / 22%) 59%, transparent 80%);
+  opacity: 0.3;
+}
+
+.dispatch-timer-wave-outer {
+  inset: -92% -90%;
+  border-radius: 58% 42% 54% 46% / 43% 54% 46% 57%;
+  background: radial-gradient(ellipse at 52% 48%, transparent 26%, rgb(14 165 233 / 17%) 47%, rgb(191 219 254 / 25%) 62%, transparent 81%);
+  opacity: 0.2;
 }
 
 .dispatch-waiting-surface-animated .dispatch-timer-aura::before,
-.dispatch-waiting-surface-animated .dispatch-timer-aura::after {
-  animation: dispatchTimerBreath 5.2s ease-out infinite;
+.dispatch-waiting-surface-animated .dispatch-timer-aura::after,
+.dispatch-waiting-surface-animated .dispatch-timer-wave {
+  animation: dispatchTimerBreath 6.4s ease-out infinite;
 }
 
 .dispatch-waiting-surface-animated .dispatch-timer-aura::after {
-  animation-delay: -2.6s;
+  animation-delay: -1.6s;
+}
+
+.dispatch-waiting-surface-animated .dispatch-timer-wave {
+  animation-delay: -3.2s;
+}
+
+.dispatch-waiting-surface-animated .dispatch-timer-wave-outer {
+  animation-delay: -4.8s;
 }
 
 @keyframes dispatchTimerBreath {
-  0% { transform: scale(0.78); opacity: 0; }
-  32% { opacity: 0.72; }
-  100% { transform: scale(1.32); opacity: 0; }
+  0% { transform: scale(0.64); opacity: 0; }
+  33% { opacity: 0.75; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+@media (max-width: 639px) {
+  .dispatch-timer-aura::before,
+  .dispatch-timer-aura::after,
+  .dispatch-timer-wave { inset: -65% -36%; }
+  .dispatch-timer-wave-outer { display: none; }
 }
 
 .dispatch-timer-surface {
@@ -1391,6 +1459,7 @@ body {
   .dispatch-waiting-surface-animated::before,
   .dispatch-waiting-surface-animated .dispatch-timer-aura::before,
   .dispatch-waiting-surface-animated .dispatch-timer-aura::after,
+  .dispatch-waiting-surface-animated .dispatch-timer-wave,
   .dispatch-waiting-surface-animated .dispatch-timer-surface,
   .dispatch-waiting-surface-animated .dispatch-waiting-digits,
   .dispatch-timer-tick { animation: none; }

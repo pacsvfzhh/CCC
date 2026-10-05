@@ -2604,7 +2604,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
-          ? `dispatch-waiting-surface ${performanceSettings.reduceTransitions ? '' : 'dispatch-waiting-surface-animated'} border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]`
+          ? 'dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
@@ -3169,11 +3169,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-700 md:text-[10px]">{t.dispatch.live}</span>
                     </div>
                     <div className="dispatch-timer-aura relative isolate mx-auto mb-7 w-fit max-w-full md:mb-6">
+                      <span className="dispatch-timer-wave" aria-hidden="true" />
+                      <span className="dispatch-timer-wave dispatch-timer-wave-outer" aria-hidden="true" />
                       <div className="relative z-10 flex items-start justify-center gap-2.5 md:gap-5">
                         <div className="text-center">
                           <div className="dispatch-timer-surface rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
                             <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
-                              <span key={Math.floor(waitingTime / 60)} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</span>
+                              <span key={Math.floor(waitingTime / 60)} className="dispatch-timer-tick">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</span>
                             </div>
                           </div>
                           <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-700/70 md:mt-3 md:text-xs">{t.dispatch.min}</div>
@@ -3185,7 +3187,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         <div className="text-center">
                           <div className="dispatch-timer-surface dispatch-timer-surface-cyan rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
                             <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
-                              <span key={waitingTime % 60} className={performanceSettings.reduceTransitions ? '' : 'dispatch-timer-tick'}>{String(waitingTime % 60).padStart(2, '0')}</span>
+                              <span key={waitingTime % 60} className="dispatch-timer-tick">{String(waitingTime % 60).padStart(2, '0')}</span>
                             </div>
                           </div>
                           <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-800/70 md:mt-3 md:text-xs">{t.dispatch.sec}</div>

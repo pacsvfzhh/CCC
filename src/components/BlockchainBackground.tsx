@@ -243,38 +243,54 @@ export default function BlockchainBackground() {
       />
 
       {/* Soft floating blue glow spots that blend into white */}
-      {!useReducedEffects && (
-        <div className="fixed inset-0 -z-10 overflow-hidden">
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
+        <div
+          className="blockchain-ambient-glow absolute rounded-full"
+          style={{
+            width: 'min(100vw, 850px)',
+            height: 'min(100vw, 850px)',
+            top: '-18%',
+            right: '-12%',
+            background: 'radial-gradient(circle, rgba(96,165,250,0.26) 0%, rgba(147,197,253,0.15) 40%, transparent 73%)',
+            animation: 'soft-pulse 10s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="blockchain-ambient-glow absolute rounded-full"
+          style={{
+            width: 'min(88vw, 740px)',
+            height: 'min(88vw, 740px)',
+            bottom: '-20%',
+            left: '-16%',
+            background: 'radial-gradient(circle, rgba(56,189,248,0.19) 0%, rgba(191,219,254,0.12) 43%, transparent 74%)',
+            animation: 'soft-pulse 12s ease-in-out infinite -4s',
+          }}
+        />
+        <div
+          className="blockchain-ambient-glow absolute rounded-full"
+          style={{
+            width: 'min(72vw, 620px)',
+            height: 'min(72vw, 620px)',
+            top: '32%',
+            left: '28%',
+            background: 'radial-gradient(circle, rgba(191,219,254,0.18) 0%, rgba(125,211,252,0.1) 46%, transparent 75%)',
+            animation: 'soft-pulse 13s ease-in-out infinite -7s',
+          }}
+        />
+        {!useReducedEffects && (
           <div
-            className="absolute w-[600px] h-[600px] rounded-full"
+            className="blockchain-ambient-glow absolute rounded-full"
             style={{
-              top: '-5%',
-              right: '5%',
-              background: 'radial-gradient(circle, rgba(147,197,253,0.15) 0%, rgba(191,219,254,0.06) 40%, transparent 70%)',
-              animation: 'soft-pulse 10s ease-in-out infinite',
+              width: 'min(78vw, 680px)',
+              height: 'min(78vw, 680px)',
+              bottom: '-24%',
+              right: '-14%',
+              background: 'radial-gradient(circle, rgba(14,165,233,0.15) 0%, rgba(219,234,254,0.12) 48%, transparent 74%)',
+              animation: 'soft-pulse 15s ease-in-out infinite -9s',
             }}
           />
-          <div
-            className="absolute w-[500px] h-[500px] rounded-full"
-            style={{
-              bottom: '0%',
-              left: '0%',
-              background: 'radial-gradient(circle, rgba(147,197,253,0.12) 0%, rgba(191,219,254,0.05) 40%, transparent 65%)',
-              animation: 'soft-pulse 12s ease-in-out infinite 3s',
-            }}
-          />
-          <div
-            className="absolute w-[400px] h-[400px] rounded-full"
-            style={{
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: 'radial-gradient(circle, rgba(191,219,254,0.08) 0%, transparent 60%)',
-              animation: 'soft-pulse 14s ease-in-out infinite 5s',
-            }}
-          />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Canvas particles */}
       {!isMobile && !isTabletDevice && (
@@ -296,8 +312,11 @@ export default function BlockchainBackground() {
       {/* Inline animation keyframes */}
       <style>{`
         @keyframes soft-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
+          0%, 100% { transform: scale(0.82); opacity: 0.45; }
+          50% { transform: scale(1.28); opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .blockchain-ambient-glow { animation: none !important; transform: none; opacity: 0.65; }
         }
       `}</style>
     </>
