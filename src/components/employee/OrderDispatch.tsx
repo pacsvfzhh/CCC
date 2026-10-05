@@ -2823,7 +2823,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       )}
                     </div>
                   ) : currentOrder.status === 'pending' ? (
-                    <span className="rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-bold text-blue-950 shadow-sm shadow-blue-950/20 md:px-4 md:py-1.5 md:text-xs">{t.dispatch.statusPending}</span>
+                    <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm shadow-orange-950/20 md:px-4 md:py-1.5 md:text-xs">{t.dispatch.statusPending}</span>
                   ) : (
                     getStatusBadge(currentOrder.status)
                   )}
@@ -2864,7 +2864,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                             <div className="mb-3 inline-flex items-center justify-center">
                               <div className="relative">
                                 <div className="absolute -inset-3 rounded-[1.35rem] border border-cyan-200/20" />
-                                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 shadow-[0_12px_28px_-8px_rgba(249,115,22,0.6)]">
+                                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_12px_28px_-8px_rgba(249,115,22,0.6)]">
                                   <Package className="h-7 w-7 text-white" />
                                 </div>
                               </div>
@@ -2933,7 +2933,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                                   <div className="absolute -inset-8 rounded-full bg-cyan-300/15 blur-xl" />
                                   <div className="absolute -inset-4 rounded-[1.75rem] border border-cyan-200/20" />
 
-                                  <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-orange-500 shadow-[0_16px_36px_-10px_rgba(249,115,22,0.65)]">
+                                  <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_16px_36px_-10px_rgba(249,115,22,0.65)]">
                                     <Package className="w-10 h-10 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
                                     <div className="absolute inset-0 rounded-2xl border border-orange-300/40"></div>
                                   </div>
