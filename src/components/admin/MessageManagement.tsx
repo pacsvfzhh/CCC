@@ -2016,7 +2016,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {/* Filter tabs */}
             <div className="space-y-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="w-[58px] shrink-0 rounded-md border border-cyan-300/45 bg-cyan-400/15 px-0.5 py-1 text-center text-[10px] font-extrabold tracking-wide text-cyan-100">訊息類型</p>
+                  <p className="w-[58px] shrink-0 px-0.5 text-center text-[10px] font-extrabold tracking-wide text-cyan-100">訊息類型</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([['all', '全部'], ['realtime_with_login_fallback', '結合'], ['realtime_only', '即時'], ['login_only', '登入']] as const).map(([val, label]) => {
                       const activeClass = val === 'realtime_with_login_fallback'
@@ -2043,7 +2043,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <p className="w-[58px] shrink-0 rounded-md border border-violet-300/45 bg-violet-400/15 px-0.5 py-1 text-center text-[10px] font-extrabold tracking-wide text-violet-100">閱讀狀態</p>
+                  <p className="w-[58px] shrink-0 px-0.5 text-center text-[10px] font-extrabold tracking-wide text-violet-100">閱讀狀態</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([
                       ['all', '全部', sentMessageReadSummary.total],
