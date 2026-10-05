@@ -3084,32 +3084,52 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           ) : (
             <>
             {session.isWorking && !(isTransitioning && transitionType === 'start') && (
-              <div role="status" className="relative isolate overflow-hidden rounded-2xl border border-blue-400/30 bg-blue-800 px-5 py-10 text-white shadow-xl shadow-blue-900/20 md:rounded-3xl md:px-10 md:py-12">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,60,0.98)_0%,rgba(30,58,138,0.88)_47%,rgba(59,130,246,0.35)_100%)]" />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <div className="h-52 w-52 rounded-full bg-blue-400/30 blur-3xl animate-breath-ripple md:h-72 md:w-72" />
-                  <div className="absolute h-64 w-64 rounded-full border border-sky-300/20 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
-                </div>
-                <button type="button" onClick={() => void handleStopWork(false).catch(() => undefined)} disabled={isProcessing} aria-label={t.dispatch.goOffline} title={t.dispatch.goOffline} className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-blue-100 transition-colors hover:border-rose-300/60 hover:bg-rose-500/25 hover:text-white disabled:cursor-wait disabled:opacity-50 md:right-6 md:top-6"><Square className="h-3.5 w-3.5" aria-hidden="true" /></button>
-                <div className="relative z-10 text-center">
-                  <div className="mb-6 flex items-center justify-center gap-2 md:mb-8">
-                    <span className="h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)] animate-pulse" />
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-white md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
-                    <span className="rounded-full border border-white/25 bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 md:text-[10px]">{t.dispatch.live}</span>
+              <div className="space-y-4 md:space-y-6">
+                <div className="relative -mx-5 -mb-2 min-h-[220px] overflow-hidden px-5 py-10 md:-mx-10 md:px-10 md:py-12">
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_50%,rgba(15,23,60,0.98)_0%,rgba(20,35,80,0.95)_12%,rgba(28,50,120,0.82)_28%,rgba(37,80,190,0.55)_44%,rgba(96,165,250,0.12)_68%,transparent_85%)]" />
+                  <div className="pointer-events-none absolute inset-0 animate-[colorShiftBg_8s_ease-in-out_infinite] bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(6,182,212,0.15),transparent_70%)]" />
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="h-44 w-44 rounded-full bg-blue-400/60 blur-xl animate-breath-ripple animate-color-shift-glow md:h-56 md:w-56" />
+                    <div className="absolute h-64 w-64 rounded-full bg-cyan-500/45 blur-2xl animate-breath-ripple md:h-80 md:w-80" style={{ animationDelay: '1.2s' }} />
+                    <div className="absolute h-72 w-72 rounded-full border border-sky-300/20 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
+                    <div className="absolute h-80 w-80 rounded-full border border-blue-300/10 animate-[spin_30s_linear_infinite_reverse] md:h-[26rem] md:w-[26rem]" />
                   </div>
-                  <div className="mb-7 flex items-start justify-center gap-3 md:mb-8 md:gap-5">
-                    <div className="text-center">
-                      <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
-                      <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.min}</div>
+                  <div className="relative z-10 text-center">
+                    <div className="mb-6 flex items-center justify-center gap-2 md:mb-8">
+                      <span className="h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)] animate-pulse" />
+                      <p className="text-xs font-bold uppercase tracking-[0.15em] text-white md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
+                      <span className="rounded-full border border-white/25 bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 md:text-[10px]">{t.dispatch.live}</span>
                     </div>
-                    <span aria-hidden="true" className="-mt-1 text-4xl font-bold text-sky-300 md:text-7xl">:</span>
-                    <div className="text-center">
-                      <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
-                      <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
+                    <div className="mb-7 flex items-start justify-center gap-3 md:mb-8 md:gap-5">
+                      <div className="text-center">
+                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
+                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.min}</div>
+                      </div>
+                      <div aria-hidden="true" className="-mt-1 flex flex-col items-center justify-center gap-2 md:gap-3">
+                        <span className="h-2 w-2 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.8)] animate-pulse md:h-2.5 md:w-2.5" />
+                        <span className="h-2 w-2 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.8)] animate-pulse md:h-2.5 md:w-2.5" />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
+                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
+                      </div>
                     </div>
+                    <p className="text-xs font-medium text-blue-100/80 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
-                  <p className="text-xs font-medium text-blue-100/80 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => void handleStopWork(false).catch(() => undefined)}
+                  disabled={isProcessing}
+                  className={`group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl border border-red-400/30 bg-gradient-to-r from-red-500/90 via-red-600/90 to-red-500/90 px-4 py-4 text-white shadow-lg shadow-red-900/20 transition-all duration-200 hover:from-red-600 hover:via-red-700 hover:to-red-600 disabled:cursor-wait md:rounded-2xl md:px-8 md:py-5 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  {isProcessing ? (
+                    <><span className="h-5 w-5 animate-spin rounded-full border-2 border-red-300/50 border-t-white" /><span className="font-bold">{t.dispatch.endingSession}</span></>
+                  ) : (
+                    <><span className="rounded-xl border border-white/15 bg-white/10 p-2.5 transition-colors group-hover:bg-white/15"><Square className="h-5 w-5" fill="currentColor" aria-hidden="true" /></span><span className="text-left"><span className="block text-sm font-bold md:text-base">{t.dispatch.endSession}</span><span className="hidden text-xs text-red-100/70 md:block">{t.dispatch.stopAccepting}</span></span></>
+                  )}
+                </button>
               </div>
             )}
             {/* DESKTOP LAYOUT */}
