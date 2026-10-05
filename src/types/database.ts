@@ -2370,7 +2370,24 @@ export interface Database {
       };
       list_unpurged_archived_employees: {
         Args: { p_admin_session_token: string };
-        Returns: Array<{ employee_id: string; archived_at: string; order_count: number; audit_count: number }>;
+        Returns: Array<{
+          employee_id: string;
+          username: string;
+          employee_number: string | null;
+          owner_username: string | null;
+          archived_at: string;
+          order_count: number;
+          processing_order_count: number;
+          historical_order_count: number;
+          withdrawal_count: number;
+          pending_withdrawal_count: number;
+          available_balance: number | null;
+          frozen_balance: number | null;
+          audit_count: number;
+          active_chat_count: number;
+          candidate_image_count: number;
+          quick_send_image_count: number;
+        }>;
       };
       prepare_unpurged_archived_employee_delete: {
         Args: { p_admin_session_token: string; p_employee_id: string };
