@@ -2062,6 +2062,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     setErrorReason('');
   };
 
+  const waitingPanelActive = session.isWorking && !currentOrder && !(isTransitioning && transitionType === 'start');
+
   const getStatusBadge = (status: string) => {
     const badges = {
       pending: { text: t.dispatch.statusPending, color: 'bg-white/15 text-white border border-white/25 backdrop-blur-sm' },
@@ -2530,19 +2532,23 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
-        session.isWorking
+        waitingPanelActive
+          ? 'bg-[#0b1736] border-2 border-sky-400/35 shadow-[0_24px_72px_-18px_rgba(8,35,91,0.65)]'
+          : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
         {/* Inner gradient background for depth */}
         <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${
-          session.isWorking
+          waitingPanelActive
+            ? 'bg-[radial-gradient(ellipse_at_50%_48%,rgba(28,80,169,0.52),transparent_60%),linear-gradient(135deg,#0b1736_0%,#132b5c_54%,#0b1736_100%)]'
+            : session.isWorking
             ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30'
             : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'
         }`}></div>
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
-          session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+          waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
         }`}></div>
 
         {/* Content */}
@@ -2554,7 +2560,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <>{/* Header Section - Tablet optimized horizontal layout */}
           {isTablet ? (
             /* TABLET: Compact horizontal layout */
-            <div className="flex items-center justify-between mb-6 space-x-4">
+            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-white/10 pb-5' : 'mb-6'}`}>
               {/* Left: Logo + Title */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Icon */}
@@ -2568,13 +2574,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
                 {/* Title + Status */}
                 <div>
-                  <h3 className="text-lg font-semibold text-blue-700 tracking-[-0.02em]" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>{t.dispatch.orderProcessing}</h3>
+                  <h3 className={`text-lg font-semibold tracking-[-0.02em] ${waitingPanelActive ? 'text-white' : 'text-blue-700'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>{t.dispatch.orderProcessing}</h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div className={`w-2 h-2 rounded-full ${session.isWorking ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
-                    <p className={`text-xs font-medium ${session.isWorking ? 'text-green-600' : 'text-slate-400'}`}>
+                    <p className={`text-xs font-medium ${waitingPanelActive ? 'text-emerald-300' : session.isWorking ? 'text-green-600' : 'text-slate-400'}`}>
                       {session.isWorking ? t.dispatch.active : t.dispatch.readyToStart}
-                      {session.isWorking && <span className="text-slate-300 ml-1.5">|</span>}
-                      {session.isWorking && <span className="text-slate-400 ml-1.5">{formatTime(session.startedAt)}</span>}
+                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-sky-200/40' : 'text-slate-300'}`}>|</span>}
+                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-blue-100/70' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>}
                     </p>
                   </div>
                 </div>
@@ -2582,13 +2588,15 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             </div>
           ) : (
             /* DESKTOP & MOBILE: Blue/White premium layout */
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-5 md:mb-10 space-y-4 md:space-y-0">
+            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-white/10 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
               {/* Mobile: Full-width status banner */}
               <div className="w-full md:w-auto">
                 <div className="flex items-center gap-3 md:gap-4">
                   {/* Icon - Distinct from title */}
                   <div className={`relative p-3.5 md:p-4 rounded-2xl transition-all duration-500 ${
-                    session.isWorking
+                    waitingPanelActive
+                      ? 'bg-gradient-to-br from-cyan-400/25 to-blue-500/25 border border-cyan-300/25 shadow-lg shadow-cyan-400/10'
+                      : session.isWorking
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-100'
                       : 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200'
                   }`}>
@@ -2601,12 +2609,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   </div>
 
                   <div className="flex-1">
-                    <h3 className="text-lg md:text-xl font-bold text-blue-800 tracking-[-0.02em]" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>
+                    <h3 className={`text-lg md:text-xl font-bold tracking-[-0.02em] ${waitingPanelActive ? 'text-white' : 'text-blue-800'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>
                       {t.dispatch.orderProcessing}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 ${
-                        session.isWorking
+                        waitingPanelActive
+                          ? 'bg-emerald-400/10 border border-emerald-300/25'
+                          : session.isWorking
                           ? 'bg-green-50 border border-green-200'
                           : 'bg-slate-50 border border-slate-200'
                       }`}>
@@ -2614,13 +2624,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           session.isWorking ? 'bg-green-500 animate-pulse' : 'bg-slate-300'
                         }`}></div>
                         <span className={`text-[11px] font-semibold transition-colors duration-300 ${
-                          session.isWorking ? 'text-green-700' : 'text-slate-500'
+                          waitingPanelActive ? 'text-emerald-300' : session.isWorking ? 'text-green-700' : 'text-slate-500'
                         }`}>
                           {session.isWorking ? t.dispatch.active : t.dispatch.standby}
                         </span>
                       </div>
                       {session.isWorking && (
-                        <span className="text-[11px] text-slate-400 font-medium">{formatTime(session.startedAt)}</span>
+                        <span className={`text-[11px] font-medium ${waitingPanelActive ? 'text-blue-100/65' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>
                       )}
                     </div>
                   </div>
@@ -3083,24 +3093,22 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             </div>
           ) : (
             <>
-            {session.isWorking && !(isTransitioning && transitionType === 'start') && (
-              <div className="space-y-4 md:space-y-6">
-                <div className="relative -mx-5 -mb-2 min-h-[220px] overflow-hidden px-5 py-10 md:-mx-10 md:px-10 md:py-12">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_50%,rgba(15,23,60,0.98)_0%,rgba(20,35,80,0.95)_12%,rgba(28,50,120,0.82)_28%,rgba(37,80,190,0.55)_44%,rgba(96,165,250,0.12)_68%,transparent_85%)]" />
-                  <div className="pointer-events-none absolute inset-0 animate-[colorShiftBg_8s_ease-in-out_infinite] bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(6,182,212,0.15),transparent_70%)]" />
+            {waitingPanelActive && (
+              <div>
+                <div className="relative min-h-[240px] overflow-hidden py-7 md:py-10">
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="h-44 w-44 rounded-full bg-blue-400/60 blur-xl animate-breath-ripple animate-color-shift-glow md:h-56 md:w-56" />
-                    <div className="absolute h-64 w-64 rounded-full bg-cyan-500/45 blur-2xl animate-breath-ripple md:h-80 md:w-80" style={{ animationDelay: '1.2s' }} />
-                    <div className="absolute h-72 w-72 rounded-full border border-sky-300/20 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
+                    <div className="h-44 w-44 rounded-full bg-blue-400/30 blur-xl animate-breath-ripple md:h-56 md:w-56" />
+                    <div className="absolute h-64 w-64 rounded-full bg-cyan-500/20 blur-2xl animate-breath-ripple md:h-80 md:w-80" style={{ animationDelay: '1.2s' }} />
+                    <div className="absolute h-64 w-64 rounded-full border border-sky-300/15 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
                     <div className="absolute h-80 w-80 rounded-full border border-blue-300/10 animate-[spin_30s_linear_infinite_reverse] md:h-[26rem] md:w-[26rem]" />
                   </div>
                   <div className="relative z-10 text-center">
-                    <div className="mb-6 flex items-center justify-center gap-2 md:mb-8">
-                      <span className="h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)] animate-pulse" />
-                      <p className="text-xs font-bold uppercase tracking-[0.15em] text-white md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
-                      <span className="rounded-full border border-white/25 bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 md:text-[10px]">{t.dispatch.live}</span>
+                    <div className="mb-7 flex items-center justify-center gap-2 md:mb-9">
+                      <span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.8)] animate-pulse" />
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-100 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
+                      <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 md:text-[10px]">{t.dispatch.live}</span>
                     </div>
-                    <div className="mb-7 flex items-start justify-center gap-3 md:mb-8 md:gap-5">
+                    <div className="mb-7 flex items-start justify-center gap-3 md:mb-9 md:gap-5">
                       <div className="text-center">
                         <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
                         <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.min}</div>
@@ -3114,22 +3122,28 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                       </div>
                     </div>
-                    <p className="text-xs font-medium text-blue-100/80 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
+                    <p className="text-xs font-medium text-blue-100/75 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void handleStopWork(false).catch(() => undefined)}
-                  disabled={isProcessing}
-                  className={`group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl border border-red-400/30 bg-gradient-to-r from-red-500/90 via-red-600/90 to-red-500/90 px-4 py-4 text-white shadow-lg shadow-red-900/20 transition-all duration-200 hover:from-red-600 hover:via-red-700 hover:to-red-600 disabled:cursor-wait md:rounded-2xl md:px-8 md:py-5 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                >
-                  {isProcessing ? (
-                    <><span className="h-5 w-5 animate-spin rounded-full border-2 border-red-300/50 border-t-white" /><span className="font-bold">{t.dispatch.endingSession}</span></>
-                  ) : (
-                    <><span className="rounded-xl border border-white/15 bg-white/10 p-2.5 transition-colors group-hover:bg-white/15"><Square className="h-5 w-5" fill="currentColor" aria-hidden="true" /></span><span className="text-left"><span className="block text-sm font-bold md:text-base">{t.dispatch.endSession}</span><span className="hidden text-xs text-red-100/70 md:block">{t.dispatch.stopAccepting}</span></span></>
-                  )}
-                </button>
+                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-white/10 bg-slate-950/25 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-200/85">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.55)]" />
+                    {t.dispatch.autoDispatch}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleStopWork(false).catch(() => undefined)}
+                    disabled={isProcessing}
+                    className={`group flex w-full items-center justify-center gap-3 rounded-xl border border-red-400/40 bg-red-500/15 px-5 py-3 text-rose-100 shadow-lg shadow-red-950/10 transition-all duration-200 hover:border-red-300/60 hover:bg-red-500/30 disabled:cursor-wait md:w-auto md:min-w-56 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    {isProcessing ? (
+                      <><span className="h-5 w-5 animate-spin rounded-full border-2 border-red-300/50 border-t-white" /><span className="font-bold">{t.dispatch.endingSession}</span></>
+                    ) : (
+                      <><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /><span className="text-left"><span className="block text-sm font-bold">{t.dispatch.endSession}</span><span className="hidden text-[11px] text-red-100/65 md:block">{t.dispatch.stopAccepting}</span></span></>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
             {/* DESKTOP LAYOUT */}
