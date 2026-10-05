@@ -5508,7 +5508,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
       {deletingEmployee && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => { if (!isDeleting) { setDeletingEmployee(null); setDeleteError(null); } }}>
-          <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-rose-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950/25 shadow-[0_24px_90px_rgba(2,6,23,0.8)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-employee-title" className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-rose-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950/25 shadow-[0_24px_90px_rgba(2,6,23,0.8)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-rose-300/15 bg-gradient-to-r from-rose-950/85 via-red-950/35 to-slate-900/80 px-5 py-5 sm:px-6">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-600 via-red-300 to-orange-400" />
               <div className="flex items-start justify-between gap-4">
@@ -5517,9 +5517,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     <Trash2 className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-300">危險操作</p>
-                    <h3 className="mt-1 text-xl font-bold tracking-tight text-white">刪除員工帳戶</h3>
-                    <p className="mt-1 text-xs text-rose-100/60">請確認你了解此操作的不可逆性。</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-300">員工管理 · 刪除確認</p>
+                    <h3 id="delete-employee-title" className="mt-1 text-xl font-bold tracking-tight text-white">刪除員工帳戶？</h3>
+                    <p className="mt-1 text-xs text-slate-400">請核對目標帳戶與操作影響</p>
                   </div>
                 </div>
                 <button type="button" onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} aria-label="關閉刪除員工" className="rounded-xl border border-rose-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-rose-300/40 hover:bg-rose-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
@@ -5545,27 +5545,16 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 </div>
               </div>
               <div className="rounded-2xl border border-rose-300/25 bg-rose-500/5 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-300/25 bg-rose-500/10 text-rose-200">
-                    <Trash2 className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-white">確定要永久刪除這個員工帳戶嗎？</p>
-                  </div>
-                </div>
-                <ul className="mt-4 grid gap-2 border-t border-rose-300/15 pt-3 text-xs text-slate-300 sm:grid-cols-2">
-                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />員工帳戶資訊</li>
-                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />已提交的訂單</li>
-                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />錢包與交易紀錄</li>
-                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />提現申請與驗證紀錄</li>
-                </ul>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-300">操作影響</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-white">帳戶將立即停用並從員工列表移除，相關對話亦會從原頁移除。</p>
+                <p className="mt-3 border-t border-rose-300/15 pt-3 text-xs leading-5 text-slate-300">帳戶、訂單與財務等歷史紀錄仍會保留，超管可在「已刪員工紀錄」核對；此處不會永久清除歷史資料。</p>
               </div>
             </div>
             <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-rose-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
               <button type="button" onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">取消</button>
               <button type="button" onClick={() => handleDeleteEmployee(deletingEmployee)} disabled={isDeleting} className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200/50 bg-rose-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-950/40 transition-colors hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50">
                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                {isDeleting ? '刪除中……' : '永久刪除'}
+                {isDeleting ? '刪除中…' : '確認刪除'}
               </button>
             </div>
           </div>

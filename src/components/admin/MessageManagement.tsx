@@ -2719,56 +2719,41 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && deleteMode && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl border border-red-500/30 shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-red-500/10 rounded-full">
-                  <AlertTriangle className="w-6 h-6 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">確認刪除</h3>
-                  <p className="text-sm text-slate-400">請確認是否刪除所選訊息</p>
-                </div>
+      {showDeleteConfirm && deleteMode && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+          <section role="dialog" aria-modal="true" aria-labelledby="notification-delete-title" className="w-full max-w-md overflow-hidden rounded-[1.75rem] border border-rose-300/25 bg-slate-900 text-slate-100 shadow-[0_28px_90px_rgba(2,6,23,0.8)] ring-1 ring-inset ring-white/5">
+            <div className="h-1 bg-gradient-to-r from-rose-600 via-red-400 to-orange-400" />
+            <header className="flex items-start gap-3 border-b border-white/10 bg-gradient-to-br from-rose-500/10 via-slate-900 to-slate-900 px-5 py-5 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-300/30 bg-rose-500/15 text-rose-200">
+                <Trash2 className="h-5 w-5" aria-hidden="true" />
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-4 mb-6">
-                {deleteMode === 'selected' ? (
-                  <p className="text-sm text-slate-300">
-                    您即將刪除 <span className="font-semibold text-white">{deleteProgress?.total ?? selectedMessageIds.size}</span> 則已選訊息。
-                  </p>
-                ) : (
-                  <p className="text-sm text-slate-300">
-                    您即將刪除所選管理員群組的<span className="font-semibold text-white">{messageOriginFilter === 'manual' ? '全部手動通知' : '全部可管理通知（不含自動化）'}</span>。
-                    {(deleteProgress?.total ?? manageableGroupMessages.length) > 0 && (
-                      <span className="block mt-1 text-slate-400">（將刪除 {deleteProgress?.total ?? manageableGroupMessages.length} 則訊息）</span>
-                    )}
-                  </p>
-                )}
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300">已發送訊息 · 刪除確認</p>
+                <h3 id="notification-delete-title" className="mt-1 text-lg font-bold tracking-tight text-white">{deleteMode === 'selected' ? '刪除所選通知？' : '刪除可管理通知？'}</h3>
+                <p className="mt-1 text-xs text-slate-400">確認後將從已發送列表與收件端移除。</p>
               </div>
-              {deleting && deleteProgress && (
-                <div className="mb-4 text-sm text-slate-300" role="status" aria-live="polite">
-                  正在封存並移除：{deleteProgress.completed} / {deleteProgress.total} 則
+              <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={deleting} aria-label="關閉刪除確認" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"><X className="h-4 w-4" /></button>
+            </header>
+            <div className="space-y-4 px-5 py-5 sm:px-6">
+              <div className="rounded-xl border border-white/10 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">刪除範圍</p>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold text-slate-100">{deleteMode === 'selected' ? '已選通知' : messageOriginFilter === 'manual' ? '全部手動通知' : '全部可管理通知'}</span>
+                  <span className="shrink-0 rounded-lg border border-rose-300/25 bg-rose-500/10 px-2.5 py-1 text-sm font-bold tabular-nums text-rose-100">{deleteProgress?.total ?? (deleteMode === 'selected' ? selectedMessageIds.size : manageableGroupMessages.length)} 則</span>
                 </div>
-              )}
-              <div className="flex gap-3">
-                <button onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={deleting}
-                  className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
-                  取消
-                </button>
-                <button onClick={handleConfirmDelete} disabled={deleting}
-                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                  {deleting ? (
-                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> 刪除中...</>
-                  ) : (
-                    <><Trash2 className="w-4 h-4" /> 刪除</>
-                  )}
-                </button>
+                {deleteMode === 'all' && messageOriginFilter !== 'manual' && <p className="mt-2 text-xs text-slate-400">不包含自動化通知</p>}
               </div>
+              <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true" />刪除後無法在原頁直接復原，請確認刪除範圍。</p>
+              {deleting && deleteProgress && deleteProgress.total > 1 && <div role="progressbar" aria-label="刪除中" aria-valuemin={0} aria-valuemax={deleteProgress.total} aria-valuenow={deleteProgress.completed} className="h-1.5 overflow-hidden rounded-full bg-slate-700"><div className="h-full rounded-full bg-rose-400 transition-all" style={{ width: `${deleteProgress.completed / deleteProgress.total * 100}%` }} /></div>}
             </div>
-          </div>
-        </div>
+            <footer className="grid grid-cols-2 gap-3 border-t border-white/10 bg-slate-950/40 px-5 py-4 sm:px-6">
+              <button type="button" autoFocus onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={deleting} className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">取消</button>
+              <button type="button" onClick={handleConfirmDelete} disabled={deleting} className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-300/40 bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-950/30 transition-colors hover:from-rose-500 hover:to-red-500 disabled:cursor-not-allowed disabled:opacity-50">
+                {deleting ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />刪除中…</> : <><Trash2 className="h-4 w-4" aria-hidden="true" />確認刪除</>}
+              </button>
+            </footer>
+          </section>
+        </div>, document.body,
       )}
     </div>
   );

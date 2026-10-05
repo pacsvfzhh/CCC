@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw, Megaphone, AlignLeft, AlignCenter, AlignRight, Palette } from 'lucide-react';
+import { Users, Plus, Send, Trash2, AlertTriangle, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw, Megaphone, AlignLeft, AlignCenter, AlignRight, Palette } from 'lucide-react';
 import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import CustomerAutoMessages, { type AutoMessageDraft } from './CustomerAutoMessages';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
@@ -360,6 +360,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     show: boolean;
     title: string;
     message: string;
+    scope: 'customer' | 'message' | 'conversation';
     onConfirm: () => void;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2504,6 +2505,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       show: true,
       title: '刪除經理',
       message: `確定刪除經理「${customerToDelete?.customer_name || '此經理'}」及其所有對話嗎？`,
+      scope: 'customer',
       onConfirm: async () => {
         setConfirmDeleting(true);
         try {
@@ -2958,6 +2960,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       show: true,
       title: '刪除訊息',
       message: '確定刪除此訊息嗎？',
+      scope: 'message',
       onConfirm: async () => {
         setConfirmDeleting(true);
         try {
@@ -3187,6 +3190,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       show: true,
       title: '刪除對話',
       message: `確定刪除與 ${selectedEmployee.username} 的完整對話嗎？`,
+      scope: 'conversation',
       onConfirm: async () => {
         setConfirmDeleting(true);
         try {
@@ -6162,29 +6166,26 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         document.body
       )}
 
-      {confirmDialog && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border-2 border-red-500/50 rounded-2xl p-6 max-w-md w-full shadow-2xl shadow-red-500/20">
-            <h3 className="text-xl font-bold text-white mb-3">{confirmDialog.title}</h3>
-            <p className="text-slate-300 mb-6">{confirmDialog.message}</p>
-            <div className="flex gap-3">
-              <button
-                onClick={confirmDialog.onConfirm}
-                disabled={confirmDeleting}
-                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:cursor-wait disabled:opacity-60"
-              >
-                {confirmDeleting ? '刪除中…' : '刪除'}
-              </button>
-              <button
-                onClick={() => setConfirmDialog(null)}
-                disabled={confirmDeleting}
-                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors disabled:cursor-wait disabled:opacity-60"
-              >
-                取消
-              </button>
+      {confirmDialog && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+          <section role="dialog" aria-modal="true" aria-labelledby="manager-chat-delete-title" className="w-full max-w-md overflow-hidden rounded-[1.75rem] border border-rose-300/25 bg-slate-900 text-slate-100 shadow-[0_28px_90px_rgba(2,6,23,0.8)] ring-1 ring-inset ring-white/5">
+            <div className="h-1 bg-gradient-to-r from-rose-600 via-red-400 to-orange-400" />
+            <header className="flex items-start gap-3 border-b border-white/10 bg-gradient-to-br from-rose-500/10 via-slate-900 to-slate-900 px-5 py-5 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-300/30 bg-rose-500/15 text-rose-200"><Trash2 className="h-5 w-5" aria-hidden="true" /></div>
+              <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300">經理頁 · 刪除確認</p><h3 id="manager-chat-delete-title" className="mt-1 text-lg font-bold tracking-tight text-white">{confirmDialog.title}</h3><p className="mt-1 text-xs text-slate-400">請核對影響範圍後再繼續</p></div>
+              <button type="button" onClick={() => setConfirmDialog(null)} disabled={confirmDeleting} aria-label="關閉刪除確認" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"><X className="h-4 w-4" /></button>
+            </header>
+            <div className="space-y-4 px-5 py-5 sm:px-6">
+              <p className="text-sm leading-6 text-slate-200">{confirmDialog.message}</p>
+              <div className="rounded-xl border border-white/10 bg-slate-950/50 p-4"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">影響範圍</p><p className="mt-2 text-sm font-semibold text-white">{confirmDialog.scope === 'customer' ? '此經理及其全部對話' : confirmDialog.scope === 'conversation' ? '目前整段對話' : '目前這則聊天訊息'}</p></div>
+              <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true" />刪除後將從原頁移除，無法在原頁直接復原。</p>
             </div>
-          </div>
-        </div>
+            <footer className="grid grid-cols-2 gap-3 border-t border-white/10 bg-slate-950/40 px-5 py-4 sm:px-6">
+              <button type="button" autoFocus onClick={() => setConfirmDialog(null)} disabled={confirmDeleting} className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">取消</button>
+              <button type="button" onClick={confirmDialog.onConfirm} disabled={confirmDeleting} className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-300/40 bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-950/30 transition-colors hover:from-rose-500 hover:to-red-500 disabled:cursor-not-allowed disabled:opacity-50">{confirmDeleting ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />刪除中…</> : <><Trash2 className="h-4 w-4" aria-hidden="true" />確認刪除</>}</button>
+            </footer>
+          </section>
+        </div>, document.body,
       )}
 
       {notification && createPortal(
