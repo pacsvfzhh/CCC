@@ -2093,7 +2093,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      pending: { text: t.dispatch.statusPending, color: 'bg-white/15 text-white border border-white/25 backdrop-blur-sm' },
+      pending: { text: t.dispatch.statusPending, color: 'bg-orange-50 text-orange-700 border border-orange-200' },
       accepted: { text: t.dispatch.inProgress, color: 'bg-blue-50 text-blue-600 border border-blue-200' },
       completed: { text: t.dispatch.completed, color: 'bg-emerald-50 text-emerald-600 border border-emerald-200' },
       error: { text: t.dispatch.error, color: 'bg-rose-50 text-rose-600 border border-rose-200' },
@@ -2560,7 +2560,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
-          ? 'bg-[#081b2b] border-2 border-teal-300/40 shadow-[0_24px_72px_-18px_rgba(3,55,68,0.7),0_0_35px_-18px_rgba(45,212,191,0.4)]'
+          ? 'bg-white border-2 border-blue-200 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(6,182,212,0.14)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
@@ -2568,7 +2568,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         {/* Inner gradient background for depth */}
         <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${
           waitingPanelActive
-            ? 'bg-[radial-gradient(ellipse_at_49%_43%,rgba(13,148,136,0.26),transparent_58%),radial-gradient(circle_at_86%_22%,rgba(56,189,248,0.16),transparent_36%),linear-gradient(135deg,#071626_0%,#102c43_56%,#081a2b_100%)]'
+            ? 'bg-[radial-gradient(ellipse_at_49%_43%,rgba(191,219,254,0.54),transparent_58%),radial-gradient(circle_at_86%_22%,rgba(103,232,249,0.22),transparent_36%),linear-gradient(135deg,#ffffff_0%,#eff6ff_56%,#f8fafc_100%)]'
             : session.isWorking
             ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30'
             : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'
@@ -2577,31 +2577,31 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1200 580" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <defs>
               <linearGradient id="dispatchRouteLine" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.12" />
-                <stop offset="55%" stopColor="#67e8f9" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.2" />
+                <stop offset="0%" stopColor="#2563eb" stopOpacity="0.1" />
+                <stop offset="55%" stopColor="#0891b2" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#f97316" stopOpacity="0.18" />
               </linearGradient>
               <pattern id="dispatchFreightGrid" width="32" height="32" patternUnits="userSpaceOnUse">
-                <path d="M32 0H0V32" fill="none" stroke="#67e8f9" strokeOpacity="0.08" />
+                <path d="M32 0H0V32" fill="none" stroke="#2563eb" strokeOpacity="0.07" />
               </pattern>
             </defs>
             <rect width="1200" height="580" fill="url(#dispatchFreightGrid)" />
             <path d="M1200 72H1008Q974 72 974 106V154Q974 186 1008 186H1100Q1134 186 1134 220V338Q1134 370 1100 370H974" fill="none" stroke="url(#dispatchRouteLine)" strokeWidth="2" strokeDasharray="7 10" />
             <path d="M0 330H122Q155 330 155 364V448Q155 480 189 480H320" fill="none" stroke="url(#dispatchRouteLine)" strokeWidth="2" strokeDasharray="7 10" />
-            <g fill="#071b2a" stroke="#5eead4" strokeOpacity="0.55" strokeWidth="2">
+            <g fill="#eff6ff" stroke="#0891b2" strokeOpacity="0.45" strokeWidth="2">
               <circle cx="974" cy="154" r="7" /><circle cx="1134" cy="338" r="7" /><circle cx="155" cy="364" r="7" />
             </g>
-            <g fill="none" stroke="#67e8f9" strokeOpacity="0.23" strokeWidth="2">
+            <g fill="none" stroke="#2563eb" strokeOpacity="0.16" strokeWidth="2">
               <rect x="1004" y="248" width="78" height="30" rx="5" /><path d="M1020 248v30m15-30v30m15-30v30m15-30v30" />
               <rect x="1016" y="287" width="78" height="30" rx="5" /><path d="M1032 287v30m15-30v30m15-30v30m15-30v30" />
               <path d="M215 390h49l18 17v30h-67zm14 0v47m14-47v47m14-44v44" />
             </g>
-            <path d="m948 154 10-6v12zm-637 326 10-6v12z" fill="#fbbf24" fillOpacity="0.65" />
+            <path d="m948 154 10-6v12zm-637 326 10-6v12z" fill="#f97316" fillOpacity="0.5" />
           </svg>
         )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
-          waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-teal-400 via-cyan-300 to-amber-400' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+          waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-blue-600 via-cyan-400 to-orange-400' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
         }`}></div>
 
         {/* Content */}
@@ -2613,7 +2613,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <>{/* Header Section - Tablet optimized horizontal layout */}
           {isTablet ? (
             /* TABLET: Compact horizontal layout */
-            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-white/10 pb-5' : 'mb-6'}`}>
+            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-blue-100 pb-5' : 'mb-6'}`}>
               {/* Left: Logo + Title */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Icon */}
@@ -2627,13 +2627,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
                 {/* Title + Status */}
                 <div>
-                  <h3 className={`text-lg font-semibold tracking-[-0.02em] ${waitingPanelActive ? 'text-white' : 'text-blue-700'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>{t.dispatch.orderProcessing}</h3>
+                  <h3 className={`text-lg font-semibold tracking-[-0.02em] ${waitingPanelActive ? 'text-blue-900' : 'text-blue-700'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>{t.dispatch.orderProcessing}</h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div className={`w-2 h-2 rounded-full ${session.isWorking ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
-                    <p className={`text-xs font-medium ${waitingPanelActive ? 'text-emerald-300' : session.isWorking ? 'text-green-600' : 'text-slate-400'}`}>
+                    <p className={`text-xs font-medium ${waitingPanelActive ? 'text-blue-600' : session.isWorking ? 'text-green-600' : 'text-slate-400'}`}>
                       {session.isWorking ? t.dispatch.active : t.dispatch.readyToStart}
-                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-sky-200/40' : 'text-slate-300'}`}>|</span>}
-                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-blue-100/70' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>}
+                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-blue-200' : 'text-slate-300'}`}>|</span>}
+                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-slate-500' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>}
                     </p>
                   </div>
                 </div>
@@ -2641,20 +2641,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             </div>
           ) : (
             /* DESKTOP & MOBILE: Blue/White premium layout */
-            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-white/10 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
+            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-blue-100 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
               {/* Mobile: Full-width status banner */}
               <div className="w-full md:w-auto">
                 <div className="flex items-center gap-3 md:gap-4">
                   {/* Icon - Distinct from title */}
                   <div className={`relative p-3.5 md:p-4 rounded-2xl transition-all duration-500 ${
                     waitingPanelActive
-                      ? 'bg-gradient-to-br from-teal-400/30 to-cyan-500/15 border border-teal-300/30 shadow-lg shadow-teal-400/15'
+                      ? 'bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 shadow-sm shadow-blue-200/50'
                       : session.isWorking
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-100'
                       : 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200'
                   }`}>
                     <Timer className={`w-6 h-6 md:w-6 md:h-6 transition-colors duration-500 ${
-                      session.isWorking ? 'text-white' : 'text-blue-600'
+                      waitingPanelActive ? 'text-blue-600' : session.isWorking ? 'text-white' : 'text-blue-600'
                     }`} />
                     {session.isWorking && (
                       <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
@@ -2662,13 +2662,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   </div>
 
                   <div className="flex-1">
-                    <h3 className={`text-lg md:text-xl font-bold tracking-[-0.02em] ${waitingPanelActive ? 'text-white' : 'text-blue-800'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>
+                    <h3 className={`text-lg md:text-xl font-bold tracking-[-0.02em] ${waitingPanelActive ? 'text-blue-900' : 'text-blue-800'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>
                       {t.dispatch.orderProcessing}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 ${
                         waitingPanelActive
-                          ? 'bg-emerald-400/10 border border-emerald-300/25'
+                          ? 'bg-blue-50 border border-blue-200'
                           : session.isWorking
                           ? 'bg-green-50 border border-green-200'
                           : 'bg-slate-50 border border-slate-200'
@@ -2677,13 +2677,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           session.isWorking ? 'bg-green-500 animate-pulse' : 'bg-slate-300'
                         }`}></div>
                         <span className={`text-[11px] font-semibold transition-colors duration-300 ${
-                          waitingPanelActive ? 'text-emerald-300' : session.isWorking ? 'text-green-700' : 'text-slate-500'
+                          waitingPanelActive ? 'text-blue-700' : session.isWorking ? 'text-green-700' : 'text-slate-500'
                         }`}>
                           {session.isWorking ? t.dispatch.active : t.dispatch.standby}
                         </span>
                       </div>
                       {session.isWorking && (
-                        <span className={`text-[11px] font-medium ${waitingPanelActive ? 'text-blue-100/65' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>
+                        <span className={`text-[11px] font-medium ${waitingPanelActive ? 'text-slate-500' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>
                       )}
                     </div>
                   </div>
@@ -2699,7 +2699,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             /* ORDER DISPLAY - Advanced Blockchain Design */
             <div className={`relative backdrop-blur-sm overflow-hidden transition-all duration-700 ease-out ${currentOrder.status === 'accepted' ? (isTablet ? 'border-0 rounded-none shadow-none' : 'border-0 rounded-none shadow-none flex flex-col') : 'border md:border-2 rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl'} ${
               currentOrder.status === 'pending'
-                ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 border-blue-400/40 shadow-blue-900/50'
+                ? 'bg-gradient-to-br from-white via-blue-50 to-cyan-50 border-blue-200 shadow-blue-200/40'
                 : hasTimeout
                 ? 'bg-gradient-to-br from-rose-900/80 to-red-900/80 border-rose-500/50 shadow-rose-500/30'
                 : 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 border-blue-300/60 shadow-blue-200/50'
@@ -2707,7 +2707,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               {/* Background pattern for pending */}
               {currentOrder.status === 'pending' && (
                 <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{
-                  backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)',
+                  backgroundImage: 'radial-gradient(circle, rgba(37,99,235,0.5) 1px, transparent 1px)',
                   backgroundSize: '24px 24px'
                 }}></div>
               )}
@@ -2715,7 +2715,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               {/* Gradient overlay */}
               <div className={`absolute inset-0 pointer-events-none ${
                 currentOrder.status === 'pending'
-                  ? 'bg-gradient-to-br from-blue-500/20 via-transparent to-blue-900/30'
+                  ? 'bg-gradient-to-br from-blue-100/55 via-transparent to-cyan-100/30'
                   : hasTimeout
                   ? ''
                   : 'bg-gradient-to-br from-sky-100/40 via-transparent to-blue-100/30'
@@ -2723,23 +2723,23 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
               {/* Corner accents */}
               <div className={`absolute top-2 left-2 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-l-2 rounded-tl-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
+                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
               }`}></div>
               <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-r-2 rounded-tr-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
+                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
               }`}></div>
               <div className={`absolute bottom-2 left-2 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-l-2 rounded-bl-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
+                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
               }`}></div>
               <div className={`absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-r-2 rounded-br-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
+                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
               }`}></div>
 
               {/* Scanning Lines */}
               {currentOrder.status === 'pending' && (
                 <>
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/60 to-transparent animate-scan"></div>
-                  <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-300/60 to-transparent animate-scan" style={{animationDelay: '1s'}}></div>
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan"></div>
+                  <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan" style={{animationDelay: '1s'}}></div>
                 </>
               )}
               {currentOrder.status === 'accepted' && !hasTimeout && (
@@ -2748,10 +2748,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
               {/* Ambient glow orbs */}
               <div className={`absolute top-1/4 -left-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
-                currentOrder.status === 'pending' ? 'bg-blue-400/20' : hasTimeout ? 'bg-rose-400/15' : 'bg-sky-300/20'
+                currentOrder.status === 'pending' ? 'bg-blue-200/30' : hasTimeout ? 'bg-rose-400/15' : 'bg-sky-300/20'
               }`}></div>
               <div className={`absolute bottom-1/4 -right-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
-                currentOrder.status === 'pending' ? 'bg-sky-300/15' : hasTimeout ? 'bg-red-400/15' : 'bg-blue-300/15'
+                currentOrder.status === 'pending' ? 'bg-cyan-200/30' : hasTimeout ? 'bg-red-400/15' : 'bg-blue-300/15'
               }`} style={{animationDelay: '1s'}}></div>
 
               <div className={`relative p-3 md:p-8 z-10 ${currentOrder.status === 'accepted' ? (isTablet ? 'flex flex-col' : 'flex-1 flex flex-col') : ''} transition-all duration-500 ease-out ${
@@ -2765,7 +2765,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       {/* Glow effect */}
                       <div className={`absolute inset-0 rounded-xl md:rounded-2xl blur-lg ${
                         currentOrder.status === 'pending'
-                          ? 'bg-amber-400/30 animate-pulse'
+                          ? 'bg-orange-300/30 animate-pulse'
                           : hasTimeout
                           ? 'bg-rose-500/50 animate-pulse'
                           : 'bg-blue-500/20'
@@ -2774,7 +2774,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       {/* Icon container */}
                       <div className={`relative w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center border-2 ${
                         currentOrder.status === 'pending'
-                          ? 'bg-gradient-to-br from-amber-400 to-amber-500 border-amber-300/60 shadow-lg shadow-amber-500/30'
+                          ? 'bg-gradient-to-br from-orange-400 to-amber-500 border-orange-300/60 shadow-lg shadow-orange-400/20'
                           : hasTimeout
                           ? 'bg-gradient-to-br from-rose-500/30 to-red-500/30 border-rose-400/60'
                           : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300/50 shadow-lg shadow-blue-500/20'
@@ -2793,14 +2793,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     <div>
                       <div className="flex items-center space-x-2 md:space-x-3">
                         <h3 className={`text-base md:text-3xl font-black tracking-tight ${
-                          currentOrder.status === 'pending' ? 'text-white' : hasTimeout ? 'text-rose-100 drop-shadow-lg' : 'text-gray-800'
+                          currentOrder.status === 'pending' ? 'text-blue-900' : hasTimeout ? 'text-rose-100 drop-shadow-lg' : 'text-gray-800'
                         }`}>
                           {currentOrder.status === 'pending' ? t.dispatch.newOrderHeading : hasTimeout ? t.dispatch.timeout : t.dispatch.inProgress}
                         </h3>
                         {currentOrder.status === 'pending' && (
-                          <div className="flex items-center space-x-1 px-2 py-0.5 md:px-3 md:py-1 bg-white/10 border border-white/25 rounded-md md:rounded-lg backdrop-blur-sm">
-                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                            <span className="text-[9px] md:text-xs font-bold text-emerald-300 uppercase tracking-wide">{t.dispatch.verified}</span>
+                          <div className="flex items-center space-x-1 px-2 py-0.5 md:px-3 md:py-1 bg-cyan-50 border border-cyan-200 rounded-md md:rounded-lg backdrop-blur-sm">
+                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+                            <span className="text-[9px] md:text-xs font-bold text-cyan-700 uppercase tracking-wide">{t.dispatch.verified}</span>
                           </div>
                         )}
                         {currentOrder.status === 'accepted' && !hasTimeout && (
@@ -2811,7 +2811,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         )}
                       </div>
                       <p className={`text-[10px] md:text-sm font-semibold mt-1 md:mt-1.5 flex items-center space-x-2 ${
-                        currentOrder.status === 'pending' ? 'text-blue-200/80' : hasTimeout ? 'text-rose-200' : 'text-gray-500'
+                        currentOrder.status === 'pending' ? 'text-slate-600' : hasTimeout ? 'text-rose-200' : 'text-gray-500'
                       }`}>
                         <Clock className="w-3 h-3 md:w-4 md:h-4" />
                         <span>{currentOrder.status === 'pending' ? t.dispatch.acceptWithin : hasTimeout ? t.dispatch.completeNow : t.dispatch.completeTask}</span>
@@ -2845,19 +2845,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 <div className="md:hidden mb-2.5">
                   <div className={`relative backdrop-blur-md rounded-lg p-2.5 border overflow-hidden shadow-sm ${
                     currentOrder.status === 'pending'
-                      ? 'bg-white/10 border-white/20'
+                      ? 'bg-white/85 border-blue-100'
                       : 'bg-white/90 border-gray-200'
                   }`}>
                     <div className="relative z-10">
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center space-x-1.5">
-                          <div className={`w-1 h-1 rounded-full animate-pulse ${currentOrder.status === 'pending' ? 'bg-blue-300' : 'bg-blue-500'}`}></div>
-                          <FileText className={`w-3 h-3 ${currentOrder.status === 'pending' ? 'text-blue-300' : 'text-blue-500'}`} />
-                          <h4 className={`text-[10px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-white/90' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
+                          <div className={`w-1 h-1 rounded-full animate-pulse ${currentOrder.status === 'pending' ? 'bg-cyan-500' : 'bg-blue-500'}`}></div>
+                          <FileText className={`w-3 h-3 ${currentOrder.status === 'pending' ? 'text-cyan-600' : 'text-blue-500'}`} />
+                          <h4 className={`text-[10px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-blue-900' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
                         </div>
                         {currentOrder.status === 'pending' && (
-                          <div className="px-1.5 py-0.5 bg-white/10 border border-white/20 rounded">
-                            <span className="text-[8px] font-bold text-blue-200 uppercase">{t.dispatch.locked}</span>
+                          <div className="px-1.5 py-0.5 bg-orange-50 border border-orange-200 rounded">
+                            <span className="text-[8px] font-bold text-orange-700 uppercase">{t.dispatch.locked}</span>
                           </div>
                         )}
                       </div>
@@ -2869,16 +2869,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           <div className="relative">
                             <div className="inline-flex items-center justify-center mb-2">
                               <div className="relative">
-                                <div className="absolute inset-0 bg-amber-400/20 rounded-xl blur-md animate-pulse"></div>
-                                <div className="relative w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+                                <div className="absolute inset-0 bg-orange-300/20 rounded-xl blur-md animate-pulse"></div>
+                                <div className="relative w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-400/20">
                                   <Package className="w-6 h-6 text-white animate-pulse" />
                                 </div>
                               </div>
                             </div>
 
-                            <p className="text-white font-bold text-xs mb-0.5 tracking-wide">{t.dispatch.newOrderAvailable}</p>
-                            <p className="text-emerald-300 text-[9px] font-semibold mb-1">{t.dispatch.secured}</p>
-                            <p className="text-blue-200/60 text-[8px]">{t.dispatch.acceptToUnlock}</p>
+                            <p className="text-blue-900 font-bold text-xs mb-0.5 tracking-wide">{t.dispatch.newOrderAvailable}</p>
+                            <p className="text-cyan-700 text-[9px] font-semibold mb-1">{t.dispatch.secured}</p>
+                            <p className="text-slate-500 text-[8px]">{t.dispatch.acceptToUnlock}</p>
                           </div>
                         </div>
                       ) : (
@@ -2895,29 +2895,29 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   <div className="lg:col-span-3">
                     <div className={`relative backdrop-blur-xl rounded-2xl p-8 border overflow-hidden shadow-xl transition-all duration-500 ${
                       currentOrder.status === 'pending'
-                        ? 'bg-white/10 border-white/20 shadow-blue-900/20'
+                        ? 'bg-white/90 border-blue-100 shadow-blue-100/60'
                         : 'bg-white/90 border-gray-200 shadow-sm'
                     }`}>
                       {/* Subtle dot pattern */}
                       <div className={`absolute inset-0 ${currentOrder.status === 'pending' ? 'opacity-[0.04]' : 'opacity-[0.02]'}`} style={{
                         backgroundImage: currentOrder.status === 'pending'
-                          ? 'radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)'
+                          ? 'radial-gradient(circle, rgba(37,99,235,0.6) 1px, transparent 1px)'
                           : 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)',
                         backgroundSize: '20px 20px'
                       }}></div>
 
                       {/* Soft corner accents */}
                       <div className={`absolute top-3 left-3 w-5 h-5 border-t border-l rounded-tl-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
+                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
                       }`}></div>
                       <div className={`absolute top-3 right-3 w-5 h-5 border-t border-r rounded-tr-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
+                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
                       }`}></div>
                       <div className={`absolute bottom-3 left-3 w-5 h-5 border-b border-l rounded-bl-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
+                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
                       }`}></div>
                       <div className={`absolute bottom-3 right-3 w-5 h-5 border-b border-r rounded-br-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
+                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
                       }`}></div>
 
                       <div className="relative z-10">
@@ -2925,16 +2925,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           <div className="flex items-center space-x-3">
                             <div className="relative">
                               <div className={`absolute inset-0 rounded-full blur-sm animate-pulse ${currentOrder.status === 'pending' ? 'bg-cyan-300/40' : 'bg-blue-400/30'}`}></div>
-                              <div className={`relative w-2 h-2 rounded-full ${currentOrder.status === 'pending' ? 'bg-cyan-300' : 'bg-blue-500'}`}></div>
+                              <div className={`relative w-2 h-2 rounded-full ${currentOrder.status === 'pending' ? 'bg-cyan-500' : 'bg-blue-500'}`}></div>
                             </div>
-                            <FileText className={`w-5 h-5 ${currentOrder.status === 'pending' ? 'text-cyan-300' : 'text-blue-500'}`} />
-                            <h4 className={`text-sm font-bold uppercase tracking-widest ${currentOrder.status === 'pending' ? 'text-white' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
+                            <FileText className={`w-5 h-5 ${currentOrder.status === 'pending' ? 'text-cyan-600' : 'text-blue-500'}`} />
+                            <h4 className={`text-sm font-bold uppercase tracking-widest ${currentOrder.status === 'pending' ? 'text-blue-900' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
                           </div>
                           {currentOrder.status === 'pending' && (
-                            <div className="relative flex items-center space-x-2 px-4 py-1.5 bg-amber-400/15 border border-amber-400/30 rounded-lg overflow-hidden backdrop-blur-sm">
-                              <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/10 to-amber-400/0 animate-shimmer"></div>
-                              <div className="relative w-2 h-2 bg-amber-400 rounded-full animate-pulse shadow-sm shadow-amber-400/50"></div>
-                              <span className="relative text-xs font-bold text-amber-300 uppercase tracking-wider">{t.dispatch.encryptedLabel}</span>
+                            <div className="relative flex items-center space-x-2 px-4 py-1.5 bg-orange-50 border border-orange-200 rounded-lg overflow-hidden backdrop-blur-sm">
+                              <div className="absolute inset-0 bg-gradient-to-r from-orange-100/0 via-orange-100 to-orange-100/0 animate-shimmer"></div>
+                              <div className="relative w-2 h-2 bg-orange-400 rounded-full animate-pulse shadow-sm shadow-orange-400/35"></div>
+                              <span className="relative text-xs font-bold text-orange-700 uppercase tracking-wider">{t.dispatch.encryptedLabel}</span>
                             </div>
                           )}
                         </div>
@@ -2945,58 +2945,58 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           <div className="text-center relative min-h-[180px] max-h-[180px] flex flex-col justify-center">
                             {/* Floating particles */}
                             <div className="absolute inset-0 overflow-hidden">
-                              <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-amber-300/30 rounded-full animate-float-particle-1"></div>
-                              <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-white/15 rounded-full animate-float-particle-2"></div>
-                              <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-cyan-300/25 rounded-full animate-float-particle-3"></div>
+                              <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-orange-300/40 rounded-full animate-float-particle-1"></div>
+                              <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-blue-300/40 rounded-full animate-float-particle-2"></div>
+                              <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-cyan-300/40 rounded-full animate-float-particle-3"></div>
                             </div>
 
                             <div className="relative">
                               {/* Icon - amber/gold for contrast */}
                               <div className="inline-flex items-center justify-center mb-5">
                                 <div className="relative">
-                                  <div className="absolute -inset-4 bg-amber-400/15 rounded-full blur-xl animate-pulse"></div>
-                                  <div className="absolute -inset-2 bg-amber-500/10 rounded-full blur-md animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                                  <div className="absolute -inset-4 bg-orange-300/20 rounded-full blur-xl animate-pulse"></div>
+                                  <div className="absolute -inset-2 bg-orange-300/15 rounded-full blur-md animate-pulse" style={{animationDelay: '0.5s'}}></div>
 
-                                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 shadow-xl shadow-amber-500/25 flex items-center justify-center">
+                                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 shadow-xl shadow-orange-400/20 flex items-center justify-center">
                                     <Package className="w-10 h-10 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
-                                    <div className="absolute inset-0 rounded-2xl border border-amber-300/40"></div>
+                                    <div className="absolute inset-0 rounded-2xl border border-orange-300/40"></div>
                                   </div>
                                 </div>
                               </div>
 
-                              <h3 className="text-xl font-bold mb-3 tracking-tight text-white">
+                              <h3 className="text-xl font-bold mb-3 tracking-tight text-blue-900">
                                 {t.dispatch.newOrderAvailable}
                               </h3>
 
                               {/* Security badge */}
                               <div className="flex items-center justify-center space-x-3 mb-3">
-                                <div className="w-10 h-px bg-gradient-to-r from-transparent to-white/25"></div>
-                                <div className="flex items-center space-x-2 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full backdrop-blur-sm">
-                                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                                  <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">{t.dispatch.secured}</span>
+                                <div className="w-10 h-px bg-gradient-to-r from-transparent to-blue-200"></div>
+                                <div className="flex items-center space-x-2 px-3 py-1 bg-cyan-50 border border-cyan-200 rounded-full backdrop-blur-sm">
+                                  <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+                                  <span className="text-xs font-bold text-cyan-700 uppercase tracking-wider">{t.dispatch.secured}</span>
                                 </div>
-                                <div className="w-10 h-px bg-gradient-to-l from-transparent to-white/25"></div>
+                                <div className="w-10 h-px bg-gradient-to-l from-transparent to-blue-200"></div>
                               </div>
 
-                              <p className="text-blue-100/80 text-sm font-medium mb-3 max-w-sm mx-auto">
+                              <p className="text-slate-600 text-sm font-medium mb-3 max-w-sm mx-auto">
                                 {t.dispatch.clickAcceptToUnlock}
                               </p>
 
                               {/* Status indicators */}
-                              <div className="flex items-center justify-center space-x-4 pt-3 border-t border-white/10">
+                              <div className="flex items-center justify-center space-x-4 pt-3 border-t border-blue-100">
                                 <div className="flex items-center space-x-1.5">
-                                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                                  <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wide">{t.dispatch.verified}</span>
+                                  <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></div>
+                                  <span className="text-[10px] text-cyan-700 font-bold uppercase tracking-wide">{t.dispatch.verified}</span>
                                 </div>
-                                <div className="w-px h-3 bg-white/15"></div>
+                                <div className="w-px h-3 bg-blue-200"></div>
                                 <div className="flex items-center space-x-1.5">
-                                  <div className="w-1.5 h-1.5 bg-cyan-300 rounded-full animate-pulse" style={{animationDelay: '0.3s'}}></div>
-                                  <span className="text-[10px] text-cyan-200 font-bold uppercase tracking-wide">{t.dispatch.blockchain}</span>
+                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.3s'}}></div>
+                                  <span className="text-[10px] text-blue-700 font-bold uppercase tracking-wide">{t.dispatch.blockchain}</span>
                                 </div>
-                                <div className="w-px h-3 bg-white/15"></div>
+                                <div className="w-px h-3 bg-blue-200"></div>
                                 <div className="flex items-center space-x-1.5">
-                                  <div className="w-1.5 h-1.5 bg-amber-300 rounded-full animate-pulse" style={{animationDelay: '0.6s'}}></div>
-                                  <span className="text-[10px] text-amber-200 font-bold uppercase tracking-wide">{t.dispatch.encryptedLabel}</span>
+                                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" style={{animationDelay: '0.6s'}}></div>
+                                  <span className="text-[10px] text-orange-700 font-bold uppercase tracking-wide">{t.dispatch.encryptedLabel}</span>
                                 </div>
                               </div>
                             </div>
@@ -3016,19 +3016,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       <button
                         onClick={handleAcceptOrder}
                         disabled={isAccepting}
-                        className={`group relative w-full px-4 py-3 md:px-6 md:py-4 bg-white text-blue-700 rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-xl shadow-white/20 disabled:cursor-not-allowed touch-manipulation ${
+                        className={`group relative w-full px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed touch-manipulation ${
                           performanceSettings.reduceTransitions
                             ? 'transition-opacity duration-150 active:opacity-80'
-                            : 'hover:shadow-white/40 transition-all duration-200 hover:scale-105 active:scale-[0.98]'
+                            : 'hover:shadow-blue-600/30 transition-all duration-200 hover:scale-105 active:scale-[0.98]'
                         }`}
                       >
                         {!performanceSettings.reduceTransitions && (
-                          <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="absolute inset-0 bg-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         )}
                         <div className="relative flex items-center justify-center space-x-2">
                           {isAccepting ? (
                             <>
-                              <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin keep-animation"></div>
+                              <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-blue-200/60 border-t-white rounded-full animate-spin keep-animation"></div>
                               <span>{t.dispatch.accepting}</span>
                             </>
                           ) : (
@@ -3095,12 +3095,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     <button
                       onClick={handleAcceptOrder}
                       disabled={isAccepting}
-                      className="w-full bg-white text-blue-700 py-3 px-4 rounded-lg font-bold text-sm shadow-lg shadow-white/20 flex items-center justify-center space-x-1.5 disabled:cursor-not-allowed touch-manipulation active:bg-blue-50 active:scale-[0.97] transition-transform duration-75"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg font-bold text-sm shadow-lg shadow-blue-600/20 flex items-center justify-center space-x-1.5 disabled:cursor-not-allowed touch-manipulation active:from-blue-700 active:to-cyan-700 active:scale-[0.97] transition-transform duration-75"
                       style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       {isAccepting ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin keep-animation flex-shrink-0"></div>
+                          <div className="w-4 h-4 border-2 border-blue-200/60 border-t-white rounded-full animate-spin keep-animation flex-shrink-0"></div>
                           <span>{t.dispatch.accepting}</span>
                         </>
                       ) : (
@@ -3150,50 +3150,50 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               <div>
                 <div className="relative min-h-[240px] overflow-hidden py-7 md:py-10">
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="h-44 w-44 rounded-full bg-blue-400/30 blur-xl animate-breath-ripple md:h-56 md:w-56" />
-                    <div className="absolute h-64 w-64 rounded-full bg-cyan-500/20 blur-2xl animate-breath-ripple md:h-80 md:w-80" style={{ animationDelay: '1.2s' }} />
-                    <div className="absolute h-64 w-64 rounded-full border border-sky-300/15 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
-                    <div className="absolute h-80 w-80 rounded-full border border-blue-300/10 animate-[spin_30s_linear_infinite_reverse] md:h-[26rem] md:w-[26rem]" />
+                    <div className="h-44 w-44 rounded-full bg-blue-200/55 blur-xl animate-breath-ripple md:h-56 md:w-56" />
+                    <div className="absolute h-64 w-64 rounded-full bg-cyan-100/65 blur-2xl animate-breath-ripple md:h-80 md:w-80" style={{ animationDelay: '1.2s' }} />
+                    <div className="absolute h-64 w-64 rounded-full border border-cyan-300/35 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
+                    <div className="absolute h-80 w-80 rounded-full border border-blue-200/45 animate-[spin_30s_linear_infinite_reverse] md:h-[26rem] md:w-[26rem]" />
                   </div>
                   <div className="relative z-10 text-center">
                     <div className="mb-7 flex items-center justify-center gap-2 md:mb-9">
-                      <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.8)] animate-pulse" />
-                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-100 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
-                      <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 md:text-[10px]">{t.dispatch.live}</span>
+                      <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.38)] animate-pulse" />
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-800 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
+                      <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-700 md:text-[10px]">{t.dispatch.live}</span>
                     </div>
                     <div className="mb-7 flex items-start justify-center gap-3 md:mb-9 md:gap-5">
                       <div className="text-center">
-                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_22px_rgba(45,212,191,0.5)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.min}</div>
+                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-blue-700 drop-shadow-[0_8px_20px_rgba(37,99,235,0.16)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
+                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 md:mt-3 md:text-xs">{t.dispatch.min}</div>
                       </div>
                       <div aria-hidden="true" className="-mt-1 flex flex-col items-center justify-center gap-2 md:gap-3">
-                        <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.65)] animate-pulse md:h-2.5 md:w-2.5" />
-                        <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.65)] animate-pulse md:h-2.5 md:w-2.5" />
+                        <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
+                        <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
                       </div>
                       <div className="text-center">
-                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_22px_rgba(45,212,191,0.5)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
+                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-blue-700 drop-shadow-[0_8px_20px_rgba(37,99,235,0.16)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
+                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                       </div>
                     </div>
-                    <p className="text-xs font-medium text-blue-100/75 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
+                    <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-teal-300/15 bg-teal-950/25 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-teal-100/85">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.55)]" />
+                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50/60 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
+                    <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.35)]" />
                     {t.dispatch.autoDispatch}
                   </div>
                   <button
                     type="button"
                     onClick={() => void handleStopWork(false).catch(() => undefined)}
                     disabled={isProcessing}
-                    className={`group flex w-full items-center justify-center gap-3 rounded-xl border border-red-400/40 bg-red-500/15 px-5 py-3 text-rose-100 shadow-lg shadow-red-950/10 transition-all duration-200 hover:border-red-300/60 hover:bg-red-500/30 disabled:cursor-wait md:w-auto md:min-w-56 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    className={`group flex w-full items-center justify-center gap-3 rounded-xl border border-orange-200 bg-white px-5 py-3 text-orange-700 shadow-sm transition-all duration-200 hover:border-orange-300 hover:bg-orange-50 disabled:cursor-wait md:w-auto md:min-w-56 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     {isProcessing ? (
-                      <><span className="h-5 w-5 animate-spin rounded-full border-2 border-red-300/50 border-t-white" /><span className="font-bold">{t.dispatch.endingSession}</span></>
+                      <><span className="h-5 w-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-600" /><span className="font-bold">{t.dispatch.endingSession}</span></>
                     ) : (
-                      <><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /><span className="text-left"><span className="block text-sm font-bold">{t.dispatch.endSession}</span><span className="hidden text-[11px] text-red-100/65 md:block">{t.dispatch.stopAccepting}</span></span></>
+                      <><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /><span className="text-left"><span className="block text-sm font-bold">{t.dispatch.endSession}</span><span className="hidden text-[11px] text-orange-600/75 md:block">{t.dispatch.stopAccepting}</span></span></>
                     )}
                   </button>
                 </div>
