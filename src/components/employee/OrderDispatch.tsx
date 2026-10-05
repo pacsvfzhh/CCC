@@ -2590,28 +2590,19 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <span className="dispatch-panel-wave dispatch-panel-wave-3" />
               <span className="dispatch-panel-wave dispatch-panel-wave-4" />
             </div>
-            <div className="dispatch-panel-pattern pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden="true">
-              <svg className="dispatch-panel-pattern-right" viewBox="0 0 190 206" fill="none">
-                <rect x="77" y="4" width="68" height="68" rx="19" fill="#0891b2" fillOpacity="0.24" />
-                <rect x="153" y="4" width="28" height="68" rx="12" fill="#3b82f6" fillOpacity="0.22" />
-                <rect x="27" y="80" width="42" height="42" rx="13" fill="#38bdf8" fillOpacity="0.28" />
-                <rect x="77" y="80" width="68" height="74" rx="19" fill="#2563eb" fillOpacity="0.19" />
-                <rect x="153" y="80" width="28" height="74" rx="12" fill="#fde68a" fillOpacity="0.56" />
-                <rect x="27" y="130" width="42" height="42" rx="13" fill="#2563eb" fillOpacity="0.14" />
-                <rect x="77" y="162" width="68" height="36" rx="14" fill="#06b6d4" fillOpacity="0.28" />
-                <rect x="153" y="162" width="28" height="36" rx="12" fill="#7dd3fc" fillOpacity="0.38" />
-              </svg>
-              <svg className="dispatch-panel-pattern-left" viewBox="0 0 182 182" fill="none">
-                <rect x="4" y="5" width="76" height="38" rx="13" fill="#2563eb" fillOpacity="0.17" />
-                <rect x="88" y="5" width="42" height="38" rx="13" fill="#67e8f9" fillOpacity="0.39" />
-                <rect x="4" y="51" width="76" height="78" rx="20" fill="#06b6d4" fillOpacity="0.24" />
-                <rect x="88" y="51" width="42" height="78" rx="15" fill="#3b82f6" fillOpacity="0.22" />
-                <rect x="138" y="51" width="34" height="34" rx="11" fill="#fde68a" fillOpacity="0.61" />
-                <rect x="4" y="137" width="38" height="34" rx="12" fill="#fde68a" fillOpacity="0.53" />
-                <rect x="50" y="137" width="80" height="34" rx="12" fill="#60a5fa" fillOpacity="0.27" />
-                <rect x="138" y="93" width="34" height="78" rx="12" fill="#0891b2" fillOpacity="0.23" />
-              </svg>
-            </div>
+            <svg className="dispatch-panel-ship pointer-events-none absolute z-[2]" viewBox="0 0 800 300" fill="none" aria-hidden="true">
+              <path d="M36 268c61-17 100-17 154 0 54 17 102 17 157 0 55-17 103-17 158 0 55 17 103 17 157 0 45-14 78-15 122-4" stroke="#38bdf8" strokeOpacity="0.24" strokeWidth="4" strokeLinecap="round" />
+              <path d="M22 284c61-17 101-17 156 0 54 17 102 17 157 0 55-17 103-17 158 0 55 17 103 17 157 0 55-17 97-17 146 0" stroke="#7dd3fc" strokeOpacity="0.22" strokeWidth="3" strokeLinecap="round" />
+              <path d="M93 180h640l48-18-35 65c-12 26-35 36-68 36H196c-52 0-80-14-92-40L93 180Z" fill="#258dbe" fillOpacity="0.19" />
+              <path d="M102 164h632l-2 17H94l8-17Z" fill="#0891b2" fillOpacity="0.16" />
+              <path d="M176 161v-46c0-7 6-13 13-13h147c7 0 13 6 13 13v46H176Z" fill="#3b9bc6" fillOpacity="0.19" />
+              <path d="M204 102V80c0-7 6-13 13-13h97c7 0 13 6 13 13v22H204Z" fill="#48a9cd" fillOpacity="0.19" />
+              <path d="M223 67V54h85v13h-85ZM377 162v-53h44v53h-44Z" fill="#63b7d6" fillOpacity="0.21" />
+              <path d="M386 109V88h26v21h-26Z" fill="#82c7de" fillOpacity="0.25" />
+              <path d="M445 161v-29h188l24 29H445Z" fill="#52abd0" fillOpacity="0.16" />
+              <path d="M482 132V71m-17 61 17-41 18 41" stroke="#4aa6ce" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M222 85h18m17 0h18m17 0h18M199 125h22m17 0h22m17 0h22m17 0h15" stroke="#e9faff" strokeOpacity="0.7" strokeWidth="7" strokeLinecap="round" />
+            </svg>
             <div className="absolute right-5 top-5 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10">
               <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
               <span>{t.dispatch.autoDispatch}</span>

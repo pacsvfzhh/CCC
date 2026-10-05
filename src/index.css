@@ -1299,29 +1299,19 @@ body {
   mask-image: radial-gradient(ellipse 82% 85% at 50% 53%, #000 21%, rgb(0 0 0 / 86%) 45%, rgb(0 0 0 / 46%) 69%, rgb(0 0 0 / 16%) 86%, transparent 100%);
 }
 
-.dispatch-panel-pattern svg {
-  position: absolute;
-  width: 190px;
+.dispatch-panel-ship {
+  width: min(460px, 124%);
   height: auto;
-  filter: drop-shadow(0 8px 16px rgb(37 99 235 / 7%));
-}
-
-.dispatch-panel-pattern-right {
-  top: 17%;
-  right: -70px;
-  transform: rotate(-8deg);
-}
-
-.dispatch-panel-pattern-left {
-  bottom: 13%;
-  left: -81px;
-  transform: rotate(9deg);
+  right: -62px;
+  bottom: 72px;
 }
 
 @media (min-width: 768px) {
-  .dispatch-panel-pattern svg { width: 265px; }
-  .dispatch-panel-pattern-right { top: 10%; right: -47px; }
-  .dispatch-panel-pattern-left { bottom: 11%; left: -45px; }
+  .dispatch-panel-ship {
+    width: min(760px, 82%);
+    right: 3%;
+    bottom: 96px;
+  }
 }
 
 .dispatch-panel-wave {
