@@ -1,13 +1,19 @@
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM private.deleted_employee_delete_jobs WHERE finished_at IS NOT NULL) THEN
-    RAISE EXCEPTION 'Existing unfinished media cleanup jobs require manual review before upgrading employee deletion.';
+    RAISE EXCEPTION 'Completed employee database deletions still await media cleanup. Finish those jobs before upgrading employee deletion.';
   END IF;
 END;
 $$;
 
 ALTER TABLE private.deleted_employee_delete_jobs
   ADD COLUMN retained_shared_images integer NOT NULL DEFAULT 0;
+
+CREATE TABLE private.retained_employee_chat_images (
+  path text PRIMARY KEY,
+  retained_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+REVOKE ALL ON private.retained_employee_chat_images FROM PUBLIC, anon, authenticated;
 
 CREATE FUNCTION private.employee_chat_image_in_use(p_path text)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
@@ -79,7 +85,7 @@ BEGIN
     'v_operation_ids text[];' || E'\n  ' ||
     'v_original_paths text[];' || E'\n  ' ||
     'v_public_paths jsonb;' || E'\n  ' ||
-    'v_retained_shared_images integer;');
+    'v_retained_shared_images integer;' || E'\n  ' || 'v_shared_paths text[];');
   definition := replace(definition,
     'SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids',
     $capture_original_images$
@@ -90,6 +96,9 @@ BEGIN
     SELECT substring(source.url FROM '/storage/v1/object/public/chat-images/([^?#]+)$') AS path
   ) original
   WHERE event.employee_id = ANY(v_employee_ids) AND original.path IS NOT NULL;
+  IF EXISTS (SELECT 1 FROM unnest(v_original_paths) candidate(path) WHERE strpos(candidate.path, '%') > 0) THEN
+    RAISE EXCEPTION 'An archived chat image path must be reviewed before permanent deletion.';
+  END IF;
 
   SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids
     $capture_original_images$);
@@ -177,8 +186,11 @@ BEGIN
     )
     SELECT COALESCE(jsonb_agg(jsonb_build_object('bucket', 'chat-images', 'path', path))
         FILTER (WHERE NOT in_use), '[]'::jsonb),
-      count(*) FILTER (WHERE in_use)
-    INTO v_public_paths, v_retained_shared_images FROM image_references;
+      count(*) FILTER (WHERE in_use),
+      COALESCE(array_agg(path) FILTER (WHERE in_use), '{}'::text[])
+    INTO v_public_paths, v_retained_shared_images, v_shared_paths FROM image_references;
+    INSERT INTO private.retained_employee_chat_images(path)
+    SELECT DISTINCT unnest(v_shared_paths) ON CONFLICT (path) DO NOTHING;
     v_paths := v_paths || v_public_paths;
     $after_user_delete$);
 
@@ -244,7 +256,7 @@ CREATE FUNCTION public.recheck_deleted_employee_archive_media(
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
 DECLARE v_role text; v_job private.deleted_employee_delete_jobs%ROWTYPE;
-  v_paths jsonb; v_retained integer;
+  v_paths jsonb; v_retained integer; v_shared_paths text[];
 BEGIN
   SELECT admin_role INTO v_role FROM private.get_financial_admin_context(p_admin_session_token);
   IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
@@ -260,11 +272,14 @@ BEGIN
     WHERE item.data ->> 'bucket' = 'chat-images' AND item.data ->> 'path' = ANY(p_paths)
   )
   SELECT COALESCE(jsonb_agg(item.data ORDER BY item.position), '[]'::jsonb),
-    (SELECT count(*) FROM checked WHERE in_use)
-  INTO v_paths, v_retained
+    (SELECT count(*) FROM checked WHERE in_use),
+    (SELECT COALESCE(array_agg(path), '{}'::text[]) FROM checked WHERE in_use)
+  INTO v_paths, v_retained, v_shared_paths
   FROM jsonb_array_elements(v_job.paths_to_remove) WITH ORDINALITY item(data, position)
   LEFT JOIN checked ON item.data ->> 'bucket' = 'chat-images' AND checked.path = item.data ->> 'path'
   WHERE checked.in_use IS DISTINCT FROM true;
+  INSERT INTO private.retained_employee_chat_images(path)
+  SELECT DISTINCT unnest(v_shared_paths) ON CONFLICT (path) DO NOTHING;
   UPDATE private.deleted_employee_delete_jobs
   SET paths_to_remove = v_paths, retained_shared_images = retained_shared_images + v_retained
   WHERE id = p_job_id RETURNING * INTO v_job;
