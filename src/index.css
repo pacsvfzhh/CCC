@@ -1309,7 +1309,7 @@ body {
   border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
   -webkit-mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
   mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
-  background: radial-gradient(ellipse at 48% 52%, transparent 16%, rgb(37 99 235 / 51%) 35%, rgb(6 182 212 / 64%) 53%, rgb(125 211 252 / 25%) 72%, transparent 92%);
+  background: radial-gradient(ellipse at 48% 52%, transparent 16%, rgb(8 145 178 / 70%) 35%, rgb(6 182 212 / 78%) 53%, rgb(34 211 238 / 32%) 72%, transparent 92%);
   opacity: 0;
   animation: dispatchPanelBreath 8s ease-out infinite;
   will-change: transform, opacity;
@@ -1317,19 +1317,19 @@ body {
 
 .dispatch-panel-wave-2 {
   border-radius: 54% 46% 58% 42% / 42% 57% 43% 58%;
-  background: radial-gradient(ellipse at 53% 48%, transparent 18%, rgb(8 145 178 / 49%) 40%, rgb(56 189 248 / 64%) 58%, rgb(186 230 253 / 23%) 74%, transparent 93%);
+  background: radial-gradient(ellipse at 53% 48%, transparent 18%, rgb(13 148 136 / 67%) 40%, rgb(8 145 178 / 76%) 58%, rgb(103 232 249 / 28%) 74%, transparent 93%);
   animation-delay: -2s;
 }
 
 .dispatch-panel-wave-3 {
   border-radius: 44% 56% 51% 49% / 52% 49% 51% 48%;
-  background: radial-gradient(ellipse at 45% 53%, rgb(147 197 253 / 20%) 6%, transparent 28%, rgb(29 78 216 / 55%) 46%, rgb(34 211 238 / 55%) 61%, rgb(186 230 253 / 23%) 78%, transparent 94%);
+  background: radial-gradient(ellipse at 45% 53%, rgb(103 232 249 / 18%) 6%, transparent 28%, rgb(8 145 178 / 72%) 46%, rgb(6 182 212 / 70%) 61%, rgb(165 243 252 / 26%) 78%, transparent 94%);
   animation-delay: -4s;
 }
 
 .dispatch-panel-wave-4 {
   border-radius: 58% 42% 54% 46% / 43% 54% 46% 57%;
-  background: radial-gradient(ellipse at 52% 48%, transparent 25%, rgb(14 165 233 / 51%) 45%, rgb(37 99 235 / 62%) 63%, rgb(191 219 254 / 24%) 80%, transparent 95%);
+  background: radial-gradient(ellipse at 52% 48%, transparent 25%, rgb(6 182 212 / 69%) 45%, rgb(13 148 136 / 73%) 63%, rgb(165 243 252 / 29%) 80%, transparent 95%);
   animation-delay: -6s;
 }
 
