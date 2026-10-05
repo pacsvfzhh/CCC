@@ -1352,28 +1352,26 @@ body {
 }
 
 .dispatch-panel-ship {
-  width: min(460px, 124%);
+  width: min(450px, 92%);
   height: auto;
-  right: -62px;
-  bottom: 72px;
+  left: 38.2%;
+  bottom: 96px;
+  transform: translateX(-50%);
 }
 
 .dispatch-panel-sea {
   left: 0;
   width: 100%;
-  height: 44px;
+  height: 58px;
   bottom: 76px;
 }
 
 @media (min-width: 768px) {
   .dispatch-panel-ship {
     width: min(760px, 82%);
-    right: 3%;
-    bottom: 96px;
   }
 
   .dispatch-panel-sea {
-    height: 50px;
     bottom: 95px;
   }
 }
@@ -1381,14 +1379,10 @@ body {
 @media (min-width: 1024px) {
   .dispatch-panel-ship {
     width: min(1020px, 84%);
-    right: auto;
-    left: 38.2%;
     bottom: 100px;
-    transform: translateX(-50%);
   }
 
   .dispatch-panel-sea {
-    height: 64px;
     bottom: 105px;
   }
 }
