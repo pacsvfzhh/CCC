@@ -3203,22 +3203,22 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/15 px-3 py-2 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
-                    <span className="h-2 w-2 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />
-                    {t.dispatch.autoDispatch}
+                <div className="-mx-5 -mb-5 flex items-center justify-between gap-2 border-t border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] md:-mx-10 md:-mb-10 md:gap-4 md:px-10 md:py-6">
+                  <div className="flex min-w-0 items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-2 text-xs font-semibold text-white shadow-sm backdrop-blur-sm md:gap-2 md:px-3">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />
+                    <span className="truncate">{t.dispatch.autoDispatch}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => void handleStopWork(false).catch(() => undefined)}
                     disabled={isProcessing}
-                    className={`group flex w-full items-center justify-center gap-3 rounded-xl border border-red-200 bg-white px-5 py-3 text-red-700 shadow-[0_10px_24px_-12px_rgba(15,23,42,0.55)] transition-all duration-200 hover:border-red-300 hover:bg-red-50 hover:shadow-[0_12px_28px_-12px_rgba(185,28,28,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:w-auto md:min-w-56 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    className={`group flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-2.5 py-2 text-red-700 shadow-[0_10px_24px_-12px_rgba(15,23,42,0.55)] transition-all duration-200 hover:border-red-300 hover:bg-red-50 hover:shadow-[0_12px_28px_-12px_rgba(185,28,28,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-w-56 md:gap-3 md:px-5 md:py-3 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     {isProcessing ? (
-                      <><span className="h-5 w-5 animate-spin rounded-full border-2 border-red-200 border-t-red-600" /><span className="font-bold">{t.dispatch.endingSession}</span></>
+                      <><span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-red-200 border-t-red-600" /><span className="text-xs font-bold md:text-sm">{t.dispatch.endingSession}</span></>
                     ) : (
-                      <><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition-colors group-hover:bg-red-100"><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /></span><span className="text-left"><span className="block text-sm font-bold">{t.dispatch.endSession}</span><span className="hidden text-[11px] text-red-600/75 md:block">{t.dispatch.stopAccepting}</span></span></>
+                      <><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 transition-colors group-hover:bg-red-100 md:h-8 md:w-8"><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /></span><span className="text-left"><span className="block text-xs font-bold md:text-sm">{t.dispatch.endSession}</span><span className="hidden text-[11px] text-red-600/75 md:block">{t.dispatch.stopAccepting}</span></span></>
                     )}
                   </button>
                 </div>
