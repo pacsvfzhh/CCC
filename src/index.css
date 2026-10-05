@@ -1368,9 +1368,9 @@ body {
 
 @media (min-width: 1024px) {
   .dispatch-panel-ship {
-    width: min(1060px, 88%);
+    width: min(1020px, 84%);
     right: auto;
-    left: 50%;
+    left: 61.8%;
     bottom: 100px;
     transform: translateX(-50%);
   }
