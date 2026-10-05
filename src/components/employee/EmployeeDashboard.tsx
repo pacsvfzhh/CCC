@@ -4,7 +4,7 @@ import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, 
 import { Employee } from '../../types';
 import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, logout } from '../../lib/auth';
 import { logEmployeeLogin } from '../../lib/loginHistoryService';
-import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { formatSupabaseError, isSupabaseTransientError, supabase } from '../../lib/supabase';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { useResponsive } from '../../lib/useResponsive';
 import { tabSessionManager } from '../../lib/TabSessionManager';
@@ -52,6 +52,12 @@ type RealtimeNotificationClaim = {
 };
 
 type EmployeeFinancialSession = ReturnType<typeof getEmployeeFinancialSession>;
+
+function isExpiredEmployeeSession(error: unknown) {
+  const message = formatSupabaseError(error).toLowerCase();
+  return message.includes('employee session is invalid or expired')
+    || message.includes('employee session has expired');
+}
 
 export default function EmployeeDashboard({ employee: initialEmployee }: EmployeeDashboardProps) {
   const [employee, setEmployee] = useState<Employee>(initialEmployee);
@@ -190,11 +196,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
           // Check if session token has changed (another login kicked us out)
           if (currentSessionToken && updatedEmployee.current_session_token !== currentSessionToken) {
-            console.log('[EmployeeDashboard] Session token changed - another login detected!');
-            console.log('Old token:', currentSessionToken);
-            console.log('New token:', updatedEmployee.current_session_token);
-
-            // Show session expired modal and logout
+            financialSessionInvalidRef.current = true;
             setShowSessionExpired(true);
             return;
           }
@@ -224,7 +226,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   // Initialize tab session tracking
   useEffect(() => {
     const handleSessionExpired = () => {
-      console.log('[EmployeeDashboard] Session expired, showing modal');
+      financialSessionInvalidRef.current = true;
       setShowSessionExpired(true);
     };
 
@@ -355,7 +357,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       void loadUnreadCountRef.current?.();
       realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
         .then(() => recoverRealtimeNotificationsRef.current?.())
-        .catch(error => console.error('Error recovering realtime notifications:', error));
+        .catch(error => {
+          if (isExpiredEmployeeSession(error)) {
+            financialSessionInvalidRef.current = true;
+            setShowSessionExpired(true);
+            return;
+          }
+          console.error('Error recovering realtime notifications:', formatSupabaseError(error));
+        });
     };
 
     const recoverAfterInterruption = () => {
@@ -390,11 +399,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           payload => {
             void loadUnreadCountRef.current?.();
             const recipientId = String((payload.new as { id?: string }).id || '');
-            if (!recipientId || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+            if (!recipientId || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
             realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
               .then(() => processRealtimeRecipientRef.current?.(recipientId))
               .then(() => undefined)
-              .catch(error => console.error('Error draining realtime notifications:', error));
+              .catch(error => console.error('Error draining realtime notifications:', formatSupabaseError(error)));
           }
         )
         .on(
@@ -508,16 +517,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       if (error) throw error;
       if (data) setShowLoginPopup(true);
     } catch (error) {
-      const message = formatSupabaseError(error).toLowerCase();
-      if (
-        message.includes('employee session is invalid or expired')
-        || message.includes('employee session has expired')
-      ) {
+      if (isExpiredEmployeeSession(error)) {
         financialSessionInvalidRef.current = true;
         setShowSessionExpired(true);
         return;
       }
-      console.error('Error checking login popup messages:', error);
+      console.error('Error checking login popup messages:', formatSupabaseError(error));
     }
   };
 
@@ -535,7 +540,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       p_mark_read: false,
     };
     let completion = await supabase.rpc('complete_notification_delivery', completionPayload);
-    if (completion.error && navigator.onLine) {
+    if (completion.error && navigator.onLine && isSupabaseTransientError(completion.error)) {
       await new Promise(resolve => window.setTimeout(resolve, 300));
       completion = await supabase.rpc('complete_notification_delivery', completionPayload);
     }
@@ -543,7 +548,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     if (!(completion.data as { success?: boolean } | null)?.success) {
       throw new Error('Notification delivery could not be confirmed.');
     }
-    if (deliveredRecipientIdsRef.current.has(recipientId)) return;
+    if (financialSessionInvalidRef.current || deliveredRecipientIdsRef.current.has(recipientId)) return;
 
     deliveredRecipientIdsRef.current.add(recipientId);
     playNotificationSound();
@@ -561,7 +566,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   };
 
   const processRealtimeRecipient = async (recipientId: string) => {
-    if (deliveredRecipientIdsRef.current.has(recipientId)) return;
+    if (financialSessionInvalidRef.current || deliveredRecipientIdsRef.current.has(recipientId)) return;
 
     try {
       const session = getEmployeeFinancialSession();
@@ -577,14 +582,20 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       const result = data as RealtimeNotificationClaim | null;
       if (result) await deliverClaimedRealtimeNotification(result, session);
     } catch (error) {
-      console.error('Error processing realtime notification:', error);
+      if (isExpiredEmployeeSession(error)) {
+        financialSessionInvalidRef.current = true;
+        setShowSessionExpired(true);
+        return;
+      }
+      console.error('Error processing realtime notification:', formatSupabaseError(error));
     }
   };
 
   const recoverRealtimeNotifications = async () => {
+    if (financialSessionInvalidRef.current) return;
     const session = getEmployeeFinancialSession();
     for (let recovered = 0; recovered < 50; recovered += 1) {
-      if (document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+      if (financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
 
       const { data, error } = await supabase.rpc('claim_next_realtime_notification_delivery', {
         p_user_id: employee.id,
@@ -1082,7 +1093,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             </div>
             <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="pb-8">
               {loadedTabs.has('dispatch') ? (
-                <OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onNavigateToOrders={() => {
+                <OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onSessionExpired={() => {
+                  financialSessionInvalidRef.current = true;
+                  setShowSessionExpired(true);
+                }} onNavigateToOrders={() => {
                   setActiveTab('orders');
                   setLoadedTabs(prev => new Set([...prev, 'orders']));
                 }} />

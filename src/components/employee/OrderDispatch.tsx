@@ -60,12 +60,14 @@ function getOrderDispatchErrorMessage(error: unknown) {
 
 function isInvalidDispatchSession(message: string) {
   return message.includes('Employee work session is invalid, offline, or stale.')
-    || message.includes('Employee session is invalid or expired.');
+    || message.includes('Employee session is invalid or expired.')
+    || message.includes('Employee session has expired.');
 }
 
 interface OrderDispatchProps {
   employee: Employee;
   onStatusChange?: (hasNewOrder: boolean, hasTimeout: boolean) => void;
+  onSessionExpired?: () => void;
   onNavigateToOrders?: () => void;
 }
 
@@ -93,7 +95,7 @@ function generateAssignmentId(): string {
   return id;
 }
 
-export default function OrderDispatch({ employee, onStatusChange, onNavigateToOrders }: OrderDispatchProps) {
+export default function OrderDispatch({ employee, onStatusChange, onSessionExpired, onNavigateToOrders }: OrderDispatchProps) {
   const [session, setSession] = useState<WorkSession>({
     isWorking: false,
     sessionId: null,
@@ -799,6 +801,61 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
   restartSessionRef.current = restartSessionAfterLifecycleGap;
 
+  const handleInvalidDispatchSession = async (message: string, currentSessionId: string) => {
+    if (!componentMountedRef.current || sessionIdRef.current !== currentSessionId) return;
+    stopLocalWorkingState(currentSessionId);
+    const stoppedGeneration = lifecycleGenerationRef.current;
+
+    if (!message.includes('Employee session is invalid or expired.') && !message.includes('Employee session has expired.')) {
+      showNotification({
+        type: 'error', title: 'Dispatch Session Ended',
+        message: 'Your work session has ended. Start again to resume dispatch.', duration: 0,
+      });
+      return;
+    }
+
+    const auth = getStoredAuth();
+    let financialSessionValid: boolean | null = auth?.userType === 'employee' ? null : false;
+    if (auth?.userType === 'employee') {
+      try {
+        const [validation, account] = await Promise.all([
+          supabase.rpc('validate_employee_session', {
+            p_user_id: auth.user.id,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+          }),
+          supabase.from('users')
+            .select('current_session_token, current_tab_id, is_active')
+            .eq('id', auth.user.id)
+            .maybeSingle(),
+        ]);
+        if (validation.error || account.error) {
+          console.error('Could not verify employee session:', getOrderDispatchErrorMessage(validation.error || account.error));
+        } else {
+          financialSessionValid = validation.data === true
+            && account.data?.is_active === true
+            && account.data.current_session_token === auth.sessionToken
+            && account.data.current_tab_id === auth.tabId;
+        }
+      } catch (error) {
+        console.error('Could not verify employee session:', getOrderDispatchErrorMessage(error));
+      }
+    }
+
+    if (!componentMountedRef.current || lifecycleGenerationRef.current !== stoppedGeneration || sessionIdRef.current !== null) return;
+    if (financialSessionValid === false) {
+      onSessionExpired?.();
+      return;
+    }
+    showNotification({
+      type: 'error', title: 'Dispatch Session Ended',
+      message: financialSessionValid === null
+        ? 'Your employee session could not be verified. Please sign in again.'
+        : 'Your work session has ended. Start again to resume dispatch.',
+      duration: 0,
+    });
+  };
+
   const sendHeartbeat = async () => {
     const currentSessionId = sessionIdRef.current;
     const auth = getStoredAuth();
@@ -835,17 +892,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     } catch (error) {
       const message = getOrderDispatchErrorMessage(error);
-      console.error('Error sending heartbeat:', message);
-      if (componentMountedRef.current && sessionIdRef.current === currentSessionId && isInvalidDispatchSession(message)) {
-        stopLocalWorkingState(currentSessionId);
-        showNotification({
-          type: 'error', title: 'Dispatch Session Ended',
-          message: message.includes('Employee session is invalid or expired.')
-            ? 'Your employee session has expired. Please sign in again.'
-            : 'Your work session has ended. Start again to resume dispatch.',
-          duration: 0,
-        });
+      if (isInvalidDispatchSession(message)) {
+        await handleInvalidDispatchSession(message, currentSessionId);
+        return;
       }
+      console.error('Error sending heartbeat:', message);
     }
   };
   sendHeartbeatRef.current = sendHeartbeat;
@@ -1548,17 +1599,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     } catch (error) {
       if (isCurrentDispatch(sessionId, generation) && membershipRevision === membershipRevisionRef.current) {
         const message = getOrderDispatchErrorMessage(error);
-        console.error('Failed to prepare dispatch:', message);
         if (isInvalidDispatchSession(message)) {
-          stopLocalWorkingState(sessionId);
-          showNotification({
-            type: 'error', title: 'Dispatch Session Ended',
-            message: message.includes('Employee session is invalid or expired.')
-              ? 'Your employee session has expired. Please sign in again.'
-              : 'Your work session has ended. Start again to resume dispatch.',
-            duration: 0,
-          });
+          await handleInvalidDispatchSession(message, sessionId);
         } else {
+          console.error('Failed to prepare dispatch:', message);
           pauseDispatch('error', message, sessionId, generation);
         }
       }
