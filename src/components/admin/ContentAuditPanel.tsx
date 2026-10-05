@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  AlertTriangle, ArrowLeft, ChevronDown, ChevronRight, Database,
+  AlertTriangle, ArrowLeft, CheckCircle, ChevronDown, ChevronRight, Database,
   Gift, Image as ImageIcon, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, UserRoundX, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -532,6 +532,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailKey, setDetailKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [deleteFeedback, setDeleteFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [deletePreview, setDeletePreview] = useState<{ job_id: string; card_count: number; event_count: number; scope: 'bulk' | 'single' | 'conversation'; finished_at?: string | null } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Array<{ job_id: string; card_count: number; event_count: number; finished_at: string | null }>>([]);
@@ -541,6 +542,12 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const selectedIdRef = useRef(selectedId);
   filtersRef.current = filters;
   selectedIdRef.current = selectedId;
+
+  useEffect(() => {
+    if (!deleteFeedback) return;
+    const timer = window.setTimeout(() => setDeleteFeedback(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [deleteFeedback]);
 
   useEffect(() => {
     let cancelled = false;
@@ -853,6 +860,9 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setError(null);
     try {
       await executeAuditedDeletion(deletePreview.job_id);
+      setDeleteFeedback({ type: 'success', message: deletePreview.finished_at
+        ? '私有附件清理已完成。'
+        : `已永久清除 ${deletePreview.event_count} 筆內容稽核證據。` });
       setPendingDeletes(previous => previous.filter(job => job.job_id !== deletePreview.job_id));
       setDeletePreview(null);
       setSelectedId(null);
@@ -863,6 +873,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       setRefreshKey(key => key + 1);
     } catch (err) {
       setError(`刪除未完成：${formatSupabaseError(err)}。可重試本次確認；若已過期，取消後重新預覽。`);
+      setDeleteFeedback({ type: 'error', message: `內容稽核證據清理未完成：${formatSupabaseError(err)}。請重試本次確認。` });
     } finally {
       setDeleting(false);
     }
@@ -932,7 +943,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       {error && <div role="alert" className="flex shrink-0 items-start gap-2 border-b border-rose-500/30 bg-rose-950/50 px-4 py-2.5 text-xs text-rose-200"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{error}</span><button type="button" onClick={() => setError(null)} className="ml-auto shrink-0 underline">關閉</button></div>}
 
       {view === 'content' && <div className="relative z-30 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">{viewSwitch}</div>}
-      {view === 'employees' && <div className="flex min-h-0 flex-1 flex-col overflow-hidden"><DeletedEmployeesPanel switcher={viewSwitch} isActive refreshKey={refreshKey} onDeleted={() => setRefreshKey(key => key + 1)} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} /></div>}
+      {view === 'employees' && <div className="flex min-h-0 flex-1 flex-col overflow-hidden"><DeletedEmployeesPanel switcher={viewSwitch} isActive refreshKey={refreshKey} onDeleted={() => setRefreshKey(key => key + 1)} onDeleteResult={setDeleteFeedback} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} /></div>}
       {view === 'content' && <>
       <div className="relative z-20 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">
         <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">內容篩選</h2></div><OwnerPicker selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></div>
@@ -1059,6 +1070,14 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           </div>
         </main>
       </div></>}
+
+      {deleteFeedback && createPortal(
+        <div role={deleteFeedback.type === 'error' ? 'alert' : 'status'} className={`fixed right-4 top-4 z-[10010] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl sm:max-w-md ${deleteFeedback.type === 'success' ? 'border-emerald-400/60 bg-emerald-950 text-emerald-50' : 'border-rose-400/60 bg-rose-950 text-rose-50'}`}>
+          {deleteFeedback.type === 'success' ? <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" /> : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />}
+          <span className="min-w-0 flex-1 break-words">{deleteFeedback.message}</span>
+          <button type="button" onClick={() => setDeleteFeedback(null)} aria-label="關閉刪除結果提示" className="rounded p-0.5 hover:bg-white/10"><X className="h-4 w-4" /></button>
+        </div>, document.body,
+      )}
 
       {deletePreview && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="audit-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><h2 id="audit-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.finished_at ? '完成上次刪除的附件清理？' : deletePreview.scope === 'bulk' ? '刪除目前篩選的全部紀錄？' : deletePreview.scope === 'conversation' ? '刪除整段對話紀錄？' : '刪除此筆異動紀錄？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.card_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">列 · {deletePreview.event_count.toLocaleString()} 筆證據</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.finished_at ? '紀錄已刪除，但私有附件尚未確認清理完成。請完成清理，無法還原原紀錄。' : deletePreview.scope === 'bulk' ? '包含符合篩選但尚未載入的頁面；整段對話列會刪除該段所有封存訊息。' : deletePreview.scope === 'conversation' ? '將刪除這段對話的全部封存訊息，包括其他尚未載入的訊息頁面；不影響其他對話。' : '只刪除目前選取的這一筆事件；不會自動刪除其他紀錄。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">將永久移除這些稽核事件、原文與私有附件，不另保留清除記錄，無法還原。資料庫備份、外部複本及「已刪員工」獨立檔案不在本次刪除範圍。</p><p className="mt-2 text-xs leading-5 text-cyan-100">這裡只清除私人稽核留證；修改後仍在使用的通知與聊天內容不會被刪除或還原。</p>{error && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{error}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setDeletePreview(null); setError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : deletePreview.finished_at ? '完成附件清理' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
     </div>

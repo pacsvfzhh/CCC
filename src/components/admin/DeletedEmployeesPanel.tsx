@@ -210,11 +210,12 @@ function groupRelatedEvents(items: RelatedEvidence[]) {
   });
 }
 
-export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, onDeleted, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee }: {
+export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, onDeleted, onDeleteResult, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee }: {
   switcher: ReactNode;
   isActive: boolean;
   refreshKey: number;
   onDeleted: () => void;
+  onDeleteResult: (result: { type: 'success' | 'error'; message: string }) => void;
   initialSelectedId: string | null;
   initialSection: Section;
   availableAdmins: Array<{ id: string; username: string }>;
@@ -362,6 +363,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       setLegacyPreview(null);
       setLegacyConfirmation('');
       setLegacySuccess(`${legacyPreview.employee.original_username} 已永久刪除；${result.retained_shared_images} 張仍被其他內容引用的原圖已保留。`);
+      onDeleteResult({ type: 'success', message: `舊歸檔員工「${legacyPreview.employee.original_username}」已永久刪除。` });
       onDeleted();
       await loadLegacy().catch(() => {});
     } catch (error) {
@@ -372,11 +374,14 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         const jobs = await listPendingEmployeeArchiveDeletions();
         setPendingCleanup(jobs);
         await loadLegacy().catch(() => {});
-        setLegacyError(jobs.some(job => job.job_id === legacyPreview.jobId)
+        const mediaPending = jobs.some(job => job.job_id === legacyPreview.jobId);
+        setLegacyError(mediaPending
           ? `員工資料已移除，但媒體仍待清理：${formatSupabaseError(error)}。請關閉此視窗，從主頁的待清理提示重試。`
           : `無法確認刪除結果：${formatSupabaseError(error)}。請重新載入並核對資料。`);
+        onDeleteResult({ type: 'error', message: mediaPending ? '員工資料已移除，但媒體清理未完成，請重試。' : '無法確認舊歸檔員工刪除結果，請核對資料。' });
       } catch {
         setLegacyError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對資料與待清理檔案。`);
+        onDeleteResult({ type: 'error', message: '無法核對舊歸檔員工刪除結果，請重新整理資料。' });
       }
     } finally {
       setLegacyBusy(false);
@@ -780,17 +785,23 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       setNotificationId(null);
       setNotificationPage(0);
       setDeletePreview(null);
+      onDeleteResult({ type: 'success', message: deletePreview.scope === 'notification'
+        ? '已永久清除此筆員工通知檔案。'
+        : deletePreview.scope === 'account' ? '已永久刪除此筆員工檔案及相關資料。' : `已永久刪除 ${deletePreview.account_count} 筆員工檔案及相關資料。` });
       onDeleted();
     } catch (error) {
       onDeleted();
       try {
         const jobs = await listPendingEmployeeArchiveDeletions();
         setPendingCleanup(jobs);
-        setDeleteError(jobs.some(job => job.job_id === deletePreview.job_id)
+        const mediaPending = jobs.some(job => job.job_id === deletePreview.job_id);
+        setDeleteError(mediaPending
           ? `員工資料已從資料庫移除，但附件或原圖清理未完成：${formatSupabaseError(error)}。請點選上方的清理重試。`
           : `刪除未能確認：${formatSupabaseError(error)}。請重新整理並核對員工是否仍在列表中。`);
+        onDeleteResult({ type: 'error', message: mediaPending ? '員工資料已移除，但附件或原圖清理未完成，請重試。' : '刪除結果無法確認，請核對員工檔案。' });
       } catch {
         setDeleteError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對員工資料與待清理檔案。`);
+        onDeleteResult({ type: 'error', message: '無法核對刪除結果，請重新整理員工檔案。' });
       }
     } finally {
       setDeleting(false);
@@ -810,9 +821,11 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         onSelectEmployee(null);
       }
       setDeletePreview(null);
+      onDeleteResult({ type: 'success', message: '員工檔案的附件及原圖清理已完成。' });
       onDeleted();
     } catch (error) {
       setDeleteError(`附件或原圖清理未完成：${formatSupabaseError(error)}`);
+      onDeleteResult({ type: 'error', message: '員工檔案的附件或原圖清理未完成，請重試。' });
     } finally {
       setDeleting(false);
     }

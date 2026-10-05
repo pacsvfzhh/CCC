@@ -258,6 +258,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [deletingEmployee, setDeletingEmployee] = useState<EmployeeWithAdmin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteFeedback, setDeleteFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [pinConfirmEmployee, setPinConfirmEmployee] = useState<{id: string; username: string; employeeId?: string; currentPinned: boolean} | null>(null);
@@ -1725,6 +1726,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     }
   };
 
+  useEffect(() => {
+    if (!deleteFeedback) return;
+    const timer = window.setTimeout(() => setDeleteFeedback(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [deleteFeedback]);
+
   const handleDeleteEmployee = async (employee: EmployeeWithAdmin) => {
     setIsDeleting(true);
     setDeleteError(null);
@@ -1744,6 +1751,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       })).filter(g => g.employees.length > 0 || g.admin.role === 'super_admin' || g.admin.role === 'secondary_admin'));
       setDeletingEmployee(null);
       setDeleteError(null);
+      setDeleteFeedback({ type: 'success', message: `員工「${employee.username}」已刪除，相關資料已封存。` });
     } catch (error: unknown) {
       if (isFinancialAdminSessionError(error)) {
         void logout(false);
@@ -1756,13 +1764,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         if (!refreshError && snapshot && Array.isArray(snapshot.admins) && Array.isArray(snapshot.employees)
           && !snapshot.employees.some(item => item.id === employee.id)) {
           setDeletingEmployee(null);
+          setDeleteFeedback({ type: 'success', message: `已核對員工「${employee.username}」不在員工列表中；可到已刪員工紀錄核對封存資料。` });
           void guardedLoadEmployeesRef.current?.(true);
           return;
         }
         setDeleteError('請求結果尚未確認，請刷新員工列表核對狀態後再操作。');
+        setDeleteFeedback({ type: 'error', message: '刪除結果尚未確認，請刷新員工列表核對後再操作。' });
         void guardedLoadEmployeesRef.current?.(true);
       } else {
-        setDeleteError(formatSupabaseError(error) || '刪除員工失敗。');
+        const message = formatSupabaseError(error) || '刪除員工失敗。';
+        setDeleteError(message);
+        setDeleteFeedback({ type: 'error', message: `刪除員工未完成：${message}` });
       }
     } finally {
       setIsDeleting(false);
@@ -5768,6 +5780,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           </form>
         </div>,
         document.body
+      )}
+
+      {deleteFeedback && createPortal(
+        <div role={deleteFeedback.type === 'error' ? 'alert' : 'status'} className={`fixed right-4 top-4 z-[10010] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl sm:max-w-md ${deleteFeedback.type === 'success' ? 'border-emerald-400/60 bg-emerald-950 text-emerald-50' : 'border-rose-400/60 bg-rose-950 text-rose-50'}`}>
+          {deleteFeedback.type === 'success' ? <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" /> : <XCircle className="mt-0.5 h-5 w-5 shrink-0" />}
+          <span className="min-w-0 flex-1 break-words">{deleteFeedback.message}</span>
+          <button type="button" onClick={() => setDeleteFeedback(null)} aria-label="關閉刪除結果提示" className="rounded p-0.5 hover:bg-white/10"><X className="h-4 w-4" /></button>
+        </div>, document.body,
       )}
 
       {notification?.show && createPortal(

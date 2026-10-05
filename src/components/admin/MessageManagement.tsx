@@ -1019,7 +1019,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setDeleteMode(null);
       setSelectedMessageDetail(null);
       exitSelectionMode();
-      setNotification({ type: 'success', message: `已刪除 ${deletedCount} 則訊息` });
+      setNotification({ type: 'success', message: `已刪除 ${deletedCount} 則已發通知` });
     } catch (error) {
       console.error('Error deleting messages:', error);
       setShowDeleteConfirm(false);
@@ -1260,18 +1260,18 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           isActive={isActive}
           onBack={() => setShowAutomation(false)}
         />
-        {notification && (
-          <div className={`fixed right-4 top-4 z-[120] flex items-center gap-3 rounded-lg border px-6 py-4 shadow-2xl backdrop-blur-xl transition-all duration-300 ${
+        {notification && createPortal(
+          <div role={notification.type === 'error' ? 'alert' : 'status'} className={`fixed right-4 top-4 z-[10010] flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-lg border px-4 py-3 shadow-2xl backdrop-blur-xl transition-all duration-300 sm:max-w-md ${
             notification.type === 'success'
               ? 'border-green-500/50 bg-green-900/90 text-green-100'
               : 'border-red-500/50 bg-red-900/90 text-red-100'
           }`}>
             {notification.type === 'success' ? <Bell className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
             <span className="font-medium">{notification.message}</span>
-            <button onClick={() => setNotification(null)} className="ml-2 text-white/60 transition-colors hover:text-white">
+            <button type="button" onClick={() => setNotification(null)} aria-label="關閉提示" className="ml-2 text-white/60 transition-colors hover:text-white">
               <X className="h-4 w-4" />
             </button>
-          </div>
+          </div>, document.body,
         )}
       </>
     );
@@ -1324,18 +1324,18 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       )}
 
       {/* Notification */}
-      {notification && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-lg shadow-2xl border backdrop-blur-xl transition-all duration-300 ${
+      {notification && createPortal(
+        <div role={notification.type === 'error' ? 'alert' : 'status'} className={`fixed top-4 right-4 z-[10010] flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-lg border px-4 py-3 shadow-2xl backdrop-blur-xl transition-all duration-300 sm:max-w-md ${
           notification.type === 'success'
             ? 'bg-green-900/90 border-green-500/50 text-green-100'
             : 'bg-red-900/90 border-red-500/50 text-red-100'
         }`}>
           {notification.type === 'success' ? <Bell className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
           <span className="font-medium">{notification.message}</span>
-          <button onClick={() => setNotification(null)} className="ml-2 text-white/60 hover:text-white transition-colors">
+          <button type="button" onClick={() => setNotification(null)} aria-label="關閉提示" className="ml-2 text-white/60 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
-        </div>
+        </div>, document.body,
       )}
 
       {/* Send Progress */}

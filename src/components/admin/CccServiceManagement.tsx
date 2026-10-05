@@ -1534,7 +1534,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => setNotification(null), 3000);
+      const timer = setTimeout(() => setNotification(null), 5000);
       return () => clearTimeout(timer);
     }
   }, [notification]);
@@ -2515,7 +2515,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             setSelectedEmployee(null);
           }
           setCustomers(prev => prev.filter(c => c.id !== customerId));
-          setNotification({ type: 'success', text: '刪除成功' });
+          setNotification({ type: 'success', text: '經理及其對話已刪除，相關內容已保留稽核紀錄。' });
         } catch (error: unknown) {
           setNotification({ type: 'error', text: getCccErrorMessage(error, '刪除經理失敗') });
         } finally {
@@ -2968,7 +2968,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
               (conversationMessagesCacheRef.current.get(cacheKey) || []).filter(message => message.id !== messageId));
           }
           setMessages(previous => previous.filter(message => message.id !== messageId));
-          setNotification({ type: 'success', text: '刪除成功' });
+          setNotification({ type: 'success', text: '聊天訊息已刪除，原內容已保留稽核紀錄。' });
           void loadMessages();
           void loadConversationHistory();
         } catch (error: unknown) {
@@ -3193,7 +3193,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           await mutateAuditedContent('conversation_delete', [selectedCustomer.id], {}, selectedEmployee.id);
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
-          setNotification({ type: 'success', text: '刪除成功' });
+          setNotification({ type: 'success', text: '整段對話已刪除，原內容已保留稽核紀錄。' });
           void loadConversationHistory();
         } catch (error: unknown) {
           console.error('Delete conversation failed:', formatSupabaseError(error));
@@ -6188,14 +6188,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       )}
 
       {notification && createPortal(
-        <div className={`fixed top-4 right-4 z-[100000] px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-md transition-all animate-[slideInRight_0.3s_ease-out] ${
+        <div role={notification.type === 'error' ? 'alert' : 'status'} className={`fixed top-4 right-4 z-[100000] max-w-[calc(100vw-2rem)] px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-md transition-all animate-[slideInRight_0.3s_ease-out] sm:max-w-md ${
           notification.type === 'success'
             ? 'bg-green-500/90 text-white border-green-400/50 shadow-green-500/30'
             : 'bg-red-500/90 text-white border-red-400/50 shadow-red-500/30'
         }`}>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">{notification.text}</span>
-            <button onClick={() => setNotification(null)} className="ml-2 p-0.5 hover:bg-white/20 rounded transition-colors">
+            <button type="button" onClick={() => setNotification(null)} aria-label="關閉提示" className="ml-2 p-0.5 hover:bg-white/20 rounded transition-colors">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
