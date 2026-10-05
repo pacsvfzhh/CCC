@@ -2609,12 +2609,17 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             </svg>
             <svg className="dispatch-panel-sea pointer-events-none absolute z-[2]" aria-hidden="true">
               <defs>
-                <pattern id="dispatch-panel-sea-waves" width="240" height="58" patternUnits="userSpaceOnUse">
-                  <path d="M0 20 C40 4 80 4 120 20 S200 36 240 20" fill="none" stroke="#38bdf8" strokeOpacity="0.24" strokeWidth="4" />
-                  <path d="M0 42 C40 26 80 26 120 42 S200 58 240 42" fill="none" stroke="#7dd3fc" strokeOpacity="0.22" strokeWidth="3" />
+                <pattern id="dispatch-panel-sea-mobile" width="128" height="34" patternUnits="userSpaceOnUse">
+                  <path d="M0 11 Q32 7 64 11 T128 11" fill="none" stroke="#38bdf8" strokeOpacity="0.33" strokeWidth="2.5" />
+                  <path d="M0 24 Q32 19 64 24 T128 24" fill="none" stroke="#7dd3fc" strokeOpacity="0.25" strokeWidth="1.75" />
+                </pattern>
+                <pattern id="dispatch-panel-sea-desktop" width="220" height="42" patternUnits="userSpaceOnUse">
+                  <path d="M0 13 Q55 5 110 13 T220 13" fill="none" stroke="#38bdf8" strokeOpacity="0.3" strokeWidth="2.5" />
+                  <path d="M0 30 Q55 22 110 30 T220 30" fill="none" stroke="#7dd3fc" strokeOpacity="0.23" strokeWidth="1.75" />
                 </pattern>
               </defs>
-              <rect width="100%" height="100%" fill="url(#dispatch-panel-sea-waves)" />
+              <rect className="md:hidden" width="100%" height="100%" fill="url(#dispatch-panel-sea-mobile)" />
+              <rect className="hidden md:block" width="100%" height="100%" fill="url(#dispatch-panel-sea-desktop)" />
             </svg>
             <div className="absolute right-5 top-5 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10">
               <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
