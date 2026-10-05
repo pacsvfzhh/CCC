@@ -356,13 +356,21 @@ BEGIN
   IF cardinality(p_paths) NOT BETWEEN 1 AND 20 THEN RAISE EXCEPTION 'Invalid media batch.'; END IF;
   PERFORM pg_advisory_xact_lock(hashtext('employee-chat-image-references'));
   IF EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
-    WHERE claim.path = ANY(p_paths) AND claim.job_id <> p_job_id) THEN
+    JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = claim.path
+    WHERE claim.path = ANY(p_paths) AND claim.job_id <> p_job_id)
+    OR EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
+      WHERE claim.path = ANY(p_paths) AND claim.job_id <> p_job_id AND claim.deleted_at IS NULL) THEN
     RAISE EXCEPTION 'An image is already reserved by another employee deletion. Retry after that deletion finishes.';
   END IF;
   WITH checked AS MATERIALIZED (
     SELECT item.data ->> 'path' AS path, private.employee_chat_image_in_use(item.data ->> 'path') AS in_use
     FROM jsonb_array_elements(v_job.paths_to_remove) item(data)
     WHERE item.data ->> 'bucket' = 'chat-images' AND item.data ->> 'path' = ANY(p_paths)
+      AND NOT EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
+        WHERE claim.path = item.data ->> 'path' AND claim.job_id <> p_job_id
+          AND claim.deleted_at IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM storage.objects object
+            WHERE object.bucket_id = 'chat-images' AND object.name = claim.path))
   )
   SELECT COALESCE(jsonb_agg(item.data ORDER BY item.position), '[]'::jsonb),
     (SELECT count(*) FROM checked WHERE in_use),
@@ -370,7 +378,13 @@ BEGIN
   INTO v_paths, v_retained, v_shared_paths
   FROM jsonb_array_elements(v_job.paths_to_remove) WITH ORDINALITY item(data, position)
   LEFT JOIN checked ON item.data ->> 'bucket' = 'chat-images' AND checked.path = item.data ->> 'path'
-  WHERE checked.in_use IS DISTINCT FROM true;
+  WHERE checked.in_use IS DISTINCT FROM true
+    AND NOT (item.data ->> 'bucket' = 'chat-images' AND item.data ->> 'path' = ANY(p_paths)
+      AND EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
+        WHERE claim.path = item.data ->> 'path' AND claim.job_id <> p_job_id
+          AND claim.deleted_at IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM storage.objects object
+            WHERE object.bucket_id = 'chat-images' AND object.name = claim.path)));
   INSERT INTO private.retained_employee_chat_images(path)
   SELECT DISTINCT unnest(v_shared_paths) ON CONFLICT (path) DO NOTHING;
   INSERT INTO private.employee_chat_image_deletion_claims(path, job_id)
