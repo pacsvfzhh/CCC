@@ -2613,7 +2613,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
         )}
         {waitingPanelActive && (
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <div className="dispatch-panel-waves pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
             <span className="dispatch-panel-wave" />
             <span className="dispatch-panel-wave dispatch-panel-wave-2" />
             <span className="dispatch-panel-wave dispatch-panel-wave-3" />
