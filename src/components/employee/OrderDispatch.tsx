@@ -2560,7 +2560,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
-          ? 'bg-[#0b1736] border-2 border-sky-400/35 shadow-[0_24px_72px_-18px_rgba(8,35,91,0.65)]'
+          ? 'bg-[#081b2b] border-2 border-teal-300/40 shadow-[0_24px_72px_-18px_rgba(3,55,68,0.7),0_0_35px_-18px_rgba(45,212,191,0.4)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
@@ -2568,14 +2568,40 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         {/* Inner gradient background for depth */}
         <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${
           waitingPanelActive
-            ? 'bg-[radial-gradient(ellipse_at_50%_48%,rgba(28,80,169,0.52),transparent_60%),linear-gradient(135deg,#0b1736_0%,#132b5c_54%,#0b1736_100%)]'
+            ? 'bg-[radial-gradient(ellipse_at_49%_43%,rgba(13,148,136,0.26),transparent_58%),radial-gradient(circle_at_86%_22%,rgba(56,189,248,0.16),transparent_36%),linear-gradient(135deg,#071626_0%,#102c43_56%,#081a2b_100%)]'
             : session.isWorking
             ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30'
             : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'
         }`}></div>
+        {waitingPanelActive && (
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1200 580" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="dispatchRouteLine" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.12" />
+                <stop offset="55%" stopColor="#67e8f9" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.2" />
+              </linearGradient>
+              <pattern id="dispatchFreightGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+                <path d="M32 0H0V32" fill="none" stroke="#67e8f9" strokeOpacity="0.08" />
+              </pattern>
+            </defs>
+            <rect width="1200" height="580" fill="url(#dispatchFreightGrid)" />
+            <path d="M1200 72H1008Q974 72 974 106V154Q974 186 1008 186H1100Q1134 186 1134 220V338Q1134 370 1100 370H974" fill="none" stroke="url(#dispatchRouteLine)" strokeWidth="2" strokeDasharray="7 10" />
+            <path d="M0 330H122Q155 330 155 364V448Q155 480 189 480H320" fill="none" stroke="url(#dispatchRouteLine)" strokeWidth="2" strokeDasharray="7 10" />
+            <g fill="#071b2a" stroke="#5eead4" strokeOpacity="0.55" strokeWidth="2">
+              <circle cx="974" cy="154" r="7" /><circle cx="1134" cy="338" r="7" /><circle cx="155" cy="364" r="7" />
+            </g>
+            <g fill="none" stroke="#67e8f9" strokeOpacity="0.23" strokeWidth="2">
+              <rect x="1004" y="248" width="78" height="30" rx="5" /><path d="M1020 248v30m15-30v30m15-30v30m15-30v30" />
+              <rect x="1016" y="287" width="78" height="30" rx="5" /><path d="M1032 287v30m15-30v30m15-30v30m15-30v30" />
+              <path d="M215 390h49l18 17v30h-67zm14 0v47m14-47v47m14-44v44" />
+            </g>
+            <path d="m948 154 10-6v12zm-637 326 10-6v12z" fill="#fbbf24" fillOpacity="0.65" />
+          </svg>
+        )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
-          waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+          waitingPanelActive ? 'h-1.5 bg-gradient-to-r from-teal-400 via-cyan-300 to-amber-400' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
         }`}></div>
 
         {/* Content */}
@@ -2622,7 +2648,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   {/* Icon - Distinct from title */}
                   <div className={`relative p-3.5 md:p-4 rounded-2xl transition-all duration-500 ${
                     waitingPanelActive
-                      ? 'bg-gradient-to-br from-cyan-400/25 to-blue-500/25 border border-cyan-300/25 shadow-lg shadow-cyan-400/10'
+                      ? 'bg-gradient-to-br from-teal-400/30 to-cyan-500/15 border border-teal-300/30 shadow-lg shadow-teal-400/15'
                       : session.isWorking
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-100'
                       : 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200'
@@ -3131,29 +3157,29 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   </div>
                   <div className="relative z-10 text-center">
                     <div className="mb-7 flex items-center justify-center gap-2 md:mb-9">
-                      <span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.8)] animate-pulse" />
+                      <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.8)] animate-pulse" />
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-100 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
                       <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 md:text-[10px]">{t.dispatch.live}</span>
                     </div>
                     <div className="mb-7 flex items-start justify-center gap-3 md:mb-9 md:gap-5">
                       <div className="text-center">
-                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
+                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_22px_rgba(45,212,191,0.5)] md:text-7xl lg:text-8xl">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</div>
                         <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.min}</div>
                       </div>
                       <div aria-hidden="true" className="-mt-1 flex flex-col items-center justify-center gap-2 md:gap-3">
-                        <span className="h-2 w-2 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.8)] animate-pulse md:h-2.5 md:w-2.5" />
-                        <span className="h-2 w-2 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.8)] animate-pulse md:h-2.5 md:w-2.5" />
+                        <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.65)] animate-pulse md:h-2.5 md:w-2.5" />
+                        <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.65)] animate-pulse md:h-2.5 md:w-2.5" />
                       </div>
                       <div className="text-center">
-                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
+                        <div className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_22px_rgba(45,212,191,0.5)] md:text-7xl lg:text-8xl">{String(waitingTime % 60).padStart(2, '0')}</div>
                         <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                       </div>
                     </div>
                     <p className="text-xs font-medium text-blue-100/75 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-white/10 bg-slate-950/25 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-200/85">
+                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-teal-300/15 bg-teal-950/25 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-teal-100/85">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.55)]" />
                     {t.dispatch.autoDispatch}
                   </div>
