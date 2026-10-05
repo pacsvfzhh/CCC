@@ -1271,8 +1271,8 @@ body {
 
 .dispatch-waiting-surface {
   isolation: isolate;
-  background: linear-gradient(180deg, rgb(249 253 255 / 92%) 0%, rgb(242 250 255 / 58%) 36%, transparent 72%),
-    linear-gradient(112deg, #e3f2ff 0%, #eef8ff 24%, #edf9ff 45%, #e4f9fd 69%, #d5ebfc 88%, #eef8ff 100%);
+  background: linear-gradient(180deg, rgb(250 253 255 / 96%) 0%, rgb(245 251 255 / 64%) 36%, transparent 72%),
+    linear-gradient(112deg, #ebf7ff 0%, #f4fbff 24%, #f0faff 45%, #e9fafd 69%, #e0f1ff 88%, #f2faff 100%);
   background-size: 100% 100%, 180% 180%;
 }
 
@@ -1293,6 +1293,15 @@ body {
   background: radial-gradient(ellipse 35% 38% at 21% 42%, rgb(59 130 246 / 11%), transparent 85%),
     radial-gradient(ellipse 28% 38% at 79% 52%, rgb(6 182 212 / 13%), transparent 88%),
     radial-gradient(ellipse 31% 22% at 53% 8%, rgb(147 197 253 / 9%), transparent 90%);
+}
+
+.dispatch-waiting-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(249 253 255 / 88%) 0%, rgb(246 252 255 / 76%) 26%, rgb(239 250 255 / 38%) 48%, transparent 70%);
 }
 
 .dispatch-waiting-surface-animated::before {
@@ -1345,8 +1354,8 @@ body {
 
 @keyframes dispatchPanelBreath {
   0% { transform: translate(-50%, -50%) scale(0.28); opacity: 0; }
-  34% { opacity: 0.9; }
-  62% { opacity: 0.55; }
+  34% { opacity: 0.76; }
+  62% { opacity: 0.46; }
   100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
 }
 
