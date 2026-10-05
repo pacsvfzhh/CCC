@@ -1309,7 +1309,7 @@ body {
   border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
   -webkit-mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
   mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
-  background: radial-gradient(ellipse at 48% 52%, transparent 16%, rgb(8 145 178 / 70%) 35%, rgb(6 182 212 / 78%) 53%, rgb(34 211 238 / 32%) 72%, transparent 92%);
+  background: radial-gradient(ellipse at 48% 52%, transparent 16%, rgb(3 105 161 / 82%) 35%, rgb(8 145 178 / 88%) 53%, rgb(34 211 238 / 32%) 72%, transparent 92%);
   opacity: 0;
   animation: dispatchPanelBreath 8s ease-out infinite;
   will-change: transform, opacity;
@@ -1317,27 +1317,27 @@ body {
 
 .dispatch-panel-wave-2 {
   border-radius: 54% 46% 58% 42% / 42% 57% 43% 58%;
-  background: radial-gradient(ellipse at 53% 48%, transparent 18%, rgb(13 148 136 / 67%) 40%, rgb(8 145 178 / 76%) 58%, rgb(103 232 249 / 28%) 74%, transparent 93%);
+  background: radial-gradient(ellipse at 53% 48%, transparent 18%, rgb(15 118 110 / 80%) 40%, rgb(14 116 144 / 86%) 58%, rgb(103 232 249 / 28%) 74%, transparent 93%);
   animation-delay: -2s;
 }
 
 .dispatch-panel-wave-3 {
   border-radius: 44% 56% 51% 49% / 52% 49% 51% 48%;
-  background: radial-gradient(ellipse at 45% 53%, rgb(103 232 249 / 18%) 6%, transparent 28%, rgb(8 145 178 / 72%) 46%, rgb(6 182 212 / 70%) 61%, rgb(165 243 252 / 26%) 78%, transparent 94%);
+  background: radial-gradient(ellipse at 45% 53%, rgb(103 232 249 / 18%) 6%, transparent 28%, rgb(3 105 161 / 82%) 46%, rgb(8 145 178 / 82%) 61%, rgb(165 243 252 / 26%) 78%, transparent 94%);
   animation-delay: -4s;
 }
 
 .dispatch-panel-wave-4 {
   border-radius: 58% 42% 54% 46% / 43% 54% 46% 57%;
-  background: radial-gradient(ellipse at 52% 48%, transparent 25%, rgb(6 182 212 / 69%) 45%, rgb(13 148 136 / 73%) 63%, rgb(165 243 252 / 29%) 80%, transparent 95%);
+  background: radial-gradient(ellipse at 52% 48%, transparent 25%, rgb(8 145 178 / 82%) 45%, rgb(15 118 110 / 83%) 63%, rgb(165 243 252 / 29%) 80%, transparent 95%);
   animation-delay: -6s;
 }
 
 @keyframes dispatchPanelBreath {
   0% { transform: translate(-50%, -50%) scale(0.28); opacity: 0; }
   10% { transform: translate(-50%, -50%) scale(0.38); opacity: 0; }
-  24% { opacity: 0.82; }
-  38% { opacity: 0.65; }
+  24% { opacity: 0.88; }
+  38% { opacity: 0.72; }
   50%, 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
 }
 
