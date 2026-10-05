@@ -114,7 +114,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const [hasTimeout, setHasTimeout] = useState(false);
   const [hasFiveMinuteWarning, setHasFiveMinuteWarning] = useState(false);
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
-  const [, setWaitingTime] = useState(0);
   const [, setTotalWorkTime] = useState(0);
   const [, setUnacceptedCount] = useState(0);
   const [showAutoStopModal, setShowAutoStopModal] = useState(false);
@@ -392,26 +391,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     }
   }, [session.isWorking]);
-
-  // Track waiting time when session is active and no current order
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    // Only count waiting time when working, no current order, and not showing grab failed modal
-    if (session.isWorking && !currentOrder && !showGrabFailedModal) {
-      interval = setInterval(() => {
-        setWaitingTime(prev => prev + 1);
-      }, 1000);
-    } else if (!session.isWorking || currentOrder) {
-      // Reset waiting time when not working or has current order
-      setWaitingTime(0);
-    }
-    // Don't reset waiting time when showing grab failed modal
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [session.isWorking, currentOrder, showGrabFailedModal]);
 
   // Keep the async timer guards in sync before setting up per-order timers.
   useEffect(() => {
@@ -1171,7 +1150,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
       // Now update the session state to trigger UI change
       setSession(newSession);
-      setWaitingTime(0);
       setUnacceptedCount(0);
 
       // Mobile: Show success toast
@@ -2072,10 +2050,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     setShowErrorModal(false);
     setErrorReason('');
   };
-
-  // Re-rendered once a second by the waiting ticker, but derived only from the server due time.
-  const secondsUntilNextOrder = nextOrderTime
-    ? Math.max(0, Math.ceil((nextOrderTime.getTime() - Date.now()) / 1000)) : 0;
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -3097,123 +3071,36 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               </div>
             </div>
           ) : (
-            /* Countdown Timer and Start/Stop Button Layout */
             <>
-            {/* DESKTOP LAYOUT */}
-            <div className={`hidden md:grid grid-cols-1 gap-4 md:gap-10 transition-all duration-500`}>
-              {/* Integrated Waiting State - flows naturally within the panel */}
-              {session.isWorking && !(isTransitioning && transitionType === 'start') && (
-                <div className="relative -mx-10 -mb-2 px-10 py-10 overflow-hidden">
-                  {/* Gradient transition - seamless from panel bg into deep blue */}
-                  <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(15,23,60,0.98) 0%, rgba(20,35,80,0.95) 10%, rgba(23,37,84,0.9) 18%, rgba(28,50,120,0.82) 26%, rgba(30,58,138,0.72) 34%, rgba(37,80,190,0.55) 42%, rgba(50,110,220,0.38) 50%, rgba(70,140,240,0.22) 58%, rgba(100,165,250,0.12) 66%, rgba(140,190,255,0.05) 75%, transparent 88%)' }}></div>
-                  {/* Animated color-shifting overlay */}
-                  <div className="absolute inset-0 pointer-events-none animate-[colorShiftBg_8s_ease-in-out_infinite]" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(6,182,212,0.15) 0%, rgba(56,189,248,0.08) 40%, transparent 70%)' }}></div>
-                  {/* Breathing Light Waves */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="absolute w-44 h-44 md:w-56 md:h-56 rounded-full bg-blue-400/60 blur-xl animate-breath-ripple animate-color-shift-glow"></div>
-                    <div className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full bg-cyan-500/45 blur-2xl animate-breath-ripple" style={{ animationDelay: '1.2s' }}></div>
-                    <div className="absolute w-80 h-80 md:w-[26rem] md:h-[26rem] rounded-full bg-sky-600/30 blur-3xl animate-breath-ripple" style={{ animationDelay: '2.4s' }}></div>
-                    <div className="absolute w-[30rem] h-[30rem] md:w-[32rem] md:h-[32rem] rounded-full border-2 border-sky-400/20 animate-breath-pulse-ring"></div>
-                    <div className="absolute w-[34rem] h-[34rem] md:w-[36rem] md:h-[36rem] rounded-full border border-blue-300/10 animate-breath-pulse-ring" style={{ animationDelay: '1s' }}></div>
-                  </div>
-
-                  {/* Orbit ring around timer */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-72 h-72 md:w-80 md:h-80 rounded-full border border-sky-300/20 animate-[spin_20s_linear_infinite]">
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-sky-300 rounded-full shadow-[0_0_12px_rgba(125,211,252,0.8),0_0_24px_rgba(125,211,252,0.4)]"></div>
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-cyan-300/70 rounded-full shadow-[0_0_10px_rgba(103,232,249,0.6)]"></div>
-                      <div className="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-blue-300/60 rounded-full shadow-[0_0_8px_rgba(147,197,253,0.5)]"></div>
+            {session.isWorking && !(isTransitioning && transitionType === 'start') && (
+              <div role="status" className="relative overflow-hidden rounded-2xl border border-blue-400/30 bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 p-5 text-white shadow-xl shadow-blue-900/20 md:rounded-3xl md:p-8">
+                <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
+                <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8">
+                  <div className="flex flex-col justify-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 bg-white/10"><Package className="h-6 w-6 text-cyan-200" aria-hidden="true" /></span>
+                      <div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-[0.15em] text-cyan-200">{t.dispatch.orderProcessing}</p><p className="mt-1 text-sm font-semibold text-white">{dispatchPause ? t.dispatch.waitingForOrders : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p></div>
+                      <button type="button" onClick={() => void handleStopWork(false).catch(() => undefined)} disabled={isProcessing} aria-label={t.dispatch.goOffline} title={t.dispatch.goOffline} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-blue-100 transition-colors hover:border-rose-300/60 hover:bg-rose-500/25 hover:text-white disabled:cursor-wait disabled:opacity-50"><Square className="h-3.5 w-3.5" aria-hidden="true" /></button>
+                    </div>
+                    <p className="text-sm leading-6 text-blue-100/80">{t.dispatch.waitingForOrders}</p>
+                    <div className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wider">
+                      <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1.5 text-emerald-200">{t.dispatch.verified}</span>
+                      <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1.5 text-cyan-100">{t.dispatch.encryptedLabel}</span>
                     </div>
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-[22rem] h-[22rem] md:w-[26rem] md:h-[26rem] rounded-full border border-blue-300/[0.12] animate-[spin_30s_linear_infinite_reverse]">
-                      <div className="absolute top-1/4 right-0 translate-x-1/2 w-2 h-2 bg-cyan-300/70 rounded-full shadow-[0_0_10px_rgba(103,232,249,0.6)]"></div>
-                      <div className="absolute bottom-1/3 left-0 -translate-x-1/2 w-1.5 h-1.5 bg-sky-300/50 rounded-full shadow-[0_0_8px_rgba(125,211,252,0.5)]"></div>
-                    </div>
-                  </div>
-
-                  {/* Floating particles */}
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div className="absolute top-[20%] left-[15%] w-1.5 h-1.5 bg-sky-300/60 rounded-full animate-[float-up_6s_ease-in-out_infinite] shadow-[0_0_6px_rgba(125,211,252,0.5)]"></div>
-                    <div className="absolute top-[60%] left-[25%] w-1 h-1 bg-cyan-200/70 rounded-full animate-[float-up_8s_ease-in-out_infinite_1s] shadow-[0_0_5px_rgba(103,232,249,0.4)]"></div>
-                    <div className="absolute top-[40%] right-[20%] w-1.5 h-1.5 bg-cyan-300/50 rounded-full animate-[float-up_7s_ease-in-out_infinite_2s] shadow-[0_0_6px_rgba(103,232,249,0.4)]"></div>
-                    <div className="absolute top-[70%] right-[30%] w-1 h-1 bg-sky-200/60 rounded-full animate-[float-up_9s_ease-in-out_infinite_3s] shadow-[0_0_5px_rgba(125,211,252,0.4)]"></div>
-                    <div className="absolute top-[50%] left-[40%] w-1 h-1 bg-blue-300/55 rounded-full animate-[float-up_7.5s_ease-in-out_infinite_4s] shadow-[0_0_5px_rgba(147,197,253,0.4)]"></div>
-                    <div className="absolute top-[30%] right-[15%] w-1.5 h-1.5 bg-sky-400/45 rounded-full animate-[float-up_10s_ease-in-out_infinite_2.5s] shadow-[0_0_6px_rgba(56,189,248,0.4)]"></div>
-                    <div className="absolute top-[80%] left-[60%] w-1 h-1 bg-cyan-400/50 rounded-full animate-[float-up_6.5s_ease-in-out_infinite_1.5s] shadow-[0_0_5px_rgba(34,211,238,0.4)]"></div>
-                    <div className="absolute top-[15%] right-[40%] w-1 h-1 bg-blue-200/60 rounded-full animate-[float-up_8.5s_ease-in-out_infinite_5s] shadow-[0_0_5px_rgba(191,219,254,0.4)]"></div>
-                  </div>
-
-                  {/* Subtle scanning line */}
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-300/20 to-transparent animate-[scan-line_5s_ease-in-out_infinite]"></div>
-                  </div>
-
-                  {/* Subtle hex grid */}
-                  <div className="absolute inset-0 opacity-[0.025] pointer-events-none">
-                    <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <pattern id="hex-wait" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-                          <path d="M28 0 L42 8 L42 24 L28 32 L14 24 L14 8 Z" fill="none" stroke="rgba(96,165,250,1)" strokeWidth="0.5" />
-                        </pattern>
-                      </defs>
-                      <rect width="100%" height="100%" fill="url(#hex-wait)" />
-                    </svg>
-                  </div>
-
-                  <div className="relative z-10">
-                    {/* Status indicator */}
-                    <div className="flex items-center justify-center gap-3 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-white/40 rounded-full blur-md animate-pulse"></div>
-                        <div className="relative w-2.5 h-2.5 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.7)]"></div>
-                      </div>
-                      <p className="text-sm font-bold text-white uppercase tracking-[0.2em]">{dispatchPause ? 'Dispatch paused' : nextOrderTime ? 'Next order in' : 'Preparing dispatch'}</p>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/25 rounded-full ml-2">
-                        <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">{t.dispatch.live}</span>
-                      </div>
-                    </div>
-
-                    {/* Timer Display */}
-                    {/* Timer display */}
-                    <div className="relative mb-8">
-                      <div className="flex items-center justify-center gap-5">
-                        <div className="text-center">
-                          <div className="text-7xl lg:text-8xl font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif", textShadow: '0 0 20px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {nextOrderTime ? String(Math.floor(secondsUntilNextOrder / 60)).padStart(2, '0') : '--'}
-                          </div>
-                          <div className="text-xs text-blue-200 font-semibold mt-3 uppercase tracking-[0.25em]">{t.dispatch.min}</div>
-                        </div>
-                        <div className="flex flex-col items-center gap-2.5 -mt-6">
-                          <div className="w-2.5 h-2.5 bg-sky-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(125,211,252,0.8)]"></div>
-                          <div className="w-2.5 h-2.5 bg-sky-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(125,211,252,0.8)]" style={{ animationDelay: '0.5s' }}></div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-7xl lg:text-8xl font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif", textShadow: '0 0 20px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {nextOrderTime ? String(secondsUntilNextOrder % 60).padStart(2, '0') : '--'}
-                          </div>
-                          <div className="text-xs text-blue-200 font-semibold mt-3 uppercase tracking-[0.25em]">{t.dispatch.sec}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Stats row */}
-                    <div className="flex items-center justify-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-3.5 h-3.5 text-sky-300" />
-                        <span className="text-xs text-blue-100"><span className="text-white font-bold">{stats.completed}</span> {t.dispatch.completedToday}</span>
-                      </div>
-                      <div className="w-px h-4 bg-blue-300/30"></div>
-                      <div className="flex items-center gap-1.5">
-                        <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
-                        <span className="text-xs text-emerald-300 font-semibold">{t.dispatch.online}</span>
-                      </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/[0.08] p-5 shadow-inner shadow-blue-950/20 md:p-6">
+                    <div className="flex items-center gap-2 border-b border-white/10 pb-3 text-sm font-bold text-blue-100"><FileText className="h-4 w-4 text-cyan-200" aria-hidden="true" />{t.dispatch.orderDetails}</div>
+                    <div className="flex min-h-32 flex-col items-center justify-center gap-3 text-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10"><Package className="h-6 w-6 text-blue-200" aria-hidden="true" /></span>
+                      <p className="text-sm font-semibold text-white">{t.dispatch.waitingForOrders}</p>
+                      <p className="text-xs text-blue-200/80">{t.dispatch.acceptToUnlock}</p>
                     </div>
                   </div>
                 </div>
-              )}
-
+              </div>
+            )}
+            {/* DESKTOP LAYOUT */}
+            <div className={`hidden md:grid grid-cols-1 gap-4 md:gap-10 transition-all duration-500`}>
               {/* Action Button */}
               <div className="flex items-center justify-center">
               {(!session.isWorking || (isTransitioning && transitionType === 'start')) ? (
@@ -3471,53 +3358,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     </div>
                   </div>
                 </button>
-              ) : (session.isWorking && !(isTransitioning && transitionType === 'end')) || (isTransitioning && transitionType === 'end') ? (
-                <button
-                  onClick={() => void handleStopWork(false).catch(() => undefined)}
-                  disabled={isProcessing}
-                  className={`group/btn relative w-full py-5 px-8 bg-gradient-to-r from-red-500/90 via-red-600/90 to-red-500/90 backdrop-blur-sm border border-red-400/30 rounded-2xl overflow-hidden disabled:cursor-not-allowed shadow-lg shadow-red-900/20 ${
-                    performanceSettings.reduceTransitions
-                      ? 'transition-all duration-200 active:scale-[0.98] active:from-red-700 active:via-red-800 active:to-red-700'
-                      : 'transition-all duration-300 hover:from-red-600 hover:via-red-700 hover:to-red-600 hover:border-red-400/50 hover:shadow-xl hover:shadow-red-900/30 active:scale-[0.98] active:from-red-700 active:via-red-800 active:to-red-700'
-                  } ${
-                    isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : 'scale-100 opacity-100'
-                  }`}
-                >
-                  {/* Subtle inner glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/10 rounded-2xl pointer-events-none"></div>
-
-                  {/* Transition overlay */}
-                  {isTransitioning && transitionType === 'end' && (
-                    <div className="absolute inset-0 bg-red-800/95 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl keep-animation">
-                      <div className="flex items-center gap-3">
-                        <div className="w-5 h-5 border-2 border-red-300/50 border-t-white rounded-full animate-spin keep-animation"></div>
-                        <span className="text-white font-semibold">{t.dispatch.endingSession}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className={`relative flex items-center justify-center gap-4 z-10 transition-all duration-300 ${
-                    isTransitioning && transitionType === 'end' ? 'opacity-0' : 'opacity-100'
-                  }`}>
-                    <div className="p-2.5 bg-white/10 border border-white/15 rounded-xl group-hover/btn:bg-white/15 transition-colors duration-300">
-                      <Square className="w-5 h-5 text-white drop-shadow-sm" fill="currentColor" />
-                    </div>
-                    <div className="text-left">
-                      <span className="block text-base font-bold text-white drop-shadow-sm">
-                        {t.dispatch.endSession}
-                      </span>
-                      <span className="block text-xs text-red-100/70">
-                        {t.dispatch.stopAccepting}
-                      </span>
-                    </div>
-                  </div>
-                </button>
               ) : null}
               </div>
             </div>
 
             {/* MOBILE-ONLY COMPACT LAYOUT */}
-            <div className="md:hidden space-y-3 min-h-[320px]">
+            <div className={session.isWorking && !(isTransitioning && transitionType === 'start') ? 'hidden' : 'md:hidden space-y-3 min-h-[320px]'}>
               {isTransitioning && transitionType === 'start' ? (
                 /* Mobile Transition Loading View - Soft edge gradients blend into panel */
                 <div className="animate-[fadeIn_0.3s_ease-out] min-h-[320px] -mx-4 relative overflow-hidden flex flex-col items-center justify-center">
@@ -3566,111 +3412,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     </div>
                   </div>
                 </div>
-              ) : session.isWorking ? (
-                /* Mobile Active Session View */
-                <div className="space-y-3 animate-[fadeIn_0.4s_ease-out]">
-                  {/* Timer section with blue gradient */}
-                  <div className="relative -mx-4 px-4 py-12 min-h-[220px] overflow-hidden flex flex-col items-center justify-center">
-                    {/* Seamless gradient from panel bg into deep blue */}
-                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 90% 75% at 50% 50%, rgba(15,23,60,0.98) 0%, rgba(20,35,80,0.95) 10%, rgba(23,37,84,0.9) 18%, rgba(28,50,120,0.82) 26%, rgba(30,58,138,0.72) 34%, rgba(37,80,190,0.55) 42%, rgba(50,110,220,0.38) 50%, rgba(70,140,240,0.22) 58%, rgba(100,165,250,0.12) 66%, rgba(140,190,255,0.05) 75%, transparent 88%)' }}></div>
-                    {/* Animated color-shifting overlay */}
-                    <div className={`absolute inset-0 pointer-events-none ${suppressAnimations ? '' : 'animate-[colorShiftBg_8s_ease-in-out_infinite]'}`} style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(6,182,212,0.15) 0%, rgba(56,189,248,0.08) 40%, transparent 70%)' }}></div>
-                    {/* Breathing Light Waves */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className={`absolute w-32 h-32 rounded-full bg-blue-400/60 blur-lg ${suppressAnimations ? '' : 'animate-breath-ripple animate-color-shift-glow'}`}></div>
-                      <div className={`absolute w-48 h-48 rounded-full bg-cyan-500/45 blur-xl ${suppressAnimations ? '' : 'animate-breath-ripple'}`} style={{ animationDelay: '1.2s' }}></div>
-                      <div className={`absolute w-64 h-64 rounded-full bg-sky-600/30 blur-2xl ${suppressAnimations ? '' : 'animate-breath-ripple'}`} style={{ animationDelay: '2.4s' }}></div>
-                      <div className={`absolute w-72 h-72 rounded-full border-2 border-sky-400/20 ${suppressAnimations ? '' : 'animate-breath-pulse-ring'}`}></div>
-                      <div className={`absolute w-80 h-80 rounded-full border border-blue-300/10 ${suppressAnimations ? '' : 'animate-breath-pulse-ring'}`} style={{ animationDelay: '1s' }}></div>
-                    </div>
-                    {/* Orbit ring - mobile */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className={`w-48 h-48 rounded-full border border-sky-300/10 ${suppressAnimations ? '' : 'animate-[spin_20s_linear_infinite]'}`}>
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-sky-300/50 rounded-full shadow-[0_0_6px_rgba(125,211,252,0.5)]"></div>
-                      </div>
-                    </div>
-                    {/* Floating particles - mobile */}
-                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                      <div className={`absolute top-[25%] left-[18%] w-0.5 h-0.5 bg-sky-300/40 rounded-full ${suppressAnimations ? '' : 'animate-[float-up_6s_ease-in-out_infinite]'}`}></div>
-                      <div className={`absolute top-[55%] right-[22%] w-0.5 h-0.5 bg-cyan-300/30 rounded-full ${suppressAnimations ? '' : 'animate-[float-up_7s_ease-in-out_infinite_2s]'}`}></div>
-                      <div className={`absolute top-[65%] left-[35%] w-0.5 h-0.5 bg-blue-200/40 rounded-full ${suppressAnimations ? '' : 'animate-[float-up_8s_ease-in-out_infinite_3.5s]'}`}></div>
-                    </div>
-
-                    <div className="relative z-10 w-full">
-                      {/* Status */}
-                      <div className="flex items-center justify-center gap-2 mb-4">
-                        <div className="relative">
-                          <div className={`absolute inset-0 bg-white/30 rounded-full blur-sm ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
-                          <div className="relative w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.6)]"></div>
-                        </div>
-                        <span className="text-[11px] font-bold text-white uppercase tracking-[0.12em]">{dispatchPause ? 'Dispatch paused' : nextOrderTime ? 'Next order in' : 'Preparing dispatch'}</span>
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-white/15 border border-white/25 rounded-md ml-1">
-                          <div className={`w-1.5 h-1.5 bg-emerald-300 rounded-full ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
-                          <span className="text-[9px] font-bold text-emerald-300 uppercase">{t.dispatch.live}</span>
-                        </div>
-                      </div>
-
-                      {/* Timer */}
-                      <div className="flex items-center justify-center gap-2.5 mb-4">
-                        <div className="text-center">
-                          <div className="text-[2.75rem] font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', -apple-system, system-ui, sans-serif", textShadow: '0 0 16px rgba(56,189,248,0.5), 0 0 32px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {nextOrderTime ? String(Math.floor(secondsUntilNextOrder / 60)).padStart(2, '0') : '--'}
-                          </div>
-                          <div className="text-[8px] text-blue-200 font-semibold uppercase tracking-[0.2em] mt-1">{t.dispatch.min}</div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1.5 -mt-3">
-                          <div className={`w-1.5 h-1.5 bg-sky-300 rounded-full shadow-[0_0_6px_rgba(125,211,252,0.7)] ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
-                          <div className={`w-1.5 h-1.5 bg-sky-300 rounded-full shadow-[0_0_6px_rgba(125,211,252,0.7)] ${suppressAnimations ? '' : 'animate-pulse'}`} style={{ animationDelay: '0.5s' }}></div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-[2.75rem] font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', -apple-system, system-ui, sans-serif", textShadow: '0 0 16px rgba(56,189,248,0.5), 0 0 32px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {nextOrderTime ? String(secondsUntilNextOrder % 60).padStart(2, '0') : '--'}
-                          </div>
-                          <div className="text-[8px] text-blue-200 font-semibold uppercase tracking-[0.2em] mt-1">{t.dispatch.sec}</div>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="flex items-center justify-center gap-4 text-[10px]">
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-sky-300" />
-                          <span className="text-blue-100"><span className="text-white font-bold">{stats.completed}</span> {t.dispatch.completedToday}</span>
-                        </div>
-                        <div className="w-px h-3 bg-blue-300/30"></div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3 text-emerald-300" />
-                          <span className="text-emerald-300 font-semibold">{t.dispatch.onlineStatus}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stop Button */}
-                  <button
-                    onClick={() => void handleStopWork(false).catch(() => undefined)}
-                    disabled={isProcessing}
-                    className={`relative w-full py-4 px-4 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center space-x-2.5 overflow-hidden shadow-lg shadow-red-900/20 ${
-                      isProcessing
-                        ? 'bg-gradient-to-r from-red-700 via-red-800 to-red-700 cursor-wait border border-red-600/50'
-                        : 'bg-gradient-to-r from-red-500/90 via-red-600/90 to-red-500/90 active:scale-[0.98] active:from-red-700 active:via-red-800 active:to-red-700 border border-red-400/30 backdrop-blur-sm'
-                    }`}
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/10 rounded-xl pointer-events-none"></div>
-                    {isProcessing ? (
-                      <>
-                        <div className="relative w-4 h-4 border-2 border-red-300/50 border-t-white rounded-full animate-spin keep-animation"></div>
-                        <span className="relative text-white font-bold">{t.dispatch.stopping}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Square className="relative w-4 h-4 text-white drop-shadow-sm" fill="currentColor" />
-                        <span className="relative text-white font-bold drop-shadow-sm">{t.dispatch.endSession}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
+              ) : !session.isWorking ? (
                 /* Mobile Start View - Enriched */
                 <div className="space-y-3">
                   {/* Standby visual area */}
@@ -3774,78 +3516,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     )}
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
             </>
           )}
 
-          {/* Enhanced Session Stats Bar */}
-          {session.isWorking && !(currentOrder?.status === 'accepted') && (
-            <>
-              {/* DESKTOP: 3-column stats */}
-              <div className="mt-8 relative hidden md:block">
-                <div className="relative bg-slate-50 border border-slate-100 rounded-2xl p-6 overflow-hidden">
-                  <div className="relative grid grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-1.5">{t.dispatch.status}</p>
-                      <p className="text-base font-bold text-green-600 flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        <span>{t.dispatch.active}</span>
-                      </p>
-                    </div>
-
-                    <div className="text-center border-x border-slate-200">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-1.5">{t.dispatch.started}</p>
-                      <p className="text-base font-bold text-slate-700">
-                        {formatTime(session.startedAt)}
-                      </p>
-                    </div>
-
-                    <div className="text-center">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-1.5">{t.dispatch.mode}</p>
-                      <p className="text-base font-bold text-blue-600">
-                        {t.dispatch.autoDispatch}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* MOBILE: Compact single-row layout */}
-              <div className="mt-3 md:hidden">
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                  <div className="flex items-center justify-between">
-                    {/* Status */}
-                    <div className="flex items-center space-x-1.5">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                      <div>
-                        <p className="text-[9px] text-slate-400 uppercase font-medium">{t.dispatch.status}</p>
-                        <p className="text-xs font-semibold text-green-600">{t.dispatch.active}</p>
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-8 w-px bg-slate-200"></div>
-
-                    {/* Started Time */}
-                    <div>
-                      <p className="text-[9px] text-slate-400 uppercase font-medium">{t.dispatch.started}</p>
-                      <p className="text-xs font-semibold text-slate-700">{formatTime(session.startedAt)}</p>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-8 w-px bg-slate-200"></div>
-
-                    {/* Mode */}
-                    <div>
-                      <p className="text-[9px] text-slate-400 uppercase font-medium">{t.dispatch.mode}</p>
-                      <p className="text-xs font-semibold text-blue-600">{t.dispatch.auto}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
 
