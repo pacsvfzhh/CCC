@@ -192,11 +192,13 @@ Deno.serve(async (request) => {
       });
       if (deleteError) throw deleteError;
       const paths = deleted.paths_to_remove as Array<{ bucket: string; path: string }>;
-      for (const bucket of [evidenceBucket, 'verification-documents']) {
+      const removableBuckets = [evidenceBucket, 'verification-documents', 'chat-images'];
+      if (paths.some(item => !removableBuckets.includes(item.bucket))) throw new Error('An unsupported employee media bucket was returned.');
+      for (const bucket of removableBuckets) {
         const pending = paths.filter(item => item.bucket === bucket).map(item => item.path);
         for (let index = 0; index < pending.length; index += 100) {
           const { error: removeError } = await db.storage.from(bucket).remove(pending.slice(index, index + 100));
-          if (removeError) throw new Error('Employee data was deleted, but private media cleanup is incomplete. Retry this confirmation.');
+          if (removeError) throw new Error('Employee data was deleted, but media cleanup is incomplete. Retry this confirmation.');
         }
       }
       const { error: completeError } = await db.rpc('complete_deleted_employee_archive_delete', {

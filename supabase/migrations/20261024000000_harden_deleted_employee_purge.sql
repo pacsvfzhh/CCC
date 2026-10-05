@@ -1,9 +1,62 @@
+ALTER TABLE private.deleted_employee_delete_jobs
+  ADD COLUMN retained_shared_images integer NOT NULL DEFAULT 0;
+
+CREATE FUNCTION private.employee_chat_image_in_use(p_path text)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+  SELECT p_path IS NULL OR p_path = ''
+    OR EXISTS (SELECT 1 FROM public.customer_employee_conversations conversation
+      WHERE strpos(COALESCE(conversation.image_url, ''), p_path) > 0
+        OR strpos(COALESCE(conversation.message_content, ''), p_path) > 0
+        OR strpos(COALESCE(conversation.rating_data::text, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.messages message
+      WHERE strpos(COALESCE(message.content, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.broadcast_messages message
+      WHERE strpos(COALESCE(message.image_url, ''), p_path) > 0
+        OR strpos(COALESCE(message.message_content, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.announcements announcement
+      WHERE strpos(COALESCE(announcement.content, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.cs_message_templates template
+      WHERE strpos(COALESCE(template.content, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.customer_auto_messages automated
+      WHERE strpos(COALESCE(automated.content, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.rich_card_contents card
+      WHERE strpos(COALESCE(card.html_content, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.message_templates template
+      WHERE strpos(COALESCE(template.content, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.notification_automation_tasks task
+      WHERE strpos(COALESCE(task.content_template, ''), p_path) > 0
+        OR strpos(COALESCE(task.title_template, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.simulated_customers customer
+      WHERE strpos(COALESCE(customer.custom_avatar_url, ''), p_path) > 0
+        OR strpos(COALESCE(customer.customer_avatar, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.admin_configs config
+      WHERE strpos(COALESCE(config.icon_custom_url, ''), p_path) > 0
+        OR strpos(COALESCE(config.config_value, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.system_configs config
+      WHERE strpos(COALESCE(config.value::text, ''), p_path) > 0)
+    OR EXISTS (SELECT 1 FROM public.financial_operations operation
+      WHERE strpos(operation.request_data::text, p_path) > 0
+        OR strpos(operation.result::text, p_path) > 0)
+    OR EXISTS (SELECT 1 FROM private.content_audit_events event
+      WHERE strpos(COALESCE(event.before_data::text, ''), p_path) > 0
+        OR strpos(COALESCE(event.after_data::text, ''), p_path) > 0
+        OR strpos(event.media_refs::text, p_path) > 0)
+    OR EXISTS (SELECT 1 FROM private.deleted_employee_notifications notification
+      WHERE strpos(COALESCE(notification.message_data::text, ''), p_path) > 0
+        OR strpos(COALESCE(notification.recipient_data::text, ''), p_path) > 0);
+$$;
+REVOKE ALL ON FUNCTION private.employee_chat_image_in_use(text) FROM PUBLIC, anon, authenticated;
+
 DO $purge_patch$
 DECLARE
   definition text;
 BEGIN
   definition := pg_get_functiondef('public.finish_deleted_employee_archive_delete(uuid, uuid)'::regprocedure);
-  IF strpos(definition, 'v_employee_ids uuid[];') = 0
+  IF strpos(definition, 'v_operation_ids text[];') = 0
+    OR strpos(definition, 'SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids') = 0
+    OR strpos(definition, 'SET finished_at = clock_timestamp(), paths_to_remove = v_paths WHERE id = p_job_id;') = 0
+    OR strpos(definition, 'v_employee_ids uuid[];') = 0
     OR strpos(definition, 'DELETE FROM public.financial_operations WHERE actor_id = ANY(v_employee_ids);') = 0
     OR strpos(definition, 'DELETE FROM public.users WHERE id = ANY(v_employee_ids);') = 0
     OR strpos(definition, 'DELETE FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids);') = 0 THEN
@@ -13,6 +66,25 @@ BEGIN
   definition := replace(definition,
     'v_employee_ids uuid[];',
     'v_employee_ids uuid[];' || E'\n  ' || 'v_withdrawal_ids uuid[];');
+  definition := replace(definition,
+    'v_operation_ids text[];',
+    'v_operation_ids text[];' || E'\n  ' ||
+    'v_original_paths text[];' || E'\n  ' ||
+    'v_public_paths jsonb;' || E'\n  ' ||
+    'v_retained_shared_images integer;');
+  definition := replace(definition,
+    'SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids',
+    $capture_original_images$
+  SELECT COALESCE(array_agg(DISTINCT original.path), '{}'::text[]) INTO v_original_paths
+  FROM private.content_audit_events event
+  CROSS JOIN LATERAL jsonb_object_keys(COALESCE(event.media_refs, '{}'::jsonb)) source(url)
+  CROSS JOIN LATERAL (
+    SELECT substring(source.url FROM '/storage/v1/object/public/chat-images/([^?#]+)$') AS path
+  ) original
+  WHERE event.employee_id = ANY(v_employee_ids) AND original.path IS NOT NULL;
+
+  SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids
+    $capture_original_images$);
 
   definition := replace(definition,
     'DELETE FROM public.financial_operations WHERE actor_id = ANY(v_employee_ids);',
@@ -89,7 +161,29 @@ BEGIN
     DELETE FROM public.users WHERE id = ANY(v_employee_ids);
     DELETE FROM private.content_audit_recipient_versions
     WHERE recipient_id = ANY(v_employee_ids);
+
+    SELECT COALESCE(jsonb_agg(jsonb_build_object('bucket', 'chat-images', 'path', original.path)), '[]'::jsonb)
+      INTO v_public_paths
+    FROM (SELECT DISTINCT candidate.path FROM unnest(v_original_paths) candidate(path)
+      JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = candidate.path) original
+    WHERE NOT private.employee_chat_image_in_use(original.path);
+    SELECT count(*) INTO v_retained_shared_images
+    FROM (SELECT DISTINCT candidate.path FROM unnest(v_original_paths) candidate(path)
+      JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = candidate.path) original
+    WHERE private.employee_chat_image_in_use(original.path);
+    v_paths := v_paths || v_public_paths;
     $after_user_delete$);
+
+  definition := replace(definition,
+    'SET finished_at = clock_timestamp(), paths_to_remove = v_paths WHERE id = p_job_id;',
+    'SET finished_at = clock_timestamp(), paths_to_remove = v_paths, ' ||
+    'retained_shared_images = COALESCE(v_retained_shared_images, 0) WHERE id = p_job_id;');
+  definition := replace(definition,
+    "'paths_to_remove', v_job.paths_to_remove)",
+    "'paths_to_remove', v_job.paths_to_remove, 'retained_shared_images', v_job.retained_shared_images)");
+  definition := replace(definition,
+    "'paths_to_remove', v_paths)",
+    "'paths_to_remove', v_paths, 'retained_shared_images', COALESCE(v_retained_shared_images, 0))");
 
   definition := replace(definition,
     'DELETE FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids);',
