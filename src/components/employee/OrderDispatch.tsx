@@ -2563,7 +2563,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} ${currentOrder?.status === 'pending' ? 'flex min-h-[420px] flex-col md:min-h-[575px]' : ''} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
-          ? 'dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
+          ? 'min-h-[420px] md:min-h-0 dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
           : currentOrder?.status === 'pending'
           ? 'bg-[linear-gradient(125deg,#164c9b_0%,#2370bd_55%,#167da9_100%)] border border-blue-400/50 shadow-[0_22px_60px_-16px_rgba(12,43,112,0.32)]'
           : session.isWorking
@@ -2621,7 +2621,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <rect className="md:hidden" width="100%" height="100%" fill="url(#dispatch-panel-sea-mobile)" />
               <rect className="hidden md:block" width="100%" height="100%" fill="url(#dispatch-panel-sea-desktop)" />
             </svg>
-            <div className="absolute right-5 top-5 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10">
+            <div className="absolute right-5 top-5 z-20 hidden items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10 md:flex">
               <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
               <span>{t.dispatch.autoDispatch}</span>
             </div>
@@ -2669,7 +2669,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             </div>
           ) : (
             /* DESKTOP & MOBILE: Blue/White premium layout */
-            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-white/65 pb-5 pt-11 md:mb-6 md:pb-6 md:pt-0' : 'mb-5 md:mb-10'}`}>
+            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-2 border-b border-white/65 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
               {/* Mobile: Full-width status banner */}
               <div className="w-full md:w-auto">
                 <div className="flex items-center gap-3 md:gap-4">
@@ -3120,7 +3120,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <>
             {waitingPanelActive && (
               <div>
-                <div className="relative min-h-[240px] overflow-hidden py-7 md:py-10">
+                <div className="relative min-h-[240px] overflow-visible py-7 md:overflow-hidden md:py-10">
+                  <div className="absolute -top-1 right-0 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:hidden">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
+                    <span>{t.dispatch.autoDispatch}</span>
+                  </div>
                   <div className="relative z-10 text-center">
                     <div className="mb-7 flex items-center justify-center gap-2 md:mb-6">
                       <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.38)] animate-pulse" />
