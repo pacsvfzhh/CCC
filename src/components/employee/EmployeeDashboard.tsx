@@ -650,10 +650,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   return (
     <div className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
       {/* Fixed Background Layer */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/60"></div>
-        <div className="employee-ambient-glow employee-ambient-glow-blue" aria-hidden="true" />
-        <div className="employee-ambient-glow employee-ambient-glow-cyan" aria-hidden="true" />
         {!isMobile && !isTablet && (
           <>
             <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-bl from-blue-50/50 via-transparent to-transparent"></div>
