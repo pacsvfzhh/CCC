@@ -203,8 +203,8 @@ Deno.serve(async (request) => {
       }
       let retainedSharedImages = Number(deleted.retained_shared_images) || 0;
       const originals = paths.filter(item => item.bucket === 'chat-images').map(item => item.path);
-      for (let index = 0; index < originals.length; index += 20) {
-        const batch = originals.slice(index, index + 20);
+      for (let index = 0; index < originals.length; index += 5) {
+        const batch = originals.slice(index, index + 5);
         const { data: checked, error: checkError } = await db.rpc('recheck_deleted_employee_archive_media', {
           p_admin_session_token: token, p_job_id: body.jobId, p_paths: batch,
         });

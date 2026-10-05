@@ -17,19 +17,31 @@ REVOKE ALL ON private.retained_employee_chat_images FROM PUBLIC, anon, authentic
 
 CREATE TABLE private.employee_chat_image_deletion_claims (
   path text PRIMARY KEY,
+  filename text GENERATED ALWAYS AS (regexp_replace(path, '^.*/', '')) STORED,
   job_id uuid NOT NULL,
   claimed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   deleted_at timestamptz
 );
 REVOKE ALL ON private.employee_chat_image_deletion_claims FROM PUBLIC, anon, authenticated;
+CREATE INDEX employee_chat_image_deletion_claims_filename_idx
+  ON private.employee_chat_image_deletion_claims(filename);
 
 CREATE FUNCTION private.guard_employee_chat_image_reference()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE v_content text;
 BEGIN
   PERFORM pg_advisory_xact_lock_shared(hashtext('employee-chat-image-references'));
-  IF EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
-    WHERE strpos(to_jsonb(NEW)::text, claim.path) > 0) THEN
+  IF NOT EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims) THEN RETURN NEW; END IF;
+  v_content := to_jsonb(NEW)::text;
+  IF EXISTS (
+    SELECT 1 FROM (
+      SELECT DISTINCT matched.parts[1] AS filename
+      FROM regexp_matches(v_content, '([A-Za-z0-9_.-]+[.][A-Za-z0-9]{2,8})', 'g') matched(parts)
+    ) candidate
+    JOIN private.employee_chat_image_deletion_claims claim ON claim.filename = candidate.filename
+    WHERE strpos(v_content, claim.path) > 0
+  ) THEN
     RAISE EXCEPTION 'The image has been reserved for permanent deletion. Upload or select another image.';
   END IF;
   RETURN NEW;
@@ -165,7 +177,9 @@ BEGIN
     SELECT substring(source.url FROM '/storage/v1/object/public/chat-images/([^?#]+)$') AS path
   ) original
   WHERE event.employee_id = ANY(v_employee_ids) AND original.path IS NOT NULL;
-  IF EXISTS (SELECT 1 FROM unnest(v_original_paths) candidate(path) WHERE strpos(candidate.path, '%') > 0) THEN
+  IF EXISTS (SELECT 1 FROM unnest(v_original_paths) candidate(path)
+    WHERE strpos(candidate.path, '%') > 0
+      OR regexp_replace(candidate.path, '^.*/', '') !~ '^[A-Za-z0-9_.-]+[.][A-Za-z0-9]{2,8}$') THEN
     RAISE EXCEPTION 'An archived chat image path must be reviewed before permanent deletion.';
   END IF;
 
@@ -268,11 +282,11 @@ BEGIN
     'SET finished_at = clock_timestamp(), paths_to_remove = v_paths, ' ||
     'retained_shared_images = COALESCE(v_retained_shared_images, 0) WHERE id = p_job_id;');
   definition := replace(definition,
-    "'paths_to_remove', v_job.paths_to_remove)",
-    "'paths_to_remove', v_job.paths_to_remove, 'retained_shared_images', v_job.retained_shared_images)");
+    $$'paths_to_remove', v_job.paths_to_remove)$$,
+    $$'paths_to_remove', v_job.paths_to_remove, 'retained_shared_images', v_job.retained_shared_images)$$);
   definition := replace(definition,
-    "'paths_to_remove', v_paths)",
-    "'paths_to_remove', v_paths, 'retained_shared_images', COALESCE(v_retained_shared_images, 0))");
+    $$'paths_to_remove', v_paths)$$,
+    $$'paths_to_remove', v_paths, 'retained_shared_images', COALESCE(v_retained_shared_images, 0))$$);
 
   definition := replace(definition,
     'DELETE FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids);',
@@ -353,7 +367,7 @@ BEGIN
   IF v_job.id IS NULL OR v_job.finished_at IS NULL THEN
     RAISE EXCEPTION 'Employee deletion has not finished.';
   END IF;
-  IF cardinality(p_paths) NOT BETWEEN 1 AND 20 THEN RAISE EXCEPTION 'Invalid media batch.'; END IF;
+  IF cardinality(p_paths) NOT BETWEEN 1 AND 5 THEN RAISE EXCEPTION 'Invalid media batch.'; END IF;
   PERFORM pg_advisory_xact_lock(hashtext('employee-chat-image-references'));
   IF EXISTS (SELECT 1 FROM private.employee_chat_image_deletion_claims claim
     JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = claim.path
