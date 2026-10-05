@@ -1269,6 +1269,31 @@ body {
   will-change: transform, opacity, filter;
 }
 
+@keyframes dispatchWaterRipple {
+  0% { transform: translate(-50%, -50%) scale(0.28); opacity: 0; }
+  22% { opacity: 0.5; }
+  68% { opacity: 0.25; }
+  100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0; }
+}
+
+.dispatch-water-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  border: 2px solid rgb(37 99 235 / 22%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18px rgb(56 189 248 / 5%), 0 0 30px rgb(37 99 235 / 12%), inset 0 0 24px rgb(56 189 248 / 8%);
+  opacity: 0;
+  animation: dispatchWaterRipple 8s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dispatch-water-ripple { display: none; }
+}
+
 .animate-color-shift-glow {
   animation: colorShiftGlow 6s ease-in-out infinite;
 }
