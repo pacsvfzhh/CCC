@@ -202,15 +202,19 @@ Deno.serve(async (request) => {
         }
       }
       let retainedSharedImages = Number(deleted.retained_shared_images) || 0;
-      for (const original of paths.filter(item => item.bucket === 'chat-images')) {
+      const originals = paths.filter(item => item.bucket === 'chat-images').map(item => item.path);
+      for (let index = 0; index < originals.length; index += 20) {
+        const batch = originals.slice(index, index + 20);
         const { data: checked, error: checkError } = await db.rpc('recheck_deleted_employee_archive_media', {
-          p_admin_session_token: token, p_job_id: body.jobId,
+          p_admin_session_token: token, p_job_id: body.jobId, p_paths: batch,
         });
         if (checkError) throw checkError;
         retainedSharedImages = checked.retained_shared_images;
-        if (!checked.paths_to_remove.some((item: { bucket: string; path: string }) =>
-          item.bucket === 'chat-images' && item.path === original.path)) continue;
-        const { error: removeError } = await db.storage.from('chat-images').remove([original.path]);
+        const pending = checked.paths_to_remove
+          .filter((item: { bucket: string; path: string }) => item.bucket === 'chat-images' && batch.includes(item.path))
+          .map((item: { bucket: string; path: string }) => item.path);
+        if (!pending.length) continue;
+        const { error: removeError } = await db.storage.from('chat-images').remove(pending);
         if (removeError) throw new Error('Employee data was deleted, but original image cleanup is incomplete. Retry this confirmation.');
       }
       const { error: completeError } = await db.rpc('complete_deleted_employee_archive_delete', {
