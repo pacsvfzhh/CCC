@@ -1306,6 +1306,8 @@ body {
   height: 165%;
   pointer-events: none;
   border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
+  -webkit-mask-image: radial-gradient(ellipse closest-side, #000 26%, rgb(0 0 0 / 90%) 44%, rgb(0 0 0 / 48%) 70%, transparent 100%);
+  mask-image: radial-gradient(ellipse closest-side, #000 26%, rgb(0 0 0 / 90%) 44%, rgb(0 0 0 / 48%) 70%, transparent 100%);
   background: radial-gradient(ellipse at 48% 52%, transparent 16%, rgb(37 99 235 / 18%) 36%, rgb(8 145 178 / 33%) 53%, rgb(125 211 252 / 17%) 68%, transparent 89%);
   opacity: 0;
   animation: dispatchPanelBreath 8s ease-out infinite;
