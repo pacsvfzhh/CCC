@@ -194,18 +194,30 @@ Deno.serve(async (request) => {
       const paths = deleted.paths_to_remove as Array<{ bucket: string; path: string }>;
       const removableBuckets = [evidenceBucket, 'verification-documents', 'chat-images'];
       if (paths.some(item => !removableBuckets.includes(item.bucket))) throw new Error('An unsupported employee media bucket was returned.');
-      for (const bucket of removableBuckets) {
+      for (const bucket of [evidenceBucket, 'verification-documents']) {
         const pending = paths.filter(item => item.bucket === bucket).map(item => item.path);
         for (let index = 0; index < pending.length; index += 100) {
           const { error: removeError } = await db.storage.from(bucket).remove(pending.slice(index, index + 100));
           if (removeError) throw new Error('Employee data was deleted, but media cleanup is incomplete. Retry this confirmation.');
         }
       }
+      let retainedSharedImages = Number(deleted.retained_shared_images) || 0;
+      for (const original of paths.filter(item => item.bucket === 'chat-images')) {
+        const { data: checked, error: checkError } = await db.rpc('recheck_deleted_employee_archive_media', {
+          p_admin_session_token: token, p_job_id: body.jobId,
+        });
+        if (checkError) throw checkError;
+        retainedSharedImages = checked.retained_shared_images;
+        if (!checked.paths_to_remove.some((item: { bucket: string; path: string }) =>
+          item.bucket === 'chat-images' && item.path === original.path)) continue;
+        const { error: removeError } = await db.storage.from('chat-images').remove([original.path]);
+        if (removeError) throw new Error('Employee data was deleted, but original image cleanup is incomplete. Retry this confirmation.');
+      }
       const { error: completeError } = await db.rpc('complete_deleted_employee_archive_delete', {
         p_admin_session_token: token, p_job_id: body.jobId,
       });
       if (completeError) throw completeError;
-      return response(deleted);
+      return response({ ...deleted, retained_shared_images: retainedSharedImages });
     }
     if (body.action === 'pending_deletes') {
       const { data, error } = await db.rpc('list_content_audit_pending_deletes', {

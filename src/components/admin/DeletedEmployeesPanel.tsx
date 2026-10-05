@@ -245,6 +245,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingCleanup, setPendingCleanup] = useState<Array<{ job_id: string; file_count: number }>>([]);
+  const [retainedSharedImages, setRetainedSharedImages] = useState<number | null>(null);
   const filtersRef = useRef(filters);
   const selectedIdRef = useRef(selectedId);
   const notificationIdRef = useRef(notificationId);
@@ -603,6 +604,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     const requestedFilters = filters;
     setDeleting(true);
     setDeleteError(null);
+    setRetainedSharedImages(null);
     try {
       const { data, error } = await supabase.rpc('prepare_deleted_employee_archive_delete', {
         p_admin_session_token: getAdminFinancialSessionToken(),
@@ -652,7 +654,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     setDeleting(true);
     setDeleteError(null);
     try {
-      await executeEmployeeArchiveDeletion(deletePreview.job_id);
+      const result = await executeEmployeeArchiveDeletion(deletePreview.job_id);
+      setRetainedSharedImages(result.retained_shared_images);
       if (deletePreview.scope !== 'notification') {
         setSelectedId(null);
         onSelectEmployee(null);
@@ -667,10 +670,10 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         const jobs = await listPendingEmployeeArchiveDeletions();
         setPendingCleanup(jobs);
         setDeleteError(jobs.some(job => job.job_id === deletePreview.job_id)
-          ? `員工資料已從資料庫移除，但私人附件清理未完成：${formatSupabaseError(error)}。請點選上方的附件清理重試。`
+          ? `員工資料已從資料庫移除，但附件或原圖清理未完成：${formatSupabaseError(error)}。請點選上方的清理重試。`
           : `刪除未能確認：${formatSupabaseError(error)}。請重新整理並核對員工是否仍在列表中。`);
       } catch {
-        setDeleteError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對員工資料與待清理附件。`);
+        setDeleteError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對員工資料與待清理檔案。`);
       }
     } finally {
       setDeleting(false);
@@ -682,7 +685,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     setDeleting(true);
     setDeleteError(null);
     try {
-      await executeEmployeeArchiveDeletion(jobId);
+      const result = await executeEmployeeArchiveDeletion(jobId);
+      setRetainedSharedImages(result.retained_shared_images);
       setPendingCleanup(await listPendingEmployeeArchiveDeletions());
       if (deletePreview?.scope !== 'notification') {
         setSelectedId(null);
@@ -691,7 +695,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       setDeletePreview(null);
       onDeleted();
     } catch (error) {
-      setDeleteError(`私人附件清理未完成：${formatSupabaseError(error)}`);
+      setDeleteError(`附件或原圖清理未完成：${formatSupabaseError(error)}`);
     } finally {
       setDeleting(false);
     }
@@ -727,7 +731,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
           <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 py-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div><p className="mt-1 text-[10px] text-slate-400">刪除涵蓋目前篩選中尚未載入的檔案</p></div><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 text-[11px] font-bold text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button></div>
             {deleteError && !selectedId && <p role="alert" className="mt-2 text-xs text-rose-300">{deleteError}</p>}
-            {pendingCleanup.map(job => <button key={job.job_id} type="button" disabled={deleting} onClick={() => void retryPendingCleanup(job.job_id)} className={`mt-2 block text-left text-xs text-amber-200 underline disabled:opacity-50 ${focusClass}`}>上次刪除的私人附件尚有 {job.file_count} 個待核對，點此重試清理</button>)}
+            {pendingCleanup.map(job => <button key={job.job_id} type="button" disabled={deleting} onClick={() => void retryPendingCleanup(job.job_id)} className={`mt-2 block text-left text-xs text-amber-200 underline disabled:opacity-50 ${focusClass}`}>上次刪除的附件或原圖尚有 {job.file_count} 個待核對，點此重試清理</button>)}
+            {retainedSharedImages !== null && retainedSharedImages > 0 && <p role="status" className="mt-2 text-xs text-amber-200">有 {retainedSharedImages} 張原圖仍被其他內容引用，為避免影響共用內容已保留。</p>}
             <div className="mt-2 grid grid-cols-[28px_minmax(0,1fr)_auto] gap-2 text-[10px] font-bold text-slate-400"><span>序號</span><span>員工帳戶</span><span>操作</span></div>
           </div>
           <ol className="min-w-0 divide-y divide-slate-700/50">

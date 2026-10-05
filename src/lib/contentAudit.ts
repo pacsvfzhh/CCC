@@ -72,7 +72,7 @@ export async function executeAuditedDeletion(jobId: string): Promise<{ success: 
   return data;
 }
 
-export async function executeEmployeeArchiveDeletion(jobId: string): Promise<void> {
+export async function executeEmployeeArchiveDeletion(jobId: string): Promise<{ retained_shared_images: number }> {
   const { data, error } = await supabase.functions.invoke('content-audit', {
     body: { action: 'execute_employee_delete', jobId, sessionToken: getAdminFinancialSessionToken() },
   });
@@ -81,6 +81,7 @@ export async function executeEmployeeArchiveDeletion(jobId: string): Promise<voi
     throw new Error(typeof details?.error === 'string' ? details.error : formatSupabaseError(error));
   }
   if (error || data?.error || !data?.success) throw new Error(data?.error || formatSupabaseError(error || new Error('Employee deletion was not confirmed.')));
+  return { retained_shared_images: Number(data.retained_shared_images) || 0 };
 }
 
 export async function listPendingEmployeeArchiveDeletions(): Promise<Array<{ job_id: string; file_count: number }>> {

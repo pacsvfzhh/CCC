@@ -162,15 +162,15 @@ BEGIN
     DELETE FROM private.content_audit_recipient_versions
     WHERE recipient_id = ANY(v_employee_ids);
 
-    SELECT COALESCE(jsonb_agg(jsonb_build_object('bucket', 'chat-images', 'path', original.path)), '[]'::jsonb)
-      INTO v_public_paths
-    FROM (SELECT DISTINCT candidate.path FROM unnest(v_original_paths) candidate(path)
-      JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = candidate.path) original
-    WHERE NOT private.employee_chat_image_in_use(original.path);
-    SELECT count(*) INTO v_retained_shared_images
-    FROM (SELECT DISTINCT candidate.path FROM unnest(v_original_paths) candidate(path)
-      JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = candidate.path) original
-    WHERE private.employee_chat_image_in_use(original.path);
+    WITH references AS MATERIALIZED (
+      SELECT candidate.path, private.employee_chat_image_in_use(candidate.path) AS in_use
+      FROM (SELECT DISTINCT unnest(v_original_paths) AS path) candidate
+      JOIN storage.objects object ON object.bucket_id = 'chat-images' AND object.name = candidate.path
+    )
+    SELECT COALESCE(jsonb_agg(jsonb_build_object('bucket', 'chat-images', 'path', path))
+        FILTER (WHERE NOT in_use), '[]'::jsonb),
+      count(*) FILTER (WHERE in_use)
+    INTO v_public_paths, v_retained_shared_images FROM references;
     v_paths := v_paths || v_public_paths;
     $after_user_delete$);
 
@@ -230,6 +230,38 @@ BEGIN
   EXECUTE definition;
 END;
 $purge_patch$;
+
+CREATE FUNCTION public.recheck_deleted_employee_archive_media(
+  p_admin_session_token uuid, p_job_id uuid
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE v_role text; v_job private.deleted_employee_delete_jobs%ROWTYPE;
+  v_paths jsonb; v_retained integer;
+BEGIN
+  SELECT admin_role INTO v_role FROM private.get_financial_admin_context(p_admin_session_token);
+  IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
+  SELECT * INTO v_job FROM private.deleted_employee_delete_jobs WHERE id = p_job_id FOR UPDATE;
+  IF v_job.id IS NULL OR v_job.finished_at IS NULL THEN
+    RAISE EXCEPTION 'Employee deletion has not finished.';
+  END IF;
+  WITH checked AS MATERIALIZED (
+    SELECT item.data, item.position, item.data ->> 'bucket' = 'chat-images'
+      AND private.employee_chat_image_in_use(item.data ->> 'path') AS in_use
+    FROM jsonb_array_elements(v_job.paths_to_remove) WITH ORDINALITY item(data, position)
+  )
+  SELECT COALESCE(jsonb_agg(data ORDER BY position) FILTER (WHERE NOT in_use), '[]'::jsonb),
+    count(*) FILTER (WHERE in_use)
+  INTO v_paths, v_retained FROM checked;
+  UPDATE private.deleted_employee_delete_jobs
+  SET paths_to_remove = v_paths, retained_shared_images = retained_shared_images + v_retained
+  WHERE id = p_job_id RETURNING * INTO v_job;
+  RETURN jsonb_build_object('paths_to_remove', v_job.paths_to_remove,
+    'retained_shared_images', v_job.retained_shared_images);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.recheck_deleted_employee_archive_media(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.recheck_deleted_employee_archive_media(uuid, uuid) TO service_role;
 
 CREATE FUNCTION private.guard_archived_withdrawal_operation()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
