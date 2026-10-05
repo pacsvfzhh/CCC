@@ -2602,15 +2602,24 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {/* Work Control Panel - Premium Blue/White Design */}
-      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
+      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} ${currentOrder?.status === 'pending' ? 'flex min-h-[420px] flex-col md:min-h-[575px]' : ''} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
           ? 'dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
+          : currentOrder?.status === 'pending'
+          ? 'bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-100 border-2 border-blue-200 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
         {!waitingPanelActive && (
-          <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
+          <div className={`pointer-events-none absolute inset-0 ${currentOrder?.status === 'pending' ? 'bg-gradient-to-br from-blue-100/55 via-transparent to-cyan-100/30' : session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
+        )}
+        {currentOrder?.status === 'pending' && (
+          <>
+            <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, rgba(37,99,235,0.5) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan" style={{ animationDelay: '1s' }} />
+          </>
         )}
         {waitingPanelActive && (
           <div className="dispatch-panel-waves pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
@@ -2626,11 +2635,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         }`}></div>
 
         {/* Content */}
-        <div className="relative z-10">
+        <div className={`relative z-10 ${currentOrder?.status === 'pending' ? 'flex flex-1 flex-col' : ''}`}>
           <div className={`transition-all duration-400 ease-out overflow-hidden ${
-            currentOrder?.status === 'accepted' ? 'max-h-0 opacity-0 mb-0 pointer-events-none' : 'max-h-[500px] opacity-100 mb-0'
+            currentOrder?.status === 'pending' || (currentOrder?.status === 'accepted' && acceptPhase === 'idle') ? 'max-h-0 opacity-0 mb-0 pointer-events-none' : 'max-h-[500px] opacity-100 mb-0'
           }`} style={{ transitionProperty: 'max-height, opacity, margin' }}>
-          {(!(currentOrder?.status === 'accepted') || acceptPhase !== 'idle') && (
+          {currentOrder?.status !== 'pending' && (!(currentOrder?.status === 'accepted') || acceptPhase !== 'idle') && (
           <>{/* Header Section - Tablet optimized horizontal layout */}
           {isTablet ? (
             /* TABLET: Compact horizontal layout */
@@ -2718,64 +2727,27 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           {/* Main Action Area - Balanced Display */}
           {currentOrder ? (
             /* ORDER DISPLAY - Advanced Blockchain Design */
-            <div className={`relative backdrop-blur-sm overflow-hidden transition-all duration-700 ease-out ${currentOrder.status === 'accepted' ? (isTablet ? 'border-0 rounded-none shadow-none' : 'border-0 rounded-none shadow-none flex flex-col') : 'border md:border-2 rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl'} ${
+            <div className={`relative transition-all duration-700 ease-out ${
               currentOrder.status === 'pending'
-                ? 'bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-100 border-blue-200 shadow-blue-200/40'
-                : hasTimeout
-                ? 'bg-gradient-to-br from-rose-900/80 to-red-900/80 border-rose-500/50 shadow-rose-500/30'
-                : 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 border-blue-300/60 shadow-blue-200/50'
+                ? 'flex flex-1 flex-col'
+                : `backdrop-blur-sm overflow-hidden ${currentOrder.status === 'accepted' ? (isTablet ? 'border-0 rounded-none shadow-none' : 'border-0 rounded-none shadow-none flex flex-col') : 'border md:border-2 rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl'} ${hasTimeout ? 'bg-gradient-to-br from-rose-900/80 to-red-900/80 border-rose-500/50 shadow-rose-500/30' : 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 border-blue-300/60 shadow-blue-200/50'}`
             }`}>
-              {/* Background pattern for pending */}
-              {currentOrder.status === 'pending' && (
-                <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{
-                  backgroundImage: 'radial-gradient(circle, rgba(37,99,235,0.5) 1px, transparent 1px)',
-                  backgroundSize: '24px 24px'
-                }}></div>
-              )}
-
-              {/* Gradient overlay */}
-              <div className={`absolute inset-0 pointer-events-none ${
-                currentOrder.status === 'pending'
-                  ? 'bg-gradient-to-br from-blue-100/55 via-transparent to-cyan-100/30'
-                  : hasTimeout
-                  ? ''
-                  : 'bg-gradient-to-br from-sky-100/40 via-transparent to-blue-100/30'
-              }`}></div>
-
-              {/* Corner accents */}
-              <div className={`absolute top-2 left-2 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-l-2 rounded-tl-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-              <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-r-2 rounded-tr-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-              <div className={`absolute bottom-2 left-2 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-l-2 rounded-bl-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-              <div className={`absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-r-2 rounded-br-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/65' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-
-              {/* Scanning Lines */}
-              {currentOrder.status === 'pending' && (
+              {currentOrder.status !== 'pending' && (
                 <>
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan"></div>
-                  <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan" style={{animationDelay: '1s'}}></div>
+                  <div className={`absolute inset-0 pointer-events-none ${hasTimeout ? '' : 'bg-gradient-to-br from-sky-100/40 via-transparent to-blue-100/30'}`} />
+                  <div className={`absolute top-2 left-2 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-l-2 rounded-tl-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-r-2 rounded-tr-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  <div className={`absolute bottom-2 left-2 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-l-2 rounded-bl-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  <div className={`absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-r-2 rounded-br-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  {currentOrder.status === 'accepted' && !hasTimeout && (
+                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400/50 to-transparent" />
+                  )}
+                  <div className={`absolute top-1/4 -left-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${hasTimeout ? 'bg-rose-400/15' : 'bg-sky-300/20'}`} />
+                  <div className={`absolute bottom-1/4 -right-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${hasTimeout ? 'bg-red-400/15' : 'bg-blue-300/15'}`} style={{animationDelay: '1s'}} />
                 </>
               )}
-              {currentOrder.status === 'accepted' && !hasTimeout && (
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400/50 to-transparent"></div>
-              )}
 
-              {/* Ambient glow orbs */}
-              <div className={`absolute top-1/4 -left-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
-                currentOrder.status === 'pending' ? 'bg-blue-200/30' : hasTimeout ? 'bg-rose-400/15' : 'bg-sky-300/20'
-              }`}></div>
-              <div className={`absolute bottom-1/4 -right-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
-                currentOrder.status === 'pending' ? 'bg-cyan-200/30' : hasTimeout ? 'bg-red-400/15' : 'bg-blue-300/15'
-              }`} style={{animationDelay: '1s'}}></div>
-
-              <div className={`relative p-3 md:p-8 z-10 ${currentOrder.status === 'accepted' ? (isTablet ? 'flex flex-col' : 'flex-1 flex flex-col') : ''} transition-all duration-500 ease-out ${
+              <div className={`relative z-10 ${currentOrder.status === 'pending' ? 'flex flex-1 flex-col' : 'p-3 md:p-8'} ${currentOrder.status === 'accepted' ? (isTablet ? 'flex flex-col' : 'flex-1 flex flex-col') : ''} transition-all duration-500 ease-out ${
                 acceptPhase === 'fade-out' ? 'opacity-0 scale-[0.98] translate-y-1' : acceptPhase === 'fade-in' ? 'animate-[acceptFadeIn_0.5s_ease-out_forwards]' : ''
               }`}>
                 {/* Premium Header with Blockchain Aesthetic */}
@@ -2863,7 +2835,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
                 {/* Order Content - Compact Blockchain Design */}
                 {/* MOBILE: Full Width Order Details First */}
-                <div className="md:hidden mb-2.5">
+                <div className={`md:hidden mb-2.5 ${currentOrder.status === 'pending' ? 'flex flex-1 flex-col justify-center' : ''}`}>
                   <div className={`relative backdrop-blur-md rounded-lg p-2.5 border overflow-hidden shadow-sm ${
                     currentOrder.status === 'pending'
                       ? 'bg-gradient-to-br from-white/85 to-cyan-50/80 border-blue-100'
@@ -2912,7 +2884,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
 
                 {/* DESKTOP: Side-by-side layout */}
-                <div className={`hidden md:grid gap-4 md:gap-6 ${currentOrder.status === 'accepted' ? (isTablet ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-5 flex-1') : 'grid-cols-1 lg:grid-cols-5'}`}>
+                <div className={`hidden md:grid gap-4 md:gap-6 ${currentOrder.status === 'accepted' ? (isTablet ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-5 flex-1') : 'grid-cols-1 lg:grid-cols-5 md:flex-1 md:items-center'}`}>
                   <div className="lg:col-span-3">
                     <div className={`relative backdrop-blur-xl rounded-2xl p-8 border overflow-hidden shadow-xl transition-all duration-500 ${
                       currentOrder.status === 'pending'
