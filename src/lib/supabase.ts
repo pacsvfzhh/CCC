@@ -219,7 +219,7 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
 
     xhr.onload = () => {
       const responseHeaders = new Headers();
-      xhr.getAllResponseHeaders().trim().split(/[\\r\\n]+/).forEach(line => {
+      xhr.getAllResponseHeaders().trim().split(/[\r\n]+/).forEach(line => {
         const separator = line.indexOf(':');
         if (separator > 0) {
           try {
@@ -272,6 +272,13 @@ const isReadOnlyAuditRequest = (input: RequestInfo | URL, init?: RequestInit) =>
 };
 
 const fetchWithNetworkFallback: typeof fetch = async (input, init) => {
+  const url = input instanceof Request ? input.url : input.toString();
+  // Delivery RPCs use one transport attempt to avoid replaying a committed claim.
+  if (getRequestMethod(input, init) === 'POST'
+    && /\/rest\/v1\/rpc\/(?:claim_realtime_notification_delivery|claim_next_realtime_notification_delivery|complete_notification_delivery)(?:\?|$)/.test(url)) {
+    return fetchWithXhrFallback(input, init);
+  }
+
   try {
     return await nativeFetch(input, init);
   } catch (error) {
