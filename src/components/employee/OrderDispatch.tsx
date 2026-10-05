@@ -3123,13 +3123,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="relative -mx-5 -mb-5 flex items-center justify-center overflow-hidden border-t border-cyan-200/60 bg-gradient-to-r from-blue-800 via-blue-600 to-cyan-700 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)] md:-mx-10 md:-mb-10 md:px-10 md:py-6">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.14),transparent_70%)]" />
+                <div className="-mx-5 -mb-5 flex items-center justify-center border-t border-white/70 px-4 py-4 md:-mx-10 md:-mb-10 md:px-10 md:py-6">
                   <button
                     type="button"
                     onClick={() => void handleStopWork(false).catch(() => undefined)}
                     disabled={isProcessing}
-                    className={`group relative z-10 flex min-h-[60px] w-full max-w-[460px] items-center justify-center gap-3 rounded-2xl border border-orange-200/80 bg-gradient-to-r from-[#ef8835] via-[#e8692a] to-[#d74a37] px-5 py-3 text-white shadow-[0_14px_32px_-12px_rgba(83,35,21,0.7),inset_0_1px_0_rgba(255,255,255,0.32)] transition-all duration-200 hover:from-[#f59a4b] hover:via-[#ee7b39] hover:to-[#e05a47] hover:shadow-[0_18px_36px_-12px_rgba(83,35,21,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-h-[68px] md:gap-4 md:px-8 md:py-3.5 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    className={`group flex min-h-[60px] w-full max-w-[460px] items-center justify-center gap-3 rounded-2xl border border-orange-200/80 bg-gradient-to-r from-[#ef8835] via-[#e8692a] to-[#d74a37] px-5 py-3 text-white shadow-[0_14px_32px_-12px_rgba(83,35,21,0.7),inset_0_1px_0_rgba(255,255,255,0.32)] transition-all duration-200 hover:from-[#f59a4b] hover:via-[#ee7b39] hover:to-[#e05a47] hover:shadow-[0_18px_36px_-12px_rgba(83,35,21,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-h-[68px] md:gap-4 md:px-8 md:py-3.5 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
                     style={{ WebkitTapHighlightColor: 'transparent', textShadow: '0 1px 2px rgba(90, 30, 11, 0.75)' }}
                   >
                     {isProcessing ? (
