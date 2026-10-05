@@ -7,6 +7,7 @@ import { Play, Square, CheckCircle, XCircle, Clock, Package, TrendingUp, AlertTr
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
+import productPhotoWall from '../../assets/order-dispatch-product-wall.webp';
 import type { Employee } from '../../types';
 
 interface DispatchAssignment {
@@ -2560,56 +2561,25 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
-          ? 'bg-gradient-to-r from-blue-200 via-sky-200 to-blue-200 border-2 border-blue-300/80 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.28),0_8px_28px_-12px_rgba(37,99,235,0.18)]'
+          ? 'bg-blue-100 border-2 border-blue-300/80 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.28),0_8px_28px_-12px_rgba(37,99,235,0.18)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
-        {/* Inner gradient background for depth */}
-        <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${
-          waitingPanelActive
-            ? 'bg-[radial-gradient(ellipse_at_50%_42%,rgba(59,130,246,0.2),transparent_58%),radial-gradient(circle_at_87%_22%,rgba(96,165,250,0.18),transparent_40%),radial-gradient(circle_at_11%_78%,rgba(251,146,60,0.16),transparent_34%),linear-gradient(110deg,#dbeafe_0%,#bfdbfe_50%,#dbeafe_100%)]'
-            : session.isWorking
-            ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30'
-            : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'
-        }`}></div>
-        {waitingPanelActive && (
-          <>
-            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1200 580" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-              <defs>
-                <linearGradient id="dispatchSeaRoute" x1="0" y1="1" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#2563eb" stopOpacity="0.18" />
-                  <stop offset="52%" stopColor="#0284c7" stopOpacity="0.38" />
-                  <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.25" />
-                </linearGradient>
-              </defs>
-              <g fill="none" stroke="#2563eb" strokeOpacity="0.1" strokeWidth="2">
-                <path d="M0 398q80-31 147-14t130-14q85-33 155 3" />
-                <path d="M760 80q91 17 145-9t129-7q79 18 166-12" />
-                <path d="M785 516q98-30 185-8t230-29" />
-              </g>
-              <path d="M30 454C175 410 245 466 355 378S565 360 676 288s152 0 256-90 150-62 238-86" fill="none" stroke="url(#dispatchSeaRoute)" strokeWidth="3" strokeDasharray="2 12" strokeLinecap="round" />
-              <g fill="#dbeafe" stroke="#2563eb" strokeOpacity="0.45" strokeWidth="2">
-                <circle cx="130" cy="430" r="7" /><circle cx="355" cy="378" r="7" /><circle cx="676" cy="288" r="7" /><circle cx="932" cy="198" r="7" /><circle cx="1100" cy="136" r="7" />
-              </g>
-              <g transform="translate(1012 319)" fill="none" stroke="#1d4ed8" strokeOpacity="0.3" strokeWidth="1.5">
-                <circle r="61" /><circle r="42" />
-                <path d="M0-78V-40M0 40v38M-78 0h38M40 0h38M-52-52l20 20m64 64 20 20m0-104-20 20m-64 64-20 20" />
-                <path d="M0-32 8-8 32 0 8 8 0 32-8 8-32 0-8-8z" fill="#dbeafe" />
-                <path d="M0-32 8-8 0 0-8-8z" fill="#f97316" stroke="none" />
-              </g>
-              <g transform="translate(318 384)" fill="none" stroke="#1d4ed8" strokeOpacity="0.38" strokeWidth="2">
-                <path d="M-37 26h76l-13 16h-50zM0 25v-42m0 5h24L0 9z" />
-              </g>
-            </svg>
-            {!performanceSettings.reduceTransitions && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden" aria-hidden="true">
-                <div className="dispatch-water-ripple" />
-                <div className="dispatch-water-ripple" style={{ animationDelay: '-2.7s' }} />
-                <div className="dispatch-water-ripple" style={{ animationDelay: '-5.4s' }} />
-              </div>
-            )}
-          </>
+        {waitingPanelActive ? (
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            <img src={productPhotoWall} alt="" className="h-full w-full object-cover object-center" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(239,246,255,0.84)_0%,rgba(239,246,255,0.72)_22%,rgba(219,234,254,0.36)_61%,rgba(191,219,254,0.2)_100%)]" />
+          </div>
+        ) : (
+          <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
+        )}
+        {waitingPanelActive && !performanceSettings.reduceTransitions && (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            <div className="dispatch-water-ripple" />
+            <div className="dispatch-water-ripple" style={{ animationDelay: '-2.8s' }} />
+            <div className="dispatch-water-ripple" style={{ animationDelay: '-5.6s' }} />
+          </div>
         )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
@@ -3184,7 +3154,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-400/35 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
+                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-400/35 bg-gradient-to-r from-blue-800/90 via-blue-700/85 to-blue-800/90 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
                   <div className="flex items-center gap-2 text-xs font-semibold text-white">
                     <span className="h-2 w-2 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />
                     {t.dispatch.autoDispatch}
