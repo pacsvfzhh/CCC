@@ -2590,6 +2590,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <span className="dispatch-panel-wave dispatch-panel-wave-3" />
               <span className="dispatch-panel-wave dispatch-panel-wave-4" />
             </div>
+            <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden="true">
+              <span className="dispatch-panel-corner dispatch-panel-corner-top-left" />
+              <span className="dispatch-panel-corner dispatch-panel-corner-top-right" />
+              <span className="dispatch-panel-corner dispatch-panel-corner-bottom-left" />
+              <span className="dispatch-panel-corner dispatch-panel-corner-bottom-right" />
+            </div>
             <svg className="dispatch-panel-ship pointer-events-none absolute z-[2]" viewBox="0 0 800 300" fill="none" aria-hidden="true">
               <path d="M36 268c61-17 100-17 154 0 54 17 102 17 157 0 55-17 103-17 158 0 55 17 103 17 157 0 45-14 78-15 122-4" stroke="#38bdf8" strokeOpacity="0.24" strokeWidth="4" strokeLinecap="round" />
               <path d="M22 284c61-17 101-17 156 0 54 17 102 17 157 0 55-17 103-17 158 0 55 17 103 17 157 0 55-17 97-17 146 0" stroke="#7dd3fc" strokeOpacity="0.22" strokeWidth="3" strokeLinecap="round" />
