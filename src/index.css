@@ -1366,6 +1366,16 @@ body {
   }
 }
 
+@media (min-width: 1024px) {
+  .dispatch-panel-ship {
+    width: min(1060px, 88%);
+    right: auto;
+    left: 50%;
+    bottom: 100px;
+    transform: translateX(-50%);
+  }
+}
+
 .dispatch-panel-wave {
   position: absolute;
   top: 51%;
