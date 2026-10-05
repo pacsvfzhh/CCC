@@ -2560,7 +2560,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       {/* Work Control Panel - Premium Blue/White Design */}
       <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
         waitingPanelActive
-          ? 'bg-white border-2 border-blue-200 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(6,182,212,0.14)]'
+          ? 'bg-gradient-to-br from-blue-200 via-cyan-100 to-sky-200 border-2 border-blue-300/80 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.28),0_8px_28px_-12px_rgba(6,182,212,0.22)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
@@ -2568,7 +2568,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         {/* Inner gradient background for depth */}
         <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${
           waitingPanelActive
-            ? 'bg-[radial-gradient(ellipse_at_49%_43%,rgba(191,219,254,0.54),transparent_58%),radial-gradient(circle_at_86%_22%,rgba(103,232,249,0.22),transparent_36%),linear-gradient(135deg,#ffffff_0%,#eff6ff_56%,#f8fafc_100%)]'
+            ? 'bg-[radial-gradient(ellipse_at_52%_42%,rgba(59,130,246,0.25),transparent_58%),radial-gradient(circle_at_86%_21%,rgba(34,211,238,0.45),transparent_40%),radial-gradient(circle_at_11%_78%,rgba(251,146,60,0.22),transparent_34%),linear-gradient(120deg,#dbeafe_0%,#bfdbfe_42%,#a5f3fc_76%,#e0f2fe_100%)]'
             : session.isWorking
             ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30'
             : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'
@@ -2581,11 +2581,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 <stop offset="55%" stopColor="#0891b2" stopOpacity="0.3" />
                 <stop offset="100%" stopColor="#f97316" stopOpacity="0.18" />
               </linearGradient>
-              <pattern id="dispatchFreightGrid" width="32" height="32" patternUnits="userSpaceOnUse">
-                <path d="M32 0H0V32" fill="none" stroke="#2563eb" strokeOpacity="0.07" />
-              </pattern>
             </defs>
-            <rect width="1200" height="580" fill="url(#dispatchFreightGrid)" />
             <path d="M1200 72H1008Q974 72 974 106V154Q974 186 1008 186H1100Q1134 186 1134 220V338Q1134 370 1100 370H974" fill="none" stroke="url(#dispatchRouteLine)" strokeWidth="2" strokeDasharray="7 10" />
             <path d="M0 330H122Q155 330 155 364V448Q155 480 189 480H320" fill="none" stroke="url(#dispatchRouteLine)" strokeWidth="2" strokeDasharray="7 10" />
             <g fill="#eff6ff" stroke="#0891b2" strokeOpacity="0.45" strokeWidth="2">
@@ -2613,7 +2609,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <>{/* Header Section - Tablet optimized horizontal layout */}
           {isTablet ? (
             /* TABLET: Compact horizontal layout */
-            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-blue-100 pb-5' : 'mb-6'}`}>
+            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-blue-300/55 pb-5' : 'mb-6'}`}>
               {/* Left: Logo + Title */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Icon */}
@@ -2641,20 +2637,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             </div>
           ) : (
             /* DESKTOP & MOBILE: Blue/White premium layout */
-            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-blue-100 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
+            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-5 border-b border-blue-300/55 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
               {/* Mobile: Full-width status banner */}
               <div className="w-full md:w-auto">
                 <div className="flex items-center gap-3 md:gap-4">
                   {/* Icon - Distinct from title */}
                   <div className={`relative p-3.5 md:p-4 rounded-2xl transition-all duration-500 ${
                     waitingPanelActive
-                      ? 'bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 shadow-sm shadow-blue-200/50'
+                      ? 'bg-gradient-to-br from-blue-500 to-cyan-500 border border-blue-400/50 shadow-lg shadow-blue-500/20'
                       : session.isWorking
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-100'
                       : 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200'
                   }`}>
                     <Timer className={`w-6 h-6 md:w-6 md:h-6 transition-colors duration-500 ${
-                      waitingPanelActive ? 'text-blue-600' : session.isWorking ? 'text-white' : 'text-blue-600'
+                      waitingPanelActive ? 'text-white' : session.isWorking ? 'text-white' : 'text-blue-600'
                     }`} />
                     {session.isWorking && (
                       <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
@@ -2668,7 +2664,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 ${
                         waitingPanelActive
-                          ? 'bg-blue-50 border border-blue-200'
+                          ? 'bg-blue-50/70 border border-blue-200/80'
                           : session.isWorking
                           ? 'bg-green-50 border border-green-200'
                           : 'bg-slate-50 border border-slate-200'
@@ -2699,7 +2695,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             /* ORDER DISPLAY - Advanced Blockchain Design */
             <div className={`relative backdrop-blur-sm overflow-hidden transition-all duration-700 ease-out ${currentOrder.status === 'accepted' ? (isTablet ? 'border-0 rounded-none shadow-none' : 'border-0 rounded-none shadow-none flex flex-col') : 'border md:border-2 rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl'} ${
               currentOrder.status === 'pending'
-                ? 'bg-gradient-to-br from-white via-blue-50 to-cyan-50 border-blue-200 shadow-blue-200/40'
+                ? 'bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-100 border-blue-200 shadow-blue-200/40'
                 : hasTimeout
                 ? 'bg-gradient-to-br from-rose-900/80 to-red-900/80 border-rose-500/50 shadow-rose-500/30'
                 : 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 border-blue-300/60 shadow-blue-200/50'
@@ -2845,7 +2841,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 <div className="md:hidden mb-2.5">
                   <div className={`relative backdrop-blur-md rounded-lg p-2.5 border overflow-hidden shadow-sm ${
                     currentOrder.status === 'pending'
-                      ? 'bg-white/85 border-blue-100'
+                      ? 'bg-gradient-to-br from-white/85 to-cyan-50/80 border-blue-100'
                       : 'bg-white/90 border-gray-200'
                   }`}>
                     <div className="relative z-10">
@@ -2895,7 +2891,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   <div className="lg:col-span-3">
                     <div className={`relative backdrop-blur-xl rounded-2xl p-8 border overflow-hidden shadow-xl transition-all duration-500 ${
                       currentOrder.status === 'pending'
-                        ? 'bg-white/90 border-blue-100 shadow-blue-100/60'
+                        ? 'bg-gradient-to-br from-white/90 via-blue-50/90 to-cyan-50/80 border-blue-100 shadow-blue-100/60'
                         : 'bg-white/90 border-gray-200 shadow-sm'
                     }`}>
                       {/* Subtle dot pattern */}
@@ -3150,10 +3146,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               <div>
                 <div className="relative min-h-[240px] overflow-hidden py-7 md:py-10">
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="h-44 w-44 rounded-full bg-blue-200/55 blur-xl animate-breath-ripple md:h-56 md:w-56" />
-                    <div className="absolute h-64 w-64 rounded-full bg-cyan-100/65 blur-2xl animate-breath-ripple md:h-80 md:w-80" style={{ animationDelay: '1.2s' }} />
-                    <div className="absolute h-64 w-64 rounded-full border border-cyan-300/35 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
-                    <div className="absolute h-80 w-80 rounded-full border border-blue-200/45 animate-[spin_30s_linear_infinite_reverse] md:h-[26rem] md:w-[26rem]" />
+                    <div className="h-44 w-44 rounded-full bg-blue-400/30 blur-xl animate-breath-ripple md:h-56 md:w-56" />
+                    <div className="absolute h-64 w-64 rounded-full bg-cyan-300/35 blur-2xl animate-breath-ripple md:h-80 md:w-80" style={{ animationDelay: '1.2s' }} />
+                    <div className="absolute h-64 w-64 rounded-full border border-cyan-500/25 animate-[spin_20s_linear_infinite] md:h-80 md:w-80" />
+                    <div className="absolute h-80 w-80 rounded-full border border-blue-500/15 animate-[spin_30s_linear_infinite_reverse] md:h-[26rem] md:w-[26rem]" />
                   </div>
                   <div className="relative z-10 text-center">
                     <div className="mb-7 flex items-center justify-center gap-2 md:mb-9">
@@ -3178,9 +3174,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50/60 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
-                    <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.35)]" />
+                <div className="-mx-5 -mb-5 flex flex-col gap-4 border-t border-blue-400/35 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 px-5 py-5 md:-mx-10 md:-mb-10 md:flex-row md:items-center md:justify-between md:px-10 md:py-6">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                    <span className="h-2 w-2 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />
                     {t.dispatch.autoDispatch}
                   </div>
                   <button
