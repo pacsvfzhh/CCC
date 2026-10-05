@@ -2606,17 +2606,19 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         waitingPanelActive
           ? 'dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
           : currentOrder?.status === 'pending'
-          ? 'bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-100 border-2 border-blue-200 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
+          ? 'bg-gradient-to-br from-amber-100 via-emerald-50 to-teal-200 border-2 border-teal-200 shadow-[0_18px_54px_-18px_rgba(13,148,136,0.28),0_6px_24px_-12px_rgba(217,119,6,0.18)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
         {!waitingPanelActive && (
-          <div className={`pointer-events-none absolute inset-0 ${currentOrder?.status === 'pending' ? 'bg-gradient-to-br from-blue-100/55 via-transparent to-cyan-100/30' : session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
+          <div className={`pointer-events-none absolute inset-0 ${currentOrder?.status === 'pending' ? 'bg-gradient-to-br from-amber-100/55 via-transparent to-teal-200/40' : session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
         )}
         {currentOrder?.status === 'pending' && (
           <>
-            <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, rgba(37,99,235,0.5) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+            <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-teal-300/35 blur-3xl md:h-96 md:w-96" />
+            <div className="pointer-events-none absolute -bottom-28 -left-20 h-72 w-72 rounded-full bg-amber-200/45 blur-3xl md:h-96 md:w-96" />
+            <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, rgba(13,148,136,0.6) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent animate-scan" style={{ animationDelay: '1s' }} />
           </>
@@ -2631,7 +2633,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
-          waitingPanelActive ? 'z-[2] h-1.5 bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-500 shadow-[0_3px_12px_rgba(14,165,233,0.45)]' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+          waitingPanelActive ? 'z-[2] h-1.5 bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-500 shadow-[0_3px_12px_rgba(14,165,233,0.45)]' : currentOrder?.status === 'pending' ? 'h-1.5 bg-gradient-to-r from-amber-400 via-teal-400 to-cyan-500 shadow-[0_3px_12px_rgba(13,148,136,0.35)]' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
         }`}></div>
 
         {/* Content */}
@@ -2786,7 +2788,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <div>
                       <div className="flex items-center space-x-2 md:space-x-3">
                         <h3 className={`text-base md:text-3xl font-black tracking-tight ${
-                          currentOrder.status === 'pending' ? 'text-blue-900' : hasTimeout ? 'text-rose-100 drop-shadow-lg' : 'text-gray-800'
+                          currentOrder.status === 'pending' ? 'text-teal-950' : hasTimeout ? 'text-rose-100 drop-shadow-lg' : 'text-gray-800'
                         }`}>
                           {currentOrder.status === 'pending' ? t.dispatch.newOrderHeading : hasTimeout ? t.dispatch.timeout : t.dispatch.inProgress}
                         </h3>
@@ -2836,17 +2838,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 {/* Order Content - Compact Blockchain Design */}
                 {/* MOBILE: Full Width Order Details First */}
                 <div className={`md:hidden mb-2.5 ${currentOrder.status === 'pending' ? 'flex flex-1 flex-col justify-center' : ''}`}>
-                  <div className={`relative backdrop-blur-md rounded-lg p-2.5 border overflow-hidden shadow-sm ${
-                    currentOrder.status === 'pending'
-                      ? 'bg-gradient-to-br from-white/85 to-cyan-50/80 border-blue-100'
-                      : 'bg-white/90 border-gray-200'
-                  }`}>
+                  <div className={`relative ${currentOrder.status === 'pending' ? 'py-3' : 'overflow-hidden rounded-lg border border-gray-200 bg-white/90 p-2.5 shadow-sm backdrop-blur-md'}`}>
                     <div className="relative z-10">
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center space-x-1.5">
                           <div className={`w-1 h-1 rounded-full animate-pulse ${currentOrder.status === 'pending' ? 'bg-cyan-500' : 'bg-blue-500'}`}></div>
                           <FileText className={`w-3 h-3 ${currentOrder.status === 'pending' ? 'text-cyan-600' : 'text-blue-500'}`} />
-                          <h4 className={`text-[10px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-blue-900' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
+                          <h4 className={`text-[10px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-teal-950' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
                         </div>
                         {currentOrder.status === 'pending' && (
                           <div className="px-1.5 py-0.5 bg-orange-50 border border-orange-200 rounded">
@@ -2869,8 +2867,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                               </div>
                             </div>
 
-                            <p className="text-blue-900 font-bold text-xs mb-0.5 tracking-wide">{t.dispatch.newOrderAvailable}</p>
-                            <p className="text-cyan-700 text-[9px] font-semibold mb-1">{t.dispatch.secured}</p>
+                            <p className="mb-0.5 text-xs font-bold tracking-wide text-teal-950">{t.dispatch.newOrderAvailable}</p>
+                            <p className="mb-1 text-[9px] font-semibold text-teal-700">{t.dispatch.secured}</p>
                             <p className="text-slate-500 text-[8px]">{t.dispatch.acceptToUnlock}</p>
                           </div>
                         </div>
@@ -2886,32 +2884,16 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 {/* DESKTOP: Side-by-side layout */}
                 <div className={`hidden md:grid gap-4 md:gap-6 ${currentOrder.status === 'accepted' ? (isTablet ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-5 flex-1') : 'grid-cols-1 lg:grid-cols-5 md:flex-1 md:items-center'}`}>
                   <div className="lg:col-span-3">
-                    <div className={`relative backdrop-blur-xl rounded-2xl p-8 border overflow-hidden shadow-xl transition-all duration-500 ${
-                      currentOrder.status === 'pending'
-                        ? 'bg-gradient-to-br from-white/90 via-blue-50/90 to-cyan-50/80 border-blue-100 shadow-blue-100/60'
-                        : 'bg-white/90 border-gray-200 shadow-sm'
-                    }`}>
-                      {/* Subtle dot pattern */}
-                      <div className={`absolute inset-0 ${currentOrder.status === 'pending' ? 'opacity-[0.04]' : 'opacity-[0.02]'}`} style={{
-                        backgroundImage: currentOrder.status === 'pending'
-                          ? 'radial-gradient(circle, rgba(37,99,235,0.6) 1px, transparent 1px)'
-                          : 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)',
-                        backgroundSize: '20px 20px'
-                      }}></div>
-
-                      {/* Soft corner accents */}
-                      <div className={`absolute top-3 left-3 w-5 h-5 border-t border-l rounded-tl-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
-                      }`}></div>
-                      <div className={`absolute top-3 right-3 w-5 h-5 border-t border-r rounded-tr-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
-                      }`}></div>
-                      <div className={`absolute bottom-3 left-3 w-5 h-5 border-b border-l rounded-bl-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
-                      }`}></div>
-                      <div className={`absolute bottom-3 right-3 w-5 h-5 border-b border-r rounded-br-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-blue-200/70' : 'border-blue-300/40'
-                      }`}></div>
+                    <div className={`relative transition-all duration-500 ${currentOrder.status === 'pending' ? 'py-6' : 'overflow-hidden rounded-2xl border border-gray-200 bg-white/90 p-8 shadow-sm backdrop-blur-xl'}`}>
+                      {currentOrder.status !== 'pending' && (
+                        <>
+                          <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                          <div className="absolute left-3 top-3 h-5 w-5 rounded-tl-sm border-l border-t border-blue-300/40" />
+                          <div className="absolute right-3 top-3 h-5 w-5 rounded-tr-sm border-r border-t border-blue-300/40" />
+                          <div className="absolute bottom-3 left-3 h-5 w-5 rounded-bl-sm border-b border-l border-blue-300/40" />
+                          <div className="absolute bottom-3 right-3 h-5 w-5 rounded-br-sm border-b border-r border-blue-300/40" />
+                        </>
+                      )}
 
                       <div className="relative z-10">
                         <div className="flex items-center justify-between mb-6">
@@ -2921,7 +2903,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                               <div className={`relative w-2 h-2 rounded-full ${currentOrder.status === 'pending' ? 'bg-cyan-500' : 'bg-blue-500'}`}></div>
                             </div>
                             <FileText className={`w-5 h-5 ${currentOrder.status === 'pending' ? 'text-cyan-600' : 'text-blue-500'}`} />
-                            <h4 className={`text-sm font-bold uppercase tracking-widest ${currentOrder.status === 'pending' ? 'text-blue-900' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
+                            <h4 className={`text-sm font-bold uppercase tracking-widest ${currentOrder.status === 'pending' ? 'text-teal-950' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
                           </div>
                           {currentOrder.status === 'pending' && (
                             <div className="relative flex items-center space-x-2 px-4 py-1.5 bg-orange-50 border border-orange-200 rounded-lg overflow-hidden backdrop-blur-sm">
@@ -2957,7 +2939,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                                 </div>
                               </div>
 
-                              <h3 className="text-xl font-bold mb-3 tracking-tight text-blue-900">
+                              <h3 className="text-xl font-bold mb-3 tracking-tight text-teal-950">
                                 {t.dispatch.newOrderAvailable}
                               </h3>
 
@@ -3009,10 +2991,10 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       <button
                         onClick={handleAcceptOrder}
                         disabled={isAccepting}
-                        className={`group relative w-full px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed touch-manipulation ${
+                        className={`group relative w-full px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-lg shadow-teal-600/25 disabled:cursor-not-allowed touch-manipulation ${
                           performanceSettings.reduceTransitions
                             ? 'transition-opacity duration-150 active:opacity-80'
-                            : 'hover:shadow-blue-600/30 transition-all duration-200 hover:scale-105 active:scale-[0.98]'
+                            : 'hover:shadow-teal-600/35 transition-all duration-200 hover:scale-105 active:scale-[0.98]'
                         }`}
                       >
                         {!performanceSettings.reduceTransitions && (
@@ -3088,7 +3070,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <button
                       onClick={handleAcceptOrder}
                       disabled={isAccepting}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg font-bold text-sm shadow-lg shadow-blue-600/20 flex items-center justify-center space-x-1.5 disabled:cursor-not-allowed touch-manipulation active:from-blue-700 active:to-cyan-700 active:scale-[0.97] transition-transform duration-75"
+                      className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 text-white py-3 px-4 rounded-lg font-bold text-sm shadow-lg shadow-teal-600/25 flex items-center justify-center space-x-1.5 disabled:cursor-not-allowed touch-manipulation active:from-teal-700 active:to-cyan-700 active:scale-[0.97] transition-transform duration-75"
                       style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       {isAccepting ? (
