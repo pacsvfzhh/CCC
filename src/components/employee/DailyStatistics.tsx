@@ -210,25 +210,24 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   return (
     <>
       <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
+        .employee-daily-statistics .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }
 
-        /* Optimize animations for mobile */
         @media (max-width: 1023px) {
-          * {
+          .employee-daily-statistics * {
             animation-duration: 0s !important;
             transition-duration: 0.15s !important;
           }
 
-          .animate-pulse,
-          .animate-spin,
-          .animate-ping {
+          .employee-daily-statistics .animate-pulse,
+          .employee-daily-statistics .animate-spin,
+          .employee-daily-statistics .animate-ping {
             animation: none !important;
           }
         }
       `}</style>
-      <div className="space-y-4 pb-12 lg:pb-6">
+      <div className="employee-daily-statistics space-y-4 pb-12 lg:pb-6">
         {/* Overall Statistics Summary */}
         <div className="bg-white rounded-xl lg:rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-3 sm:p-4 lg:p-6">
