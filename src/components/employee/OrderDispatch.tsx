@@ -141,15 +141,6 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
   const [isCompleting, setIsCompleting] = useState(false);
   const [showOrderNotSubmittedModal, setShowOrderNotSubmittedModal] = useState(false);
 
-  // Lock body scroll when Order Not Submitted modal is open
-  useEffect(() => {
-    if (showOrderNotSubmittedModal) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
-    }
-  }, [showOrderNotSubmittedModal]);
-
   const [isReporting, setIsReporting] = useState(false);
   const [isStartButtonPressed, setIsStartButtonPressed] = useState(false);
   const [showStartRipple, setShowStartRipple] = useState(false);
@@ -466,12 +457,15 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
   // iOS-compatible scroll lock when any modal is open
   useEffect(() => {
-    const isAnyModalOpen = showOrderDetailModal || showErrorModal || showVerificationModal ||
+    const isAnyModalOpen = showOrderNotSubmittedModal || showOrderDetailModal || showErrorModal || showVerificationModal ||
                            showAutoStopModal || showTimeoutStopModal || showGrabFailedModal || showTimeoutAlert;
 
     if (isAnyModalOpen) {
       const scrollY = window.scrollY;
       const body = document.body;
+      const html = document.documentElement;
+      const previousHtmlOverflow = html.style.overflow;
+      html.style.overflow = 'hidden';
       body.style.position = 'fixed';
       body.style.top = `-${scrollY}px`;
       body.style.left = '0';
@@ -485,10 +479,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         body.style.left = '';
         body.style.right = '';
         body.style.overflow = '';
+        html.style.overflow = previousHtmlOverflow;
         window.scrollTo({ top: savedScrollY, behavior: 'instant' });
       };
     }
-  }, [showOrderDetailModal, showErrorModal, showVerificationModal, showAutoStopModal, showTimeoutStopModal, showGrabFailedModal, showTimeoutAlert]);
+  }, [showOrderNotSubmittedModal, showOrderDetailModal, showErrorModal, showVerificationModal, showAutoStopModal, showTimeoutStopModal, showGrabFailedModal, showTimeoutAlert]);
 
   const startTimeoutCheck = () => {
     if (timeoutCheckRef.current) {
@@ -4330,7 +4325,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       {showOrderNotSubmittedModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" onClick={() => setShowOrderNotSubmittedModal(false)} style={{ overscrollBehavior: 'contain' }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-not-submitted-title" aria-describedby="dispatch-not-submitted-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] border border-white/70 bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-not-submitted-title" aria-describedby="dispatch-not-submitted-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] border border-white/70 bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="relative overflow-hidden bg-gradient-to-br from-[#12356d] via-[#1b4b84] to-[#28638c] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300 via-white to-amber-300" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
