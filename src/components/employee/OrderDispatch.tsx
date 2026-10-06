@@ -2613,7 +2613,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
-          waitingPanelActive ? 'z-[2] h-1.5 bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-500 shadow-[0_3px_12px_rgba(14,165,233,0.45)]' : currentOrder?.status === 'pending' ? 'h-1.5 bg-gradient-to-r from-cyan-400 via-sky-300 to-amber-400 shadow-[0_3px_12px_rgba(34,211,238,0.3)]' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+          waitingPanelActive ? 'dispatch-waiting-accent z-[2] h-1.5 bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-500 shadow-[0_3px_12px_rgba(14,165,233,0.45)]' : currentOrder?.status === 'pending' ? 'h-1.5 bg-gradient-to-r from-cyan-400 via-sky-300 to-amber-400 shadow-[0_3px_12px_rgba(34,211,238,0.3)]' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
         }`}></div>
 
         {/* Content */}

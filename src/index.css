@@ -1332,6 +1332,37 @@ body {
   50% { opacity: 0.56; }
 }
 
+.dispatch-waiting-accent {
+  overflow: hidden;
+  background-size: 200% 100%;
+  animation: dispatchAccentGradient 3.2s ease-in-out infinite;
+}
+
+.dispatch-waiting-accent::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 36%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 24%) 18%, rgb(255 255 255 / 96%) 50%, rgb(165 243 252 / 78%) 68%, transparent);
+  filter: blur(1px);
+  opacity: 0;
+  animation: dispatchAccentSweep 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes dispatchAccentGradient {
+  0%, 100% { background-position: 0% 50%; filter: saturate(0.95); }
+  50% { background-position: 100% 50%; filter: saturate(1.25); }
+}
+
+@keyframes dispatchAccentSweep {
+  0% { transform: translateX(-120%); opacity: 0; }
+  12% { opacity: 1; }
+  78% { opacity: 0.8; }
+  100% { transform: translateX(310%); opacity: 0; }
+}
+
 .dispatch-panel-waves {
   -webkit-mask-image: radial-gradient(ellipse 82% 85% at 50% 53%, #000 21%, rgb(0 0 0 / 86%) 45%, rgb(0 0 0 / 46%) 69%, rgb(0 0 0 / 16%) 86%, transparent 100%);
   mask-image: radial-gradient(ellipse 82% 85% at 50% 53%, #000 21%, rgb(0 0 0 / 86%) 45%, rgb(0 0 0 / 46%) 69%, rgb(0 0 0 / 16%) 86%, transparent 100%);
@@ -1535,6 +1566,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .dispatch-waiting-surface-animated { animation: none; }
+  .dispatch-waiting-accent,
+  .dispatch-waiting-accent::after { animation: none; }
+  .dispatch-waiting-accent::after { display: none; }
   .dispatch-panel-wave { display: none; }
   .dispatch-waiting-surface-animated .dispatch-timer-surface,
   .dispatch-waiting-surface-animated .dispatch-waiting-digits,
