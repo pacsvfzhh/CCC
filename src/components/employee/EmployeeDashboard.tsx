@@ -760,8 +760,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         )}
       </div>
 
-      {createPortal(
-        <header
+      <header
           ref={employeeHeaderRef}
           className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : ''}`}
           style={{
@@ -1041,9 +1040,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
               </div>
             </div>
           </div>
-        </header>,
-        document.body
-      )}
+      </header>
 
       <div className="nav-content-pt relative">
         <div className={`max-w-7xl mx-auto ${isMobile ? 'px-3 py-0 pb-2' : isTablet ? 'px-5 py-4 pb-4' : 'px-8 py-6 pb-6'}`}>
@@ -1295,14 +1292,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         .nav-desktop { display: none; }
         .nav-mobile { display: block; }
         .nav-root-padding { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
-        .nav-content-pt { padding-top: 56px; }
+        .nav-content-pt { padding-top: 0; }
 
         .employee-header {
-          position: fixed !important;
+          position: sticky !important;
           top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          width: auto !important;
+          width: 100% !important;
           z-index: 10020 !important;
         }
         body:has(.employee-modal-backdrop, .employee-modal-surface) .employee-header {
@@ -1330,14 +1325,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         }
 
         @media (min-width: 600px) {
-          .nav-content-pt { padding-top: 64px; }
+          .nav-content-pt { padding-top: 0; }
         }
 
         @media (min-width: 1025px) {
           .nav-desktop { display: block !important; }
           .nav-mobile { display: none !important; }
           .nav-root-padding { padding-bottom: 0; }
-          .nav-content-pt { padding-top: 72px; }
+          .nav-content-pt { padding-top: 8px; }
         }
 
         @keyframes shimmer-slide {
