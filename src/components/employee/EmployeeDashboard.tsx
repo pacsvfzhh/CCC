@@ -98,7 +98,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     if (!header) return;
 
     const syncHeaderHeight = () => {
-      document.documentElement.style.setProperty('--employee-header-height', `${header.getBoundingClientRect().height - 24}px`);
+      document.documentElement.style.setProperty('--employee-header-height', `${header.getBoundingClientRect().height}px`);
     };
     const observer = new ResizeObserver(syncHeaderHeight);
     observer.observe(header);
@@ -765,14 +765,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           ref={employeeHeaderRef}
           className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : ''}`}
           style={{
-            paddingTop: 'calc(24px + env(safe-area-inset-top))',
+            paddingTop: 'env(safe-area-inset-top)',
             background: isMobile
               ? 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)'
               : 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 80%, #2563eb 100%)',
             boxShadow: '0 4px 20px -2px rgba(37, 99, 235, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08)',
           }}
         >
-          <div className="absolute inset-x-0 bottom-0 top-[24px] pointer-events-none overflow-hidden" style={{
+          <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{
             background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)'
           }}>
             {/* Geometric decorative blocks in header */}
@@ -1297,15 +1297,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         .nav-root-padding { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
         .nav-content-pt { padding-top: 56px; }
 
-        /* Keep the painted header outside the viewport without moving its contents. */
         .employee-header {
           position: fixed !important;
-          top: -24px !important;
-          left: -24px !important;
-          right: -24px !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
           width: auto !important;
-          padding-left: 24px;
-          padding-right: 24px;
           z-index: 10020 !important;
         }
         body:has(.employee-modal-backdrop, .employee-modal-surface) .employee-header {
