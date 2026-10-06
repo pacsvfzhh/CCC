@@ -4351,7 +4351,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               )}
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
-                <button type="button" onClick={() => setShowOrderNotSubmittedModal(false)} className="flex min-h-12 flex-1 items-center justify-center rounded-xl border-2 border-rose-500 bg-white px-4 py-3 text-sm font-semibold text-rose-700 shadow-sm transition-colors hover:bg-rose-50 active:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">{t.dispatch.cancel}</button>
+                <button type="button" onClick={() => setShowOrderNotSubmittedModal(false)} className="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-rose-300 bg-white px-4 py-3 text-sm font-semibold text-rose-600 shadow-sm transition-colors hover:bg-rose-50 active:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2">{t.dispatch.cancel}</button>
                 <button type="button" autoFocus onClick={() => { setShowOrderNotSubmittedModal(false); onNavigateToOrders?.(); }} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]">
                   <FileText className="h-4 w-4" aria-hidden="true" />
                   <span>{t.dispatch.goToOrders}</span>
