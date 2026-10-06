@@ -130,8 +130,6 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [showGrabFailedModal, setShowGrabFailedModal] = useState(false);
   const [showGrabSuccessAnimation, setShowGrabSuccessAnimation] = useState(false);
-  const [acceptPhase, setAcceptPhase] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
-  const prevOrderStatusRef = useRef<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionType, setTransitionType] = useState<'start' | 'end' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -152,18 +150,6 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
     }
   }, [showOrderNotSubmittedModal]);
 
-  // Smooth phase transition when order moves from pending -> accepted
-  useEffect(() => {
-    const prevStatus = prevOrderStatusRef.current;
-    const curStatus = currentOrder?.status ?? null;
-    prevOrderStatusRef.current = curStatus;
-    if (prevStatus === 'pending' && curStatus === 'accepted') {
-      setAcceptPhase('fade-out');
-      const t1 = setTimeout(() => setAcceptPhase('fade-in'), 350);
-      const t2 = setTimeout(() => setAcceptPhase('idle'), 850);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
-  }, [currentOrder?.status]);
   const [isReporting, setIsReporting] = useState(false);
   const [isStartButtonPressed, setIsStartButtonPressed] = useState(false);
   const [showStartRipple, setShowStartRipple] = useState(false);
@@ -1962,9 +1948,10 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       }
 
       setTimeout(() => {
+        if (!isCurrentDispatch(acceptSessionId, generation) || currentOrderRef.current?.id !== orderId) return;
         updateActivity();
         void loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
-      }, isMobile ? 200 : 100);
+      }, 500);
     } catch (error: unknown) {
       if (acceptSessionId && isCurrentDispatch(acceptSessionId, generation) && currentOrderRef.current?.id === orderId) {
         console.error('Failed to confirm order acceptance:', error);
@@ -2561,11 +2548,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {/* Work Control Panel - Premium Blue/White Design */}
-      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} ${currentOrder?.status === 'pending' ? 'flex min-h-[420px] flex-col md:min-h-[575px]' : currentOrder?.status === 'accepted' ? 'flex h-[420px] flex-col md:h-[575px]' : ''} overflow-hidden transition-all duration-500 ease-out ${
+      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex h-[420px] flex-col p-0 md:h-[575px]' : 'p-5 md:p-10'} overflow-hidden ${
         waitingPanelActive
           ? 'min-h-[420px] md:min-h-0 dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
           : currentOrder?.status === 'pending'
-          ? 'bg-[linear-gradient(125deg,#164c9b_0%,#2370bd_55%,#167da9_100%)] border border-blue-400/50 shadow-[0_22px_60px_-16px_rgba(12,43,112,0.32)]'
+          ? 'bg-[linear-gradient(125deg,#164c9b_0%,#2370bd_55%,#167da9_100%)] border-2 border-blue-400/50 shadow-[0_22px_60px_-16px_rgba(12,43,112,0.32)]'
           : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
@@ -2634,10 +2621,10 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
         {/* Content */}
         <div className={`relative z-10 ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
-          <div className={`transition-all duration-400 ease-out overflow-hidden ${
-            currentOrder?.status === 'pending' || (currentOrder?.status === 'accepted' && acceptPhase === 'idle') ? 'max-h-0 opacity-0 mb-0 pointer-events-none' : 'max-h-[500px] opacity-100 mb-0'
-          }`} style={{ transitionProperty: 'max-height, opacity, margin' }}>
-          {currentOrder?.status !== 'pending' && (!(currentOrder?.status === 'accepted') || acceptPhase !== 'idle') && (
+          <div className={`overflow-hidden ${
+            currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'hidden' : ''
+          }`}>
+          {currentOrder?.status !== 'pending' && currentOrder?.status !== 'accepted' && (
           <>{/* Header Section - Tablet optimized horizontal layout */}
           {isTablet ? (
             /* TABLET: Compact horizontal layout */
@@ -2725,7 +2712,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           {/* Main Action Area - Balanced Display */}
           {currentOrder ? (
             /* ORDER DISPLAY - Advanced Blockchain Design */
-            <div className={`relative transition-all duration-700 ease-out ${
+            <div className={`relative ${
               currentOrder.status === 'pending'
                 ? 'flex flex-1 flex-col'
                 : `backdrop-blur-sm overflow-hidden ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col border-0 rounded-none shadow-none' : 'border md:border-2 rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl'} ${hasTimeout ? 'bg-gradient-to-br from-rose-900/80 to-red-900/80 border-rose-500/50 shadow-rose-500/30' : 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 border-blue-300/60 shadow-blue-200/50'}`
@@ -2745,9 +2732,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </>
               )}
 
-              <div className={`relative z-10 ${currentOrder.status === 'pending' ? 'flex flex-1 flex-col' : 'p-3 md:p-8'} ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''} transition-all duration-500 ease-out ${
-                acceptPhase === 'fade-out' ? 'opacity-0 scale-[0.98] translate-y-1' : acceptPhase === 'fade-in' ? 'animate-[acceptFadeIn_0.5s_ease-out_forwards]' : ''
-              }`}>
+              <div className={`relative z-10 ${currentOrder.status === 'pending' ? 'flex flex-1 flex-col p-5 md:p-10' : 'p-3 md:p-8'} ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col motion-safe:animate-[fadeIn_0.28s_ease-out_both]' : ''}`}>
                 {/* Premium Header with Blockchain Aesthetic */}
                 <div className={`flex flex-col md:flex-row items-start md:items-center justify-between mb-3 md:mb-6 space-y-2 md:space-y-0 ${currentOrder.status === 'pending' ? 'border-b border-white/20 pb-4 md:pb-6' : ''}`}>
                   <div className="flex items-center space-x-2 md:space-x-4">
