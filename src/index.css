@@ -1874,7 +1874,7 @@ body:has(.employee-shell) *::-webkit-scrollbar {
 
 body:has(.employee-shell) .order-details-scrollbar {
   scrollbar-width: thin !important;
-  scrollbar-color: #91b2d2 #edf4fb !important;
+  scrollbar-color: #75aaf0 #eaf3ff !important;
   -ms-overflow-style: auto !important;
 }
 
@@ -1886,17 +1886,17 @@ body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar {
 
 body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-track {
   border-radius: 999px;
-  background: #edf4fb;
+  background: #eaf3ff !important;
 }
 
 body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-thumb {
-  border: 1px solid #d6e5f2;
+  border: 1px solid #dbeafe !important;
   border-radius: 999px;
-  background: linear-gradient(180deg, #a8c2dc, #8fafd0);
+  background: linear-gradient(180deg, #8cb8f4, #75aaf0) !important;
 }
 
 body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #92b4d5, #7d9fbe);
+  background: linear-gradient(180deg, #73a6e8, #5b8ed2) !important;
 }
 
 /* Contain images & rich HTML inside content areas */
