@@ -1872,6 +1872,33 @@ body:has(.employee-shell) *::-webkit-scrollbar {
   height: 0 !important;
 }
 
+body:has(.employee-shell) .order-details-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: #38bdf8 #dbeafe !important;
+  -ms-overflow-style: auto !important;
+}
+
+body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #dbeafe;
+}
+
+body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #0ea5e9, #1d4ed8);
+}
+
 /* Contain images & rich HTML inside content areas */
 .prose-invert img,
 .rich-content img,

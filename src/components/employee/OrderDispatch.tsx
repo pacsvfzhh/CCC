@@ -2843,7 +2843,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                           </div>
                         </div>
                       ) : (
-                        <div className={`text-gray-800 leading-[1.6] font-medium whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'min-h-0 flex-1 text-[13px]' : 'max-h-[140px] text-xs'}`}>
+                        <div className={`order-details-scrollbar text-gray-800 leading-[1.6] font-medium whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'min-h-0 flex-1 text-[13px]' : 'max-h-[140px] text-xs'}`}>
                           {currentOrder.dispatch_orders.order_content}
                         </div>
                       )}
@@ -2946,7 +2946,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                             </div>
                           </div>
                         ) : (
-                          <div className={`text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-y-auto pr-2 custom-scrollbar ${currentOrder.status === 'accepted' ? 'min-h-0 flex-1' : 'max-h-[180px]'}`}>
+                          <div className={`order-details-scrollbar text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-y-auto pr-2 custom-scrollbar ${currentOrder.status === 'accepted' ? 'min-h-0 flex-1' : 'max-h-[180px]'}`}>
                             {currentOrder.dispatch_orders.order_content}
                           </div>
                         )}
