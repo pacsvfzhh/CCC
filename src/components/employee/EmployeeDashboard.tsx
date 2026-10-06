@@ -782,7 +782,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : ''}`}
           style={{
             paddingTop: 'env(safe-area-inset-top)',
-            background: isMobile
+            backgroundImage: isMobile
               ? 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)'
               : 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 80%, #2563eb 100%)',
             border: 'none',
