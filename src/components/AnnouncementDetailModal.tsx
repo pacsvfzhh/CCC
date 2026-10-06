@@ -140,7 +140,7 @@ export default function AnnouncementDetailModal({
         onClick={event => event.stopPropagation()}
         style={{
           animation: isMobileDevice ? 'none' : 'announcement-detail-scale 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: isMobileDevice ? 'none' : '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.1)',
+          boxShadow: isMobileDevice ? 'none' : '0 25px 60px -12px rgba(0, 0, 0, 0.25)',
         }}
       >
         <div

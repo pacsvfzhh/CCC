@@ -616,7 +616,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               } as React.CSSProperties}
             >
               {/* Content card */}
-              <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden border ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-200/90 bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'border-blue-200/80 bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
+              <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${selectedMessage.messages.notification_category === 'performance_reward' ? 'bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
                 {/* Top accent line */}
                 <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${selectedMessage.messages.notification_category === 'performance_reward' ? 'via-amber-400' : 'via-blue-300'}`} />
 

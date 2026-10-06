@@ -2284,7 +2284,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       {isOpen && createPortal(
         <div
-          className="fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh-2rem)] bg-white lg:border lg:border-gray-200 lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-[slideInRight_0.3s_ease-out_both]"
+          className="fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh-2rem)] bg-white lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-[slideInRight_0.3s_ease-out_both]"
           style={{
             WebkitOverflowScrolling: 'touch',
           }}

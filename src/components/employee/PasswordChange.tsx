@@ -113,9 +113,9 @@ export default function PasswordChange({ employeeId, onClose, onLogout }: Passwo
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4" style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
-      <div className="bg-white rounded-2xl shadow-2xl shadow-slate-900/20 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 animate-[menuAppear_0.2s_ease-out]">
+      <div className="bg-white rounded-2xl shadow-2xl shadow-slate-900/20 max-w-md w-full max-h-[90vh] overflow-y-auto animate-[menuAppear_0.2s_ease-out]">
         {/* Premium Header */}
-        <div className="relative px-6 py-5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-t-2xl overflow-hidden">
+        <div className="relative px-6 py-5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12)_0%,_transparent_60%)]" />
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <div className="relative flex items-center justify-between">

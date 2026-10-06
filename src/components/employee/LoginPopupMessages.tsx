@@ -263,7 +263,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
             {/* Detail Content */}
             <div className="relative flex min-h-0 flex-1 overflow-hidden p-0" style={{ minHeight: 0, WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
-              <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden border ${isReward ? 'border-amber-200/90 bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'border-blue-200/80 bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
+              <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${isReward ? 'bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
                 <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${isReward ? 'via-amber-400' : 'via-blue-300'}`} />
 
                 {isReward && (
@@ -404,7 +404,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
               {/* Detail Content */}
               <div className="relative flex min-h-0 flex-1 overflow-hidden p-0" style={{ minHeight: 0, WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
-                <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden border ${isReward ? 'border-amber-200/90 bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'border-blue-200/80 bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
+                <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${isReward ? 'bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
                   <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${isReward ? 'via-amber-400' : 'via-blue-300'}`} />
 
                   {isReward && (

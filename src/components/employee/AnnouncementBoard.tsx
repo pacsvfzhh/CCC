@@ -786,7 +786,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           100% { transform: translate(150px, -150px) rotate(180deg); opacity: 0; }
         }
       `}</style>
-      <div className={`relative rounded-2xl border-0 lg:border-2 lg:border-blue-500/80 shadow-none lg:shadow-xl lg:shadow-blue-200/50 ${isMobileDevice ? 'p-0' : 'p-0 lg:p-8'} overflow-hidden max-sm:fixed max-sm:bottom-[56px] max-sm:left-0 max-sm:right-0 max-sm:z-[45] max-sm:flex max-sm:flex-col max-sm:rounded-none sm:fixed sm:bottom-[64px] sm:left-0 sm:right-0 sm:z-[45] sm:flex sm:flex-col sm:rounded-none md:fixed md:bottom-[64px] md:left-0 md:right-0 md:z-[45] md:flex md:flex-col md:rounded-none lg:relative lg:top-auto lg:bottom-auto lg:left-auto lg:right-auto lg:z-auto lg:flex lg:flex-col lg:rounded-2xl lg:pb-0`}
+      <div className={`relative rounded-2xl border-0 shadow-none lg:shadow-xl lg:shadow-blue-200/50 overflow-hidden max-sm:fixed max-sm:bottom-[56px] max-sm:left-0 max-sm:right-0 max-sm:z-[45] max-sm:flex max-sm:flex-col max-sm:rounded-none sm:fixed sm:bottom-[64px] sm:left-0 sm:right-0 sm:z-[45] sm:flex sm:flex-col sm:rounded-none md:fixed md:bottom-[64px] md:left-0 md:right-0 md:z-[45] md:flex md:flex-col md:rounded-none lg:relative lg:top-auto lg:bottom-auto lg:left-auto lg:right-auto lg:z-auto lg:flex lg:flex-col lg:rounded-2xl lg:pb-0`}
         style={{
           willChange: 'auto',
           top: window.innerWidth >= 1025 ? 'auto' : window.innerWidth >= 768 ? '72px' : window.innerWidth >= 640 ? '68px' : '64px',
@@ -886,12 +886,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
           {/* Premium Blue Header Card */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6
-            flex-shrink-0 max-sm:px-4 max-sm:pt-4
-            sm:px-4 sm:pt-4
-            md:px-4 md:pt-4
-            lg:px-0 lg:pt-0">
-            <div className="relative flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 rounded-xl overflow-hidden shadow-lg shadow-blue-600/25">
+          <div className="mb-4 flex flex-shrink-0 sm:mb-6">
+            <div className="relative flex w-full items-center gap-3 overflow-hidden bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4">
               {/* Shimmer effect */}
               {showDesktopEffects && (
               <div className="absolute inset-0 overflow-hidden">
@@ -931,7 +927,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           </div>
 
           {announcements.length === 0 ? (
-            <div className="text-center py-16 max-sm:px-6 sm:px-6 md:px-6">
+            <div className="px-6 py-16 lg:px-8">
               <div className="relative inline-flex flex-col items-center gap-4 p-12 rounded-2xl bg-blue-50/50 border border-blue-100">
                 <div className="relative">
                   <div className="absolute inset-0 bg-blue-200/50 rounded-full blur-xl animate-pulse"></div>
@@ -972,7 +968,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                   max-sm:px-6 max-sm:pb-2
                   sm:px-6 sm:pb-2
                   md:px-6 md:pb-2
-                  lg:px-0 lg:pb-2 lg:pr-2 ${
+                  lg:px-8 lg:pb-8 ${
                   isTabletDevice ? 'space-y-3' : 'space-y-3 sm:space-y-4'
                 }`}
                 style={{

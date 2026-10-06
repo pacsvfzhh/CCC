@@ -521,7 +521,7 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
   };
 
   return (
-    <div className="relative isolate bg-white rounded-xl sm:rounded-3xl border border-blue-200 p-4 sm:p-8 overflow-hidden shadow-sm">
+    <div className={`relative isolate overflow-hidden rounded-xl bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8 ${showConfirmModal || showSubmitAnimation ? 'border-0' : 'border border-blue-200'}`}>
       {/* Header - Mobile Optimized */}
       <div className="relative flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8">
         <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-blue-50 rounded-lg sm:rounded-xl border border-blue-200 overflow-hidden group/icon flex-shrink-0">

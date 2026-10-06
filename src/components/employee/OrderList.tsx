@@ -202,7 +202,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
         }
       `}</style>
 
-      <div className="relative rounded-2xl border border-blue-100 shadow-lg shadow-blue-500/5 overflow-hidden" style={{ background: 'linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%)' }}>
+      <div className="relative rounded-2xl shadow-lg shadow-blue-500/5 overflow-hidden" style={{ background: 'linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%)' }}>
         {/* Header */}
         <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)' }}>
           <div className="absolute top-0 right-0 w-20 sm:w-32 h-20 sm:h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>

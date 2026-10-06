@@ -2229,7 +2229,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[3px] animate-in fade-in duration-200"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
         >
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-stop-title" aria-describedby="dispatch-stop-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white shadow-[0_28px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-stop-title" aria-describedby="dispatch-stop-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-white shadow-[0_28px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
             <div className="relative overflow-hidden bg-[#12356d] px-6 pb-6 pt-8 sm:px-8">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -2463,7 +2463,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       {showGrabFailedModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" style={{ overscrollBehavior: 'contain' }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-claim-title" aria-describedby="dispatch-claim-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] border border-white/70 bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-claim-title" aria-describedby="dispatch-claim-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
             <div className="relative overflow-hidden bg-gradient-to-br from-[#12356d] via-[#1b487d] to-[#705348] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300 via-amber-300 to-orange-400" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -2499,7 +2499,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       {showTimeoutStopModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" style={{ overscrollBehavior: 'contain' }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-timeout-title" aria-describedby="dispatch-timeout-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] border border-white/70 bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-timeout-title" aria-describedby="dispatch-timeout-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
             <div className="relative overflow-hidden bg-gradient-to-br from-[#142b50] via-[#26365e] to-[#62405c] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -4325,7 +4325,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       {showOrderNotSubmittedModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" onClick={() => setShowOrderNotSubmittedModal(false)} style={{ overscrollBehavior: 'contain' }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-not-submitted-title" aria-describedby="dispatch-not-submitted-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] border border-white/70 bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-not-submitted-title" aria-describedby="dispatch-not-submitted-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="relative overflow-hidden bg-gradient-to-br from-[#12356d] via-[#1b4b84] to-[#28638c] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300 via-white to-amber-300" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -4676,7 +4676,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       {showErrorModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-[3px] sm:p-4" style={{ overscrollBehavior: 'contain' }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-slate-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] sm:max-h-[calc(100dvh-2rem)]">
+          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl bg-slate-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] sm:max-h-[calc(100dvh-2rem)]">
             <div className="relative overflow-hidden bg-gradient-to-br from-[#311f43] via-[#593050] to-[#91445d] px-5 py-4 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />

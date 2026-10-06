@@ -972,7 +972,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   {/* Dropdown Menu */}
                   {showUserMenu && (
                     <div className="absolute top-full right-0 mt-3 w-64 z-50 animate-[menuAppear_0.15s_ease-out]">
-                      <div className="relative bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-300 ring-1 ring-slate-200/50 overflow-hidden">
+                      <div className="relative overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-900/20">
                         {/* User Info Header */}
                         <div className="relative px-5 py-4 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 overflow-hidden">
                           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_60%)]" />
