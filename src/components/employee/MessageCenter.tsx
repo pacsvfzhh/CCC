@@ -255,15 +255,15 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/50"
-        style={{ touchAction: 'none', overscrollBehavior: 'contain', animation: 'fadeIn 0.2s ease-out', zIndex: 10000 }}
+        className="employee-modal-backdrop fixed inset-0 bg-slate-900/50"
+        style={{ touchAction: 'none', overscrollBehavior: 'contain', zIndex: 10000 }}
         onClick={onClose}
       />
 
       {/* Message Center Panel - full screen on mobile/tablet with solid background */}
       <div
-        className="fixed inset-0 lg:inset-auto lg:top-0 lg:right-0 lg:h-full lg:w-full lg:max-w-2xl overflow-hidden flex flex-col"
-        style={{ animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 10001 }}
+        className="employee-modal-surface fixed inset-0 lg:inset-auto lg:top-0 lg:right-0 lg:h-full lg:w-full lg:max-w-2xl overflow-hidden flex flex-col"
+        style={{ zIndex: 10001 }}
       >
         {/* SOLID opaque background - not transparent */}
         <div className="absolute inset-0 bg-[#f0f5ff]" />
@@ -523,8 +523,8 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       {selectedMessage && (
         <>
           <div
-            className="fixed inset-0 bg-slate-900/50"
-            style={{ zIndex: 10002, touchAction: 'none', overscrollBehavior: 'contain', animation: 'fadeIn 0.15s ease-out' }}
+            className="employee-modal-backdrop fixed inset-0 bg-slate-900/50"
+            style={{ zIndex: 10002, touchAction: 'none', overscrollBehavior: 'contain' }}
             onClick={() => setSelectedMessage(null)}
           />
           {/* Centering wrapper for desktop (uses flexbox, no transform conflicts) */}
@@ -534,13 +534,10 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           >
           <div
             className={`
-              relative overflow-hidden flex flex-col pointer-events-auto bg-[#f0f5ff]
+              employee-modal-surface relative overflow-hidden flex flex-col pointer-events-auto bg-[#f0f5ff]
               w-full h-full
               ${isDesktop ? 'lg:w-full lg:max-w-2xl lg:h-[82vh] lg:rounded-3xl lg:shadow-2xl' : ''}
             `}
-            style={{
-              animation: isDesktop ? 'fadeIn 0.2s ease-out' : 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
           >
             {/* Detail Header */}
             <div className="relative flex-shrink-0 overflow-hidden">

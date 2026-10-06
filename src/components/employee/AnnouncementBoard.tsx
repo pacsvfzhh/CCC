@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { Pin, Calendar, Bell, Sparkles, Radio, ChevronRight, Zap, Star, Eye, TrendingUp, Lock, Shield, Layers, Database } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -327,27 +327,30 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, []);
 
-  // iOS-compatible scroll lock when modal is open
-  useEffect(() => {
-    if (selectedAnnouncement) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+  const isAnnouncementDetailOpen = Boolean(selectedAnnouncement);
+  useLayoutEffect(() => {
+    if (!isAnnouncementDetailOpen) return;
 
-      return () => {
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [selectedAnnouncement]);
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isAnnouncementDetailOpen]);
 
   useEffect(() => {
     if (!adminResolved) return;

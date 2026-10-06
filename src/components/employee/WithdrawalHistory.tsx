@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Clock, CheckCircle, XCircle, History, ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -72,7 +72,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
     }
   }, [message]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const body = document.body;
     const html = document.documentElement;
 
@@ -302,7 +302,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
 
   return createPortal(
     <div
-      className="fixed inset-0 flex md:items-stretch md:justify-stretch md:p-0 lg:items-stretch lg:justify-stretch lg:p-0 xl:items-center xl:justify-center xl:p-4"
+      className="employee-modal-backdrop fixed inset-0 flex md:items-stretch md:justify-stretch md:p-0 lg:items-stretch lg:justify-stretch lg:p-0 xl:items-center xl:justify-center xl:p-4"
       style={{
         zIndex: 9999,
         alignItems: isMobile ? 'stretch' : undefined,
@@ -312,9 +312,9 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
     >
       <div className="absolute inset-0 bg-black/40"></div>
       <div
-        className="relative bg-gray-50 w-full overflow-hidden flex flex-col
-                   md:h-screen md:max-h-full md:rounded-none md:border-0
-                   xl:h-auto xl:max-h-[90vh] xl:rounded-2xl xl:border xl:border-gray-200 xl:shadow-2xl xl:max-w-4xl"
+        className="employee-modal-surface relative bg-gray-50 w-full overflow-hidden flex flex-col
+                   md:h-screen md:max-h-full md:rounded-none
+                   xl:h-auto xl:max-h-[90vh] xl:rounded-2xl xl:shadow-2xl xl:max-w-4xl"
         style={{
           width: isMobile ? '100%' : undefined,
           height: isMobile ? '100dvh' : undefined,

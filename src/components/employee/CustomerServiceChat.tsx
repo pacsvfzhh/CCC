@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Sparkles, Award, Gift, ZoomIn, ZoomOut, RotateCcw, Megaphone, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -432,24 +432,26 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     selectedCustomerRef.current = selectedCustomer;
   }, [selectedCustomer]);
 
-  useEffect(() => {
-    if (isOpen && window.innerWidth < 1024) {
-      const scrollY = window.scrollY;
+  useLayoutEffect(() => {
+    if (!isOpen || window.innerWidth >= 1024) return;
 
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflowY = 'scroll';
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflowY: body.style.overflowY,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    body.style.overflowY = 'scroll';
 
-      return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflowY = '';
-
-        window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
-      };
-    }
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -2284,7 +2286,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       {isOpen && createPortal(
         <div
-          className="fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh-2rem)] bg-white lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-[slideInRight_0.3s_ease-out_both]"
+          className="employee-modal-surface fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh-2rem)] bg-white lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           style={{
             WebkitOverflowScrolling: 'touch',
           }}
@@ -2874,7 +2876,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       )}
       {previewImage && createPortal(
         <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          className="employee-modal-backdrop fixed inset-0 z-[99999] flex items-center justify-center bg-black/90"
           onClick={(e) => { if (e.target === e.currentTarget) { setPreviewImage(null); setImageZoom(1); setImageDrag({ x: 0, y: 0 }); } }}
         >
           <div className="absolute top-3 right-3 sm:top-5 sm:right-5 flex items-center gap-2 z-10">
@@ -2931,14 +2933,14 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       )}
       {viewingRichCard && createPortal(
         <div
-          className="fixed inset-0 z-[10000] flex items-stretch justify-stretch p-0 xl:items-center xl:justify-center xl:p-6 overflow-hidden touch-none"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-stretch justify-stretch p-0 xl:items-center xl:justify-center xl:p-6 overflow-hidden touch-none"
           onClick={() => { richCardCancelRef.current = true; setViewingRichCard(null); }}
           style={{ background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease-out', WebkitTapHighlightColor: 'transparent', overscrollBehavior: 'contain' }}
         >
           <div
-            className="relative w-full h-full xl:max-w-3xl xl:max-h-[85vh] xl:w-[680px] xl:h-auto bg-white rounded-none xl:rounded-2xl overflow-hidden flex flex-col"
+            className="employee-modal-surface relative w-full h-full xl:max-w-3xl xl:max-h-[85vh] xl:w-[680px] xl:h-auto bg-white rounded-none xl:rounded-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
-            style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.1)' }}
+            style={{ boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.25)' }}
           >
             <div
               className="relative flex-shrink-0 overflow-hidden px-5 pb-5 bg-gradient-to-br from-[#1e40af] via-[#2563eb] to-[#1d4ed8]"

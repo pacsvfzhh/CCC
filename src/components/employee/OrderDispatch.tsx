@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AUTH_STORAGE_KEY, getStoredAuth } from '../../lib/auth';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
@@ -455,35 +455,36 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
     }
   }, [showOrderDetail, currentOrder, hasTimeout, hasFiveMinuteWarning, onStatusChange]);
 
-  // iOS-compatible scroll lock when any modal is open
-  useEffect(() => {
-    const isAnyModalOpen = showOrderNotSubmittedModal || showOrderDetailModal || showErrorModal || showVerificationModal ||
-                           showAutoStopModal || showTimeoutStopModal || showGrabFailedModal || showTimeoutAlert;
+  const isAnyModalOpen = showOrderNotSubmittedModal || showOrderDetailModal || showErrorModal || showVerificationModal ||
+                         showAutoStopModal || showTimeoutStopModal || showGrabFailedModal || showTimeoutAlert;
 
-    if (isAnyModalOpen) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      const html = document.documentElement;
-      const previousHtmlOverflow = html.style.overflow;
-      html.style.overflow = 'hidden';
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+  useLayoutEffect(() => {
+    if (!isAnyModalOpen) return;
 
-      return () => {
-        const savedScrollY = parseInt(body.style.top || '0', 10) * -1;
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        html.style.overflow = previousHtmlOverflow;
-        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
-      };
-    }
-  }, [showOrderNotSubmittedModal, showOrderDetailModal, showErrorModal, showVerificationModal, showAutoStopModal, showTimeoutStopModal, showGrabFailedModal, showTimeoutAlert]);
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    html.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      Object.assign(body.style, previousBodyStyles);
+      html.style.overflow = previousHtmlOverflow;
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isAnyModalOpen]);
 
   const startTimeoutCheck = () => {
     if (timeoutCheckRef.current) {
@@ -2192,9 +2193,9 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
     <div className="space-y-8 pb-12 lg:pb-6">
 
       {/* Timeout Alert Modal */}
-      {showTimeoutAlert && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300" style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
-          <div className="bg-white rounded-2xl max-w-sm w-full shadow-[0_24px_80px_-12px_rgba(0,0,0,0.25)] animate-in zoom-in-95 duration-300 overflow-hidden">
+      {showTimeoutAlert && createPortal(
+        <div className="employee-modal-backdrop fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[10000] p-4" style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
+          <div className="employee-modal-surface bg-white rounded-2xl max-w-sm w-full shadow-[0_24px_80px_-12px_rgba(0,0,0,0.25)] overflow-hidden">
             <div className="relative bg-gradient-to-br from-slate-50 to-amber-50/40 px-6 pt-7 pb-5 border-b border-slate-100">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"></div>
               <div className="flex flex-col items-center">
@@ -2221,15 +2222,16 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {showAutoStopModal && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[3px] animate-in fade-in duration-200"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/65 p-4"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
         >
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-stop-title" aria-describedby="dispatch-stop-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-white shadow-[0_28px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-stop-title" aria-describedby="dispatch-stop-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-white shadow-[0_28px_90px_-20px_rgba(15,23,42,0.55)]">
             <div className="relative overflow-hidden bg-[#12356d] px-6 pb-6 pt-8 sm:px-8">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -2462,8 +2464,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {showGrabFailedModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" style={{ overscrollBehavior: 'contain' }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-claim-title" aria-describedby="dispatch-claim-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-4" style={{ overscrollBehavior: 'contain' }}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-claim-title" aria-describedby="dispatch-claim-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)]">
             <div className="relative overflow-hidden bg-gradient-to-br from-[#12356d] via-[#1b487d] to-[#705348] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300 via-amber-300 to-orange-400" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -2498,8 +2500,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {showTimeoutStopModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" style={{ overscrollBehavior: 'contain' }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-timeout-title" aria-describedby="dispatch-timeout-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-4" style={{ overscrollBehavior: 'contain' }}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-timeout-title" aria-describedby="dispatch-timeout-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)]">
             <div className="relative overflow-hidden bg-gradient-to-br from-[#142b50] via-[#26365e] to-[#62405c] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -4324,8 +4326,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       </div>
 
       {showOrderNotSubmittedModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" onClick={() => setShowOrderNotSubmittedModal(false)} style={{ overscrollBehavior: 'contain' }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-not-submitted-title" aria-describedby="dispatch-not-submitted-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-4" onClick={() => setShowOrderNotSubmittedModal(false)} style={{ overscrollBehavior: 'contain' }}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-not-submitted-title" aria-describedby="dispatch-not-submitted-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)]" onClick={e => e.stopPropagation()}>
             <div className="relative overflow-hidden bg-gradient-to-br from-[#12356d] via-[#1b4b84] to-[#28638c] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300 via-white to-amber-300" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
@@ -4381,7 +4383,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
         return createPortal(
           <div
-            className="fixed inset-0 z-[9999] flex bg-black/50 animate-in fade-in duration-200
+            className="employee-modal-backdrop fixed inset-0 z-[10000] flex bg-black/50
             md:items-stretch md:justify-stretch md:p-0
             lg:items-stretch lg:justify-stretch lg:p-0
             xl:items-center xl:justify-center xl:p-4"
@@ -4396,7 +4398,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           >
             <div
               ref={modalContentRef}
-              className={`relative bg-white shadow-2xl shadow-gray-300/50 flex flex-col overflow-hidden animate-in duration-200
+              className={`employee-modal-surface relative bg-white shadow-2xl shadow-gray-300/50 flex flex-col overflow-hidden
                 md:max-w-full md:h-screen md:rounded-none md:max-h-screen
                 xl:max-w-2xl xl:rounded-2xl xl:max-h-[85vh] xl:h-auto
                 ${isMobile ? 'fixed inset-0 w-full h-full rounded-none slide-in-from-bottom' : ''}`}
@@ -4587,7 +4589,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       {/* Verification Required Modal */}
       {showVerificationModal && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4"
           style={{
             position: 'fixed',
             top: 0,
@@ -4599,7 +4601,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             overscrollBehavior: 'contain'
           }}
         >
-          <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-2xl shadow-2xl shadow-amber-500/20 w-full max-w-md overflow-hidden">
+          <div className="employee-modal-surface relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-2xl shadow-2xl shadow-amber-500/20 w-full max-w-md overflow-hidden">
             {/* Decorative Elements */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500"></div>
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl"></div>
@@ -4675,8 +4677,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {showErrorModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-[3px] sm:p-4" style={{ overscrollBehavior: 'contain' }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl bg-slate-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] sm:max-h-[calc(100dvh-2rem)]">
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-3 sm:p-4" style={{ overscrollBehavior: 'contain' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl bg-slate-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] sm:max-h-[calc(100dvh-2rem)]">
             <div className="relative overflow-hidden bg-gradient-to-br from-[#311f43] via-[#593050] to-[#91445d] px-5 py-4 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />

@@ -120,7 +120,7 @@ export default function AnnouncementDetailModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex touch-none items-stretch justify-stretch overflow-hidden p-0 xl:items-center xl:justify-center xl:p-6"
+      className="employee-modal-backdrop fixed inset-0 z-[10000] flex touch-none items-stretch justify-stretch overflow-hidden p-0 xl:items-center xl:justify-center xl:p-6"
       onClick={onClose}
       style={{
         background: isMobileDevice ? 'rgba(15, 23, 42, 0.7)' : 'rgba(15, 23, 42, 0.6)',
@@ -136,7 +136,7 @@ export default function AnnouncementDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="announcement-detail-title"
-        className="relative flex h-full w-full flex-col overflow-hidden rounded-none bg-white xl:h-auto xl:max-h-[85vh] xl:w-[680px] xl:max-w-3xl xl:rounded-2xl"
+        className="employee-modal-surface relative flex h-full w-full flex-col overflow-hidden rounded-none bg-white xl:h-auto xl:max-h-[85vh] xl:w-[680px] xl:max-w-3xl xl:rounded-2xl"
         onClick={event => event.stopPropagation()}
         style={{
           animation: isMobileDevice ? 'none' : 'announcement-detail-scale 0.25s cubic-bezier(0.16, 1, 0.3, 1)',

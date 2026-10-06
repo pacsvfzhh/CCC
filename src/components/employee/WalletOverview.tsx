@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -148,19 +148,19 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     }
   }, [message]);
 
-  useEffect(() => {
-    if (showConfirmModal) {
-      const body = document.body;
-      const html = document.documentElement;
-      const originalBodyOverflow = body.style.overflow;
-      const originalHtmlOverflow = html.style.overflow;
-      body.style.overflow = 'hidden';
-      html.style.overflow = 'hidden';
-      return () => {
-        body.style.overflow = originalBodyOverflow;
-        html.style.overflow = originalHtmlOverflow;
-      };
-    }
+  useLayoutEffect(() => {
+    if (!showConfirmModal) return;
+
+    const body = document.body;
+    const html = document.documentElement;
+    const originalBodyOverflow = body.style.overflow;
+    const originalHtmlOverflow = html.style.overflow;
+    body.style.overflow = 'hidden';
+    html.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = originalBodyOverflow;
+      html.style.overflow = originalHtmlOverflow;
+    };
   }, [showConfirmModal]);
 
   const loadEmployeeData = async () => {
@@ -1585,9 +1585,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       </div>
 
       {showConfirmModal && createPortal(
-        <div className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center" style={{ zIndex: 9999 }}>
-          <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/50"></div>
-          <div className="relative bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
+        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 10000 }}>
+          <div className="employee-modal-backdrop absolute inset-0 bg-black/50"></div>
+          <div className="employee-modal-surface relative bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
             {/* Blue Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-4 sm:px-6 py-3.5 sm:py-4">
               <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">

@@ -748,6 +748,22 @@ html, body {
   width: 100% !important;
 }
 
+#root.ready:has(.employee-shell) {
+  transform: none;
+}
+
+body:has(.employee-shell) .employee-modal-backdrop {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  animation: none !important;
+}
+
+body:has(.employee-shell) .employee-modal-surface {
+  animation: none !important;
+  background-clip: padding-box;
+  isolation: isolate;
+}
+
 .admin-dashboard-root {
   margin: 0 !important;
   padding: 0 !important;

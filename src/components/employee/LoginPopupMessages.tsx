@@ -169,7 +169,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
     if (loading) {
       return (
         <div
-          className="fixed inset-0 bg-slate-900/50 flex items-center justify-center"
+          className="employee-modal-backdrop fixed inset-0 bg-slate-900/50 flex items-center justify-center"
           style={{ zIndex: 10100, touchAction: 'none', overscrollBehavior: 'contain' }}
         >
           <div className="text-center">
@@ -191,16 +191,15 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
       return (
         <>
           <div
-            className="fixed inset-0 bg-slate-900/50"
+            className="employee-modal-backdrop fixed inset-0 bg-slate-900/50"
             style={{ zIndex: 10100 }}
           />
           <div
-            className="fixed inset-0 flex flex-col"
+            className="employee-modal-surface fixed inset-0 flex flex-col bg-[#f0f5ff]"
             style={{
               zIndex: 10101,
               touchAction: 'none',
-              overscrollBehavior: 'contain',
-              animation: 'fadeIn 0.2s ease-out'
+              overscrollBehavior: 'contain'
             }}
           >
             <div className="absolute inset-0 bg-[#f0f5ff]" />
@@ -334,7 +333,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
     return (
       <>
         <div
-          className="fixed inset-0 bg-slate-900/50"
+          className="employee-modal-backdrop fixed inset-0 bg-slate-900/50"
           style={{ zIndex: 10100 }}
           onClick={handleClose}
         />
@@ -347,9 +346,8 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
         >
           <div
             className="relative w-full max-w-2xl max-h-[85vh] flex flex-col pointer-events-auto"
-            style={{ animation: 'fadeIn 0.25s ease-out' }}
           >
-            <div className="relative overflow-hidden flex flex-col pointer-events-auto bg-[#f0f5ff] w-full h-full lg:w-full lg:max-w-2xl lg:h-[82vh] lg:rounded-3xl lg:shadow-2xl">
+            <div className="employee-modal-surface relative overflow-hidden flex flex-col pointer-events-auto bg-[#f0f5ff] w-full h-full lg:w-full lg:max-w-2xl lg:h-[82vh] lg:rounded-3xl lg:shadow-2xl">
 
               {/* Blue gradient header */}
               <div className="relative flex-shrink-0 overflow-hidden">

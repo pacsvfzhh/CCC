@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Send, Search, Check, ChevronDown, Package, DollarSign, Hash, FileText, Sparkles, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -155,30 +155,30 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
     };
   }, [selectedProductType]);
 
-  // Removed body overflow lock to allow background scrolling
+  const isAnyModalOpen = showResultModal || showValidationAlert;
+  useLayoutEffect(() => {
+    if (!isAnyModalOpen) return;
 
-  // iOS-compatible scroll lock when modals are open
-  useEffect(() => {
-    const isAnyModalOpen = showResultModal || showValidationAlert;
-    if (isAnyModalOpen) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
 
-      return () => {
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [showResultModal, showValidationAlert]);
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isAnyModalOpen]);
 
   useEffect(() => {
     const filtered = productTypes.filter(type =>
@@ -1173,12 +1173,12 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
       {/* Result Modal - portaled to escape stacking context */}
       {showResultModal && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
           onClick={() => setShowResultModal(false)}
         >
           <div
-            className="relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 border border-gray-200 overflow-hidden animate-slideDown"
+            className="employee-modal-surface relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top color band */}
@@ -1233,12 +1233,12 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
       {/* Validation Error Alert Modal - portaled to escape stacking context */}
       {showValidationAlert && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
           onClick={() => setShowValidationAlert(false)}
         >
           <div
-            className="relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 border border-gray-200 overflow-hidden animate-slideDown"
+            className="employee-modal-surface relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top color band */}
