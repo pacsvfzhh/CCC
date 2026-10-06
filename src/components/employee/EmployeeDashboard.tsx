@@ -789,7 +789,6 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             borderRadius: 0,
             outline: 'none',
             boxShadow: 'none',
-            backgroundClip: 'border-box',
           }}
         >
           <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{
