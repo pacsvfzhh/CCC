@@ -80,6 +80,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const employeeShellRef = useRef<HTMLDivElement>(null);
+  const employeeHeaderRef = useRef<HTMLElement>(null);
   const { companyName } = useCompanyName(employee.created_by);
   const { isMobile, isTablet } = useResponsive();
   const { t, language, setLanguage } = useLanguage();
@@ -91,6 +93,20 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const financialSessionInvalidRef = useRef(false);
   const deliveredRecipientIdsRef = useRef(new Set<string>());
   const realtimeDeliveryChainRef = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    const header = employeeHeaderRef.current;
+    const shell = employeeShellRef.current;
+    if (!header || !shell) return;
+
+    const syncHeaderHeight = () => {
+      shell.style.setProperty('--employee-header-height', `${header.getBoundingClientRect().height}px`);
+    };
+    const observer = new ResizeObserver(syncHeaderHeight);
+    observer.observe(header);
+    syncHeaderHeight();
+    return () => observer.disconnect();
+  }, []);
 
   // Trigger auto messages for all eligible customers on login
   useEffect(() => {
@@ -678,7 +694,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   }, [employee.id]);
 
   return (
-    <div className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
+    <div ref={employeeShellRef} className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
       {/* Fixed Background Layer */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/60"></div>
@@ -745,6 +761,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
       {createPortal(
         <header
+          ref={employeeHeaderRef}
           className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : 'translate-y-0'}`}
           style={{
             position: 'fixed',
@@ -769,10 +786,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             <div className="absolute top-3 left-[40%] w-4 h-4 bg-white/[0.04] rounded-full"></div>
             <div className="absolute bottom-2 right-[45%] w-3 h-3 bg-cyan-200/[0.06] rounded-full"></div>
             <div className="absolute top-1/2 left-[60%] w-10 h-10 border border-white/[0.05] rounded-xl rotate-12 -translate-y-1/2"></div>
-            {/* Accent line */}
-            <div className="absolute top-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-200/20 to-transparent"></div>
           <div className={`max-w-7xl mx-auto relative ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 py-3.5'}`}>
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">

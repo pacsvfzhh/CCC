@@ -786,10 +786,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           100% { transform: translate(150px, -150px) rotate(180deg); opacity: 0; }
         }
       `}</style>
-      <div className={`relative rounded-2xl border-0 shadow-none lg:shadow-xl lg:shadow-blue-200/50 overflow-hidden max-sm:fixed max-sm:bottom-[56px] max-sm:left-0 max-sm:right-0 max-sm:z-[45] max-sm:flex max-sm:flex-col max-sm:rounded-none sm:fixed sm:bottom-[64px] sm:left-0 sm:right-0 sm:z-[45] sm:flex sm:flex-col sm:rounded-none md:fixed md:bottom-[64px] md:left-0 md:right-0 md:z-[45] md:flex md:flex-col md:rounded-none lg:relative lg:top-auto lg:bottom-auto lg:left-auto lg:right-auto lg:z-auto lg:flex lg:flex-col lg:rounded-2xl lg:pb-0`}
+      <div className={`relative rounded-2xl border-0 shadow-none min-[1025px]:shadow-xl min-[1025px]:shadow-blue-200/50 overflow-hidden max-sm:fixed max-sm:bottom-[56px] max-sm:left-0 max-sm:right-0 max-sm:z-[45] max-sm:flex max-sm:flex-col max-sm:rounded-none sm:fixed sm:bottom-[64px] sm:left-0 sm:right-0 sm:z-[45] sm:flex sm:flex-col sm:rounded-none md:fixed md:bottom-[64px] md:left-0 md:right-0 md:z-[45] md:flex md:flex-col md:rounded-none min-[1025px]:relative min-[1025px]:top-auto min-[1025px]:bottom-auto min-[1025px]:left-auto min-[1025px]:right-auto min-[1025px]:z-auto min-[1025px]:flex min-[1025px]:flex-col min-[1025px]:rounded-2xl min-[1025px]:pb-0`}
         style={{
           willChange: 'auto',
-          top: window.innerWidth >= 1025 ? 'auto' : window.innerWidth >= 768 ? '72px' : window.innerWidth >= 640 ? '68px' : '64px',
+          top: window.innerWidth >= 1025 ? 'auto' : 'calc(var(--employee-header-height, 64px) - 1px)',
           height: window.innerWidth >= 1025 ? 'calc(100vh - 220px)' : undefined,
           background: isMobileDevice
             ? 'linear-gradient(160deg, #ffffff 0%, #f0f7ff 40%, #e8f4fd 100%)'
@@ -798,7 +798,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         {/* Loading Overlay - Simplified for mobile */}
         {loading && (
-          <div className="absolute inset-0 bg-white/95 z-50 flex items-center justify-center max-sm:rounded-none md:rounded-none lg:rounded-2xl">
+          <div className="absolute inset-0 bg-white/95 z-50 flex items-center justify-center max-sm:rounded-none md:rounded-none min-[1025px]:rounded-2xl">
             <div className="flex flex-col items-center gap-4">
               <div className="relative w-16 h-16">
                 <div className="absolute inset-0 rounded-full border-2 border-blue-300 animate-spin" style={{ animationDuration: '1s' }}></div>
@@ -927,7 +927,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           </div>
 
           {announcements.length === 0 ? (
-            <div className="px-6 py-16 lg:px-8">
+            <div className="px-6 py-16 min-[1025px]:px-8">
               <div className="relative inline-flex flex-col items-center gap-4 p-12 rounded-2xl bg-blue-50/50 border border-blue-100">
                 <div className="relative">
                   <div className="absolute inset-0 bg-blue-200/50 rounded-full blur-xl animate-pulse"></div>
@@ -968,7 +968,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                   max-sm:px-6 max-sm:pb-2
                   sm:px-6 sm:pb-2
                   md:px-6 md:pb-2
-                  lg:px-8 lg:pb-8 ${
+                  min-[1025px]:px-8 min-[1025px]:pb-8 ${
                   isTabletDevice ? 'space-y-3' : 'space-y-3 sm:space-y-4'
                 }`}
                 style={{

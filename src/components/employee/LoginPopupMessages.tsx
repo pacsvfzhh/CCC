@@ -370,7 +370,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
                   <div className="flex items-start gap-2.5 pr-10">
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${isReward ? 'border-amber-950/20 bg-amber-950/15 text-amber-950 shadow-sm shadow-amber-950/10' : 'border-white/20 bg-white/15'}`}>
-                      {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="w-5 w-5 text-white" />}
+                      {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="h-5 w-5 text-white" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className={`mb-1 break-words text-lg font-bold leading-tight lg:text-xl ${isReward ? 'text-amber-950' : 'text-white'}`}>
@@ -393,12 +393,11 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   >
                     <X className="h-5 w-5" strokeWidth={2.5} />
                   </button>
-                </div>
-
-                <div className="mt-1 flex flex-wrap items-center gap-1.5 pr-10">
-                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
-                    {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
-                  </span>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 pr-10">
+                    <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
+                      {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
+                    </span>
+                  </div>
                 </div>
               </div>
 
