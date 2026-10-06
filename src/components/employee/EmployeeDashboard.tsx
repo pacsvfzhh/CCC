@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
 import { Employee } from '../../types';
@@ -81,6 +81,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const employeeHeaderRef = useRef<HTMLElement>(null);
+  const employeeNavRef = useRef<HTMLElement>(null);
   const { companyName } = useCompanyName(employee.created_by);
   const { isMobile, isTablet } = useResponsive();
   const { t, language, setLanguage } = useLanguage();
@@ -106,6 +107,22 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     return () => {
       observer.disconnect();
       document.documentElement.style.removeProperty('--employee-header-height');
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const nav = employeeNavRef.current;
+    if (!nav) return;
+
+    const syncNavHeight = () => {
+      document.documentElement.style.setProperty('--employee-bottom-nav-height', `${nav.getBoundingClientRect().height}px`);
+    };
+    const observer = new ResizeObserver(syncNavHeight);
+    observer.observe(nav);
+    syncNavHeight();
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--employee-bottom-nav-height');
     };
   }, []);
 
@@ -1198,7 +1215,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
       {/* Bottom Navigation - portaled to document.body */}
       {createPortal(
-      <nav className="nav-mobile safe-area-pb employee-nav" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9998 }}>
+      <nav ref={employeeNavRef} className="nav-mobile safe-area-pb employee-nav" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9998 }}>
         <div className="absolute inset-0 bg-white border-t border-slate-200/60"
           style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.04)' }}
         ></div>

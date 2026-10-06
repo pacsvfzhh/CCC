@@ -2180,7 +2180,10 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       )}
 
       {!isOpen && createPortal(
-        <div className="fixed bottom-20 right-3 sm:right-4 md:bottom-28 lg:bottom-4 lg:right-4 z-[10000]">
+        <div
+          className="fixed z-[10000]"
+          style={{ right: '16px', bottom: 'calc(var(--employee-bottom-nav-height, 72px) + 16px)' }}
+        >
           <button
             onClick={() => {
               setIsOpen(true);
