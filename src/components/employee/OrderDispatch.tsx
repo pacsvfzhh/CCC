@@ -4693,25 +4693,27 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
             </div>
             <div className="bg-slate-50 px-5 py-4 sm:px-8 sm:py-6">
-              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-[#ded2e3] border-l-[3px] border-l-[#91445d] bg-[#eee7f1] px-3 py-2.5 shadow-sm shadow-[#593050]/10 sm:mb-5 sm:gap-3 sm:px-3.5 sm:py-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#593050]/10 text-[#593050]">
-                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <p id="dispatch-report-description" className="text-[13px] font-bold leading-5 text-[#593050] sm:text-sm">{t.dispatch.describeTheIssue}</p>
+              <div className="overflow-hidden rounded-xl border border-[#ded2e3] bg-white shadow-sm shadow-[#593050]/10 focus-within:border-[#91445d] focus-within:ring-2 focus-within:ring-[#91445d]/20">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-[#ded2e3] bg-[#eee7f1] px-3 py-2.5 sm:gap-x-3 sm:px-3.5 sm:py-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#593050]/10 text-[#593050]">
+                    <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <p id="dispatch-report-description" className="min-w-0 text-[13px] font-bold leading-5 text-[#593050] sm:text-sm">{t.dispatch.describeTheIssue}</p>
+                  <label htmlFor="dispatch-report-reason" className="ml-auto shrink-0 rounded-md border border-[#91445d]/20 bg-white/60 px-2 py-0.5 text-[11px] font-bold text-[#91445d]">
+                    {t.dispatch.errorReasonLabel} <span aria-hidden="true">*</span>
+                  </label>
+                </div>
+                <textarea
+                  id="dispatch-report-reason"
+                  value={errorReason}
+                  onChange={(e) => setErrorReason(e.target.value)}
+                  placeholder={t.dispatch.whatWentWrong}
+                  className="block h-32 w-full resize-none border-0 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0 sm:h-40 sm:px-4"
+                  rows={4}
+                  maxLength={500}
+                />
+                <div className="border-t border-slate-100 bg-white px-3.5 py-1 text-right text-xs font-medium text-slate-500">{errorReason.length}/500</div>
               </div>
-              <label htmlFor="dispatch-report-reason" className="mb-1.5 block text-sm font-semibold text-slate-800 sm:mb-2">
-                {t.dispatch.errorReasonLabel} <span className="text-rose-600">*</span>
-              </label>
-              <textarea
-                id="dispatch-report-reason"
-                value={errorReason}
-                onChange={(e) => setErrorReason(e.target.value)}
-                placeholder={t.dispatch.whatWentWrong}
-                className="h-24 w-full resize-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:h-28 sm:px-4 sm:py-3"
-                rows={3}
-                maxLength={500}
-              />
-              <div className="mt-1 text-right text-xs font-medium text-slate-500">{errorReason.length}/500</div>
               <div className="mt-3 grid grid-cols-2 gap-2.5 border-t border-slate-200 pt-3 sm:mt-5 sm:gap-3 sm:pt-5">
                 <button type="button" onClick={handleCancelError} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:min-h-12">{t.dispatch.cancelButton}</button>
                 <button type="button" onClick={handleSubmitError} disabled={!errorReason.trim() || isReporting} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rose-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm shadow-rose-900/20 enabled:hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none sm:min-h-12">
