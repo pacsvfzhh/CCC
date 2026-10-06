@@ -783,7 +783,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             <div className="absolute bottom-2 right-[45%] w-3 h-3 bg-cyan-200/[0.06] rounded-full"></div>
             <div className="absolute top-1/2 left-[60%] w-10 h-10 border border-white/[0.05] rounded-xl rotate-12 -translate-y-1/2"></div>
           </div>
-          <div className={`max-w-7xl mx-auto relative ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 py-3.5'}`}>
+          <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 py-3.5'}`}>
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : isTablet ? 'w-9 h-9 rounded-xl' : 'w-10 h-10 rounded-xl'} bg-white/95 flex items-center justify-center shadow-sm flex-shrink-0`}>
