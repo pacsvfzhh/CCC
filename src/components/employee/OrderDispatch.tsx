@@ -4677,15 +4677,17 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       {showErrorModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-[3px] sm:p-4" style={{ overscrollBehavior: 'contain' }}>
           <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-slate-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] sm:max-h-[calc(100dvh-2rem)]">
-            <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4 sm:px-8 sm:py-6">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 to-amber-400" />
-              <div className="pointer-events-none absolute -right-12 -top-20 h-40 w-40 rounded-full border-[24px] border-white/5" />
-              <div className="relative flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-300/30 bg-rose-500/15 text-rose-200 sm:h-12 sm:w-12">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#311f43] via-[#593050] to-[#91445d] px-5 py-4 sm:px-8 sm:py-7">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300" />
+              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full border-[24px] border-rose-200/10" />
+              <div className="pointer-events-none absolute inset-y-0 right-12 w-16 -skew-x-12 bg-white/[0.04]" />
+              <div className="relative flex items-center gap-3 sm:gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-200/40 bg-rose-200/15 text-rose-100 shadow-inner shadow-white/10 sm:h-12 sm:w-12 sm:rounded-2xl">
                   <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300 sm:mb-1 sm:text-[11px]">{t.dispatch.orderAssignment}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-200 sm:mb-1 sm:text-[11px]">{t.dispatch.orderAssignment}</p>
                   <h3 id="dispatch-report-title" className="text-lg font-bold tracking-tight text-white sm:text-xl">{t.dispatch.reportErrorTitle}</h3>
                 </div>
               </div>
