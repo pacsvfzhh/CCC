@@ -4693,9 +4693,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
             </div>
             <div className="bg-slate-50 px-5 py-4 sm:px-8 sm:py-6">
-              <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 sm:mb-5 sm:gap-3 sm:px-3.5 sm:py-3">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden="true" />
-                <p id="dispatch-report-description" className="text-sm leading-relaxed text-slate-700">{t.dispatch.describeTheIssue}</p>
+              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-slate-200 border-l-[3px] border-l-[#91445d] bg-white px-3 py-2.5 shadow-sm shadow-slate-200/60 sm:mb-5 sm:gap-3 sm:px-3.5 sm:py-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#593050]/10 text-[#593050]">
+                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <p id="dispatch-report-description" className="text-[13px] font-medium leading-5 text-slate-700 sm:text-sm">{t.dispatch.describeTheIssue}</p>
               </div>
               <label htmlFor="dispatch-report-reason" className="mb-1.5 block text-sm font-semibold text-slate-800 sm:mb-2">
                 {t.dispatch.errorReasonLabel} <span className="text-rose-600">*</span>
