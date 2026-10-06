@@ -80,7 +80,6 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const employeeShellRef = useRef<HTMLDivElement>(null);
   const employeeHeaderRef = useRef<HTMLElement>(null);
   const { companyName } = useCompanyName(employee.created_by);
   const { isMobile, isTablet } = useResponsive();
@@ -96,16 +95,18 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
   useEffect(() => {
     const header = employeeHeaderRef.current;
-    const shell = employeeShellRef.current;
-    if (!header || !shell) return;
+    if (!header) return;
 
     const syncHeaderHeight = () => {
-      shell.style.setProperty('--employee-header-height', `${header.getBoundingClientRect().height}px`);
+      document.documentElement.style.setProperty('--employee-header-height', `${header.getBoundingClientRect().height}px`);
     };
     const observer = new ResizeObserver(syncHeaderHeight);
     observer.observe(header);
     syncHeaderHeight();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--employee-header-height');
+    };
   }, []);
 
   // Trigger auto messages for all eligible customers on login
@@ -694,7 +695,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   }, [employee.id]);
 
   return (
-    <div ref={employeeShellRef} className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
+    <div className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
       {/* Fixed Background Layer */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/60"></div>
@@ -766,8 +767,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           style={{
             position: 'fixed',
             top: 0,
-            left: 0,
-            right: 0,
+            left: -1,
+            width: 'calc(100vw + 2px)',
             zIndex: 9999,
             paddingTop: 'env(safe-area-inset-top)',
             background: isMobile
@@ -1305,8 +1306,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         .employee-header {
           position: fixed !important;
           top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
+          left: -1px !important;
+          right: auto !important;
+          width: calc(100vw + 2px) !important;
           z-index: 9999 !important;
         }
         .employee-nav {

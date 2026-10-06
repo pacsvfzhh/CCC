@@ -1793,10 +1793,25 @@ button .animate-bell-ring.keep-animation,
     border-left: 1px solid rgba(226, 232, 240, 0.8);
   }
 
+  :is(html, body):has(.employee-shell) {
+    scrollbar-color: auto;
+    scrollbar-width: auto;
+  }
+
+  :is(html, body):has(.employee-shell)::-webkit-scrollbar-track {
+    background: linear-gradient(to bottom, #2563eb 0 var(--employee-header-height, 75px), #f8fafc var(--employee-header-height, 75px));
+    border-left: 0;
+  }
+
   body::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(59, 130, 246, 0.45) 0%, rgba(37, 99, 235, 0.4) 100%);
     border-radius: 5px;
     border: 2px solid #f8fafc;
+  }
+
+  :is(html, body):has(.employee-shell)::-webkit-scrollbar-thumb {
+    border-color: transparent;
+    background-clip: padding-box;
   }
 
   body::-webkit-scrollbar-thumb:hover {
