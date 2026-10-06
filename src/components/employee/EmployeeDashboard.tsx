@@ -1311,6 +1311,16 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           width: calc(100vw + 2px) !important;
           z-index: 9999 !important;
         }
+        .employee-header::before {
+          content: '';
+          position: absolute;
+          top: -24px;
+          right: -24px;
+          bottom: 0;
+          left: -24px;
+          background: inherit;
+          pointer-events: none;
+        }
         .employee-nav {
           position: fixed !important;
           bottom: 0 !important;
