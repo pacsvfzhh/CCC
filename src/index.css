@@ -1335,7 +1335,7 @@ body {
 .dispatch-waiting-accent {
   overflow: hidden;
   background-size: 200% 100%;
-  animation: dispatchAccentGradient 3.2s ease-in-out infinite;
+  animation: dispatchAccentGradient 4s ease-in-out infinite;
 }
 
 .dispatch-waiting-accent::after {
@@ -1348,7 +1348,7 @@ body {
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 24%) 18%, rgb(255 255 255 / 96%) 50%, rgb(165 243 252 / 78%) 68%, transparent);
   filter: blur(1px);
   opacity: 0;
-  animation: dispatchAccentSweep 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: dispatchAccentSweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes dispatchAccentGradient {
