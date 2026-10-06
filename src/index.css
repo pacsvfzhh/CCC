@@ -755,6 +755,7 @@ html, body {
 html:has(.employee-shell),
 body:has(.employee-shell) {
   background-color: #2563eb;
+  overflow-x: clip !important;
 }
 
 body:has(.employee-shell) .employee-modal-backdrop {

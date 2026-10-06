@@ -120,7 +120,6 @@ function App() {
   if (authState.userType === 'employee') {
     return (
       <LanguageProvider>
-        <BlockchainBackground />
         <ErrorBoundary>
           <Suspense fallback={null}>
             <EmployeeDashboard employee={authState.user} />
