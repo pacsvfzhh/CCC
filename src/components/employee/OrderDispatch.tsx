@@ -3061,8 +3061,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                   </div>
                 </div>
 
-                {/* MOBILE: Action Buttons - Full Width Below Content */}
-                <div className="md:hidden space-y-2 mt-2.5">
+                {/* MOBILE: Action Buttons Below Content */}
+                <div className={`md:hidden mt-2.5 ${currentOrder.status === 'accepted' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}`}>
                   {currentOrder.status === 'pending' && (
                     <button
                       onClick={handleAcceptOrder}
@@ -3088,7 +3088,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       <button
                         onClick={handleCompleteOrder}
                         disabled={isCompleting}
-                        className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-4 rounded-lg font-bold text-sm shadow-lg flex items-center justify-center space-x-1.5 disabled:cursor-not-allowed touch-manipulation active:from-emerald-600 active:to-green-700 active:scale-[0.97] transition-transform duration-75"
+                        className="w-full min-w-0 bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 disabled:cursor-not-allowed touch-manipulation active:from-emerald-600 active:to-green-700 active:scale-[0.97] transition-transform duration-75"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         {isCompleting ? (
@@ -3105,7 +3105,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       </button>
                       <button
                         onClick={handleErrorOrder}
-                        className="w-full bg-gradient-to-r from-rose-500 to-red-600 text-white py-3 px-4 rounded-lg font-bold text-sm shadow-lg flex items-center justify-center space-x-1.5 touch-manipulation active:from-rose-600 active:to-red-700 active:scale-[0.97] transition-transform duration-75"
+                        className="w-full min-w-0 bg-gradient-to-r from-rose-500 to-red-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 touch-manipulation active:from-rose-600 active:to-red-700 active:scale-[0.97] transition-transform duration-75"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         <XCircle className="w-4 h-4 flex-shrink-0" />
