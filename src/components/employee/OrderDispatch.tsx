@@ -4676,12 +4676,14 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       {showErrorModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" style={{ overscrollBehavior: 'contain' }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] border border-white/70 bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
+          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] border border-rose-200/80 bg-rose-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
             <div className="relative overflow-hidden bg-gradient-to-br from-[#311f43] via-[#593050] to-[#91445d] px-6 py-6 sm:px-8 sm:py-7">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300" />
               <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full border-[24px] border-rose-200/10" />
+              <div className="pointer-events-none absolute inset-y-0 right-12 w-16 -skew-x-12 bg-white/[0.04]" />
               <div className="relative flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-200/25 bg-white/10 text-rose-100 shadow-inner shadow-white/10">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-200/40 bg-rose-200/15 text-rose-100 shadow-inner shadow-white/10">
                   <ShieldAlert className="h-6 w-6" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
@@ -4690,8 +4692,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               </div>
             </div>
-            <div className="px-6 py-6 sm:px-8 sm:py-7">
-              <p id="dispatch-report-description" className="mb-5 text-sm leading-relaxed text-slate-600">{t.dispatch.describeTheIssue}</p>
+            <div className="bg-gradient-to-br from-rose-100 via-rose-50 to-violet-100 px-6 py-6 sm:px-8 sm:py-7">
+              <div className="mb-5 flex items-start gap-3 rounded-xl border border-rose-200/70 bg-white/75 px-3.5 py-3 shadow-sm shadow-rose-100/60">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-hidden="true" />
+                <p id="dispatch-report-description" className="text-sm leading-relaxed text-slate-700">{t.dispatch.describeTheIssue}</p>
+              </div>
               <label htmlFor="dispatch-report-reason" className="mb-2 block text-sm font-semibold text-slate-800">
                 {t.dispatch.errorReasonLabel} <span className="text-rose-600">*</span>
               </label>
@@ -4700,15 +4705,15 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 value={errorReason}
                 onChange={(e) => setErrorReason(e.target.value)}
                 placeholder={t.dispatch.whatWentWrong}
-                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-200"
+                className="w-full resize-none rounded-xl border border-rose-200 bg-white/90 px-4 py-3 text-sm leading-relaxed text-slate-900 shadow-sm shadow-rose-100/60 placeholder:text-slate-400 transition-colors focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-200"
                 rows={4}
                 autoFocus
                 maxLength={500}
               />
-              <div className="mt-1.5 text-right text-xs font-medium text-slate-500">{errorReason.length}/500</div>
-              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row">
-                <button type="button" onClick={handleCancelError} className="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">{t.dispatch.cancelButton}</button>
-                <button type="button" onClick={handleSubmitError} disabled={!errorReason.trim() || isReporting} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(225,29,72,0.6)] transition-all hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none disabled:opacity-70">
+              <div className="ml-auto mt-2 w-fit rounded-full border border-rose-200/70 bg-white/75 px-2.5 py-1 text-xs font-medium text-slate-600">{errorReason.length}/500</div>
+              <div className="mt-5 flex flex-col-reverse gap-3 border-t border-rose-200/80 pt-5 sm:flex-row">
+                <button type="button" onClick={handleCancelError} className="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white/85 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">{t.dispatch.cancelButton}</button>
+                <button type="button" onClick={handleSubmitError} disabled={!errorReason.trim() || isReporting} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(225,29,72,0.6)] transition-all hover:from-rose-700 hover:to-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none disabled:opacity-70">
                   <Send className="h-4 w-4" aria-hidden="true" />
                   <span>{t.dispatch.submitButton}</span>
                 </button>
