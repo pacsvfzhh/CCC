@@ -768,11 +768,15 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             background: isMobile
               ? 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)'
               : 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 80%, #2563eb 100%)',
-            boxShadow: '0 4px 20px -2px rgba(37, 99, 235, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08)',
+            border: 'none',
+            borderRadius: 0,
+            outline: 'none',
+            boxShadow: 'none',
+            backgroundClip: 'border-box',
           }}
         >
           <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)'
+            background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.04) 100%)'
           }}>
             {/* Geometric decorative blocks in header */}
             <div className="absolute top-2 right-[15%] w-8 h-8 border-2 border-white/[0.08] rounded-lg rotate-12"></div>
@@ -1298,6 +1302,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           position: sticky !important;
           top: 0 !important;
           width: 100% !important;
+          border: none !important;
+          border-radius: 0 !important;
+          outline: none !important;
+          box-shadow: none !important;
+          background-clip: border-box;
+          isolation: isolate;
           z-index: 10020 !important;
         }
         body:has(.employee-modal-backdrop, .employee-modal-surface) .employee-header {
