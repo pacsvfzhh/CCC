@@ -4693,7 +4693,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
             </div>
             <div className="bg-slate-50 px-5 py-4 sm:px-8 sm:py-6">
-              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-slate-200 border-l-[3px] border-l-[#91445d] bg-white px-3 py-2.5 shadow-sm shadow-slate-200/60 sm:mb-5 sm:gap-3 sm:px-3.5 sm:py-3">
+              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-[#ded2e3] border-l-[3px] border-l-[#91445d] bg-[#eee7f1] px-3 py-2.5 shadow-sm shadow-[#593050]/10 sm:mb-5 sm:gap-3 sm:px-3.5 sm:py-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#593050]/10 text-[#593050]">
                   <AlertCircle className="h-4 w-4" aria-hidden="true" />
                 </span>
