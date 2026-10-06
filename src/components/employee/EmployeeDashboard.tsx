@@ -1306,7 +1306,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           width: auto !important;
           padding-left: 24px;
           padding-right: 24px;
-          z-index: 9999 !important;
+          z-index: 10020 !important;
+        }
+        body:has(.employee-modal-backdrop, .employee-modal-surface) .employee-header {
+          z-index: 9000 !important;
         }
         .employee-nav {
           position: fixed !important;
