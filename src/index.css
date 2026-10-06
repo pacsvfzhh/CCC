@@ -1874,7 +1874,7 @@ body:has(.employee-shell) *::-webkit-scrollbar {
 
 body:has(.employee-shell) .order-details-scrollbar {
   scrollbar-width: thin !important;
-  scrollbar-color: #75aaf0 #eaf3ff !important;
+  scrollbar-color: #a8c7e9 #f1f7fe !important;
   -ms-overflow-style: auto !important;
 }
 
@@ -1886,17 +1886,17 @@ body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar {
 
 body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-track {
   border-radius: 999px;
-  background: #eaf3ff !important;
+  background: #f1f7fe !important;
 }
 
 body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-thumb {
-  border: 1px solid #dbeafe !important;
+  border: 1px solid #e0ecf9 !important;
   border-radius: 999px;
-  background: linear-gradient(180deg, #8cb8f4, #75aaf0) !important;
+  background: linear-gradient(180deg, #b7d2f1, #a0c1e7) !important;
 }
 
 body:has(.employee-shell) .order-details-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #73a6e8, #5b8ed2) !important;
+  background: linear-gradient(180deg, #9abce3, #88abd2) !important;
 }
 
 /* Contain images & rich HTML inside content areas */
