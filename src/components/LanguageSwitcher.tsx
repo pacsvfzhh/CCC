@@ -121,7 +121,7 @@ export function LanguageModal({ currentLanguage, onConfirm, onClose, t }: Langua
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-      <div className="employee-modal-backdrop absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="employee-modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div
         className="employee-modal-surface relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
         style={{ animation: 'fadeInUp 0.2s ease-out' }}

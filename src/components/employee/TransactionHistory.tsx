@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { History, ArrowUpRight, CheckCircle, XCircle, Clock, Calendar, MessageSquare, Ban, X, DollarSign, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { formatDateUTC, formatTimeUTC } from '../../lib/dateUtils';
@@ -65,26 +66,30 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
     };
   }, [employeeId]);
 
-  useEffect(() => {
-    if (selectedTransaction) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+  const isDetailOpen = Boolean(selectedTransaction);
+  useLayoutEffect(() => {
+    if (!isDetailOpen) return;
 
-      return () => {
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [selectedTransaction]);
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isDetailOpen]);
 
   const loadTransactions = async () => {
     try {
@@ -610,9 +615,9 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       </div>
       </div>
 
-      {selectedTransaction && (
+      {selectedTransaction && createPortal(
         <div
-          className="fixed inset-0 z-50 flex bg-black/70
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex bg-black/70
           md:items-stretch md:justify-stretch md:p-0
           lg:items-stretch lg:justify-stretch lg:p-0
           xl:items-center xl:justify-center xl:p-4"
@@ -630,7 +635,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
           }}
         >
           <div
-            className="relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 w-full flex flex-col overflow-hidden
+            className="employee-modal-surface relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 w-full flex flex-col overflow-hidden
                        md:m-0 md:rounded-none md:max-w-full md:h-screen
                        xl:m-4 xl:rounded-2xl xl:max-w-3xl xl:max-h-[calc(100vh-2rem)]"
             style={{
@@ -849,7 +854,8 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
