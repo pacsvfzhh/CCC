@@ -889,8 +889,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
           {/* Premium Blue Header Card */}
-          <div className="mb-4 flex flex-shrink-0 sm:mb-6">
-            <div className="relative flex w-full items-center gap-3 overflow-hidden bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4">
+          <div className="mb-4 flex flex-shrink-0 px-3 pt-3 sm:mb-6 sm:px-0 sm:pt-0">
+            <div className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl bg-[linear-gradient(120deg,#142e5c_0%,#20559b_55%,#2878aa_100%)] px-3.5 py-3.5 shadow-[0_12px_26px_-10px_rgba(22,63,120,0.55)] sm:gap-4 sm:rounded-none sm:bg-gradient-to-r sm:from-blue-600 sm:via-blue-500 sm:to-blue-600 sm:px-5 sm:py-4 sm:shadow-none">
               {/* Shimmer effect */}
               {showDesktopEffects && (
               <div className="absolute inset-0 overflow-hidden">
@@ -905,26 +905,26 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
               </div>
               )}
               {/* Subtle pattern overlay */}
-              <div className="absolute inset-0 opacity-10" style={{
-                backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(255,255,255,0.2) 0%, transparent 40%)'
+              <div className="pointer-events-none absolute inset-0 opacity-70 sm:opacity-10" style={{
+                backgroundImage: 'radial-gradient(circle at 85% 0%, rgba(125,211,252,0.24), transparent 48%), radial-gradient(circle at 10% 100%, rgba(255,255,255,0.14), transparent 55%)'
               }}></div>
 
-              <div className="relative flex-shrink-0 p-2 sm:p-2.5 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30">
-                <Bell className="w-5 h-5 sm:w-5 sm:h-5 text-white" />
+              <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/15 text-cyan-50 shadow-inner shadow-white/10 sm:h-auto sm:w-auto sm:rounded-lg sm:border-white/30 sm:bg-white/20 sm:p-2.5 sm:text-white sm:shadow-none sm:backdrop-blur-sm">
+                <Bell className="h-5 w-5" />
               </div>
               <div className="relative flex-1 min-w-0">
-                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white">
+                <h2 className="truncate text-lg font-bold tracking-tight text-white max-[360px]:text-base sm:text-xl">
                   {t.announcements.title}
                 </h2>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] sm:text-xs text-blue-100 font-medium tracking-wider uppercase">{t.announcements.liveUpdates}</span>
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.55)] animate-pulse"></div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100/85 sm:text-xs sm:font-medium sm:text-blue-100">{t.announcements.liveUpdates}</span>
                 </div>
               </div>
-              <div className="relative flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30">
-                <Sparkles className="w-3.5 h-3.5 text-blue-100" />
+              <div className="relative flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-slate-950/20 px-2.5 py-2 sm:rounded-lg sm:border-white/30 sm:bg-white/20 sm:px-3 sm:py-1.5 sm:backdrop-blur-sm">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-200 sm:text-blue-100" />
                 <span className="text-sm font-bold text-white">{announcements.length}</span>
-                <span className="text-[10px] text-blue-200 font-medium">{t.announcements.total}</span>
+                <span className="text-[10px] font-medium text-blue-100 max-[360px]:hidden sm:inline sm:text-blue-200">{t.announcements.total}</span>
               </div>
             </div>
           </div>
