@@ -802,7 +802,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   </div>
                 </div>
               </div>
-              <div className={`flex items-center ${isMobile ? 'gap-1.5' : isTablet ? 'gap-2' : 'gap-3'}`}>
+              <div className={`flex flex-shrink-0 items-center ${isMobile ? 'gap-1.5' : isTablet ? 'gap-2' : 'gap-3'}`}>
                 {/* Message Center Button */}
                 <div className="relative">
                   <button
@@ -811,14 +811,16 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                       setShowMessageCenter(true);
                       setHasNewMessage(false);
                     }}
-                    className={`relative rounded-lg transition-all duration-200 group ${
+                    className={`employee-header-action relative flex-shrink-0 rounded-lg transition-all duration-200 group ${
                       unreadMessageCount > 0
                         ? 'bg-amber-400/20 hover:bg-amber-400/30'
                         : 'bg-white/10 hover:bg-white/20'
                     }`}
                     style={{
-                      width: isMobile ? '34px' : '36px',
-                      height: isMobile ? '34px' : '36px',
+                      width: isMobile || isTablet ? '44px' : '36px',
+                      height: isMobile || isTablet ? '44px' : '36px',
+                      minWidth: isMobile || isTablet ? '44px' : '36px',
+                      minHeight: isMobile || isTablet ? '44px' : '36px',
                       padding: '0',
                       display: 'flex',
                       alignItems: 'center',
@@ -830,7 +832,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   {/* Bell icon with breathing pulse when unread */}
                   <div className={`z-10 relative ${unreadMessageCount > 0 ? 'animate-bell-pulse keep-animation' : ''}`}>
                     <Bell
-                      className={`w-[18px] h-[18px] sm:w-5 sm:h-5 flex-shrink-0 keep-animation ${
+                      className={`w-[18px] h-[18px] flex-shrink-0 keep-animation ${
                         unreadMessageCount > 0 ? 'animate-bell-ring text-amber-300' : 'text-white'
                       }`}
                       strokeWidth={2.2}
@@ -964,11 +966,13 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="relative rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors group"
+                    className="employee-header-action relative flex-shrink-0 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors group"
                     style={{
-                      minWidth: isMobile ? '44px' : '50px',
-                      height: isMobile ? '34px' : '36px',
-                      padding: '0 8px',
+                      width: '44px',
+                      height: '44px',
+                      minWidth: '44px',
+                      minHeight: '44px',
+                      padding: '0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -977,8 +981,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                     }}
                   >
                     <div className="flex items-center gap-1 sm:gap-1.5 relative z-10">
-                      <User className="w-[18px] h-[18px] sm:w-5 sm:h-5 flex-shrink-0 text-white" strokeWidth={2.2} />
-                      <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0 text-white/70 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
+                      <User className="w-[18px] h-[18px] flex-shrink-0 text-white" strokeWidth={2.2} />
+                      <ChevronDown className={`w-[12px] h-[12px] flex-shrink-0 text-white/70 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
                     </div>
                   </button>
 

@@ -1032,7 +1032,7 @@ body {
 /* Touch Target Optimization - Minimum 44x44pt (Apple HIG) */
 /* Exclude small circular buttons with explicit sizing */
 @media (pointer: coarse) {
-  button:not([class*="w-["]):not([class*="h-["]),
+  button:not([class*="w-["]):not([class*="h-["]):not(.employee-header-action),
   a:not([class*="w-["]):not([class*="h-["]),
   [role="button"]:not([class*="w-["]):not([class*="h-["]),
   input[type="checkbox"],
@@ -1054,7 +1054,7 @@ body {
 }
 
 @media (pointer: coarse) and (max-width: 375px) {
-  button:not([class*="w-["]):not([class*="h-["]),
+  button:not([class*="w-["]):not([class*="h-["]):not(.employee-header-action),
   a:not([class*="w-["]):not([class*="h-["]),
   [role="button"]:not([class*="w-["]):not([class*="h-["]) {
     min-height: 48px; /* Slightly larger for small screens */
