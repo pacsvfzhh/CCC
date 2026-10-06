@@ -4675,29 +4675,27 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {showErrorModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-[4px] animate-in fade-in duration-200" style={{ overscrollBehavior: 'contain' }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] border border-rose-200/80 bg-rose-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] animate-in zoom-in-95 duration-200">
-            <div className="relative overflow-hidden bg-gradient-to-br from-[#311f43] via-[#593050] to-[#91445d] px-6 py-6 sm:px-8 sm:py-7">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300" />
-              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
-              <div className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full border-[24px] border-rose-200/10" />
-              <div className="pointer-events-none absolute inset-y-0 right-12 w-16 -skew-x-12 bg-white/[0.04]" />
-              <div className="relative flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-200/40 bg-rose-200/15 text-rose-100 shadow-inner shadow-white/10">
-                  <ShieldAlert className="h-6 w-6" aria-hidden="true" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-[3px] sm:p-4" style={{ overscrollBehavior: 'contain' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-slate-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] sm:max-h-[calc(100dvh-2rem)]">
+            <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4 sm:px-8 sm:py-6">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 to-amber-400" />
+              <div className="pointer-events-none absolute -right-12 -top-20 h-40 w-40 rounded-full border-[24px] border-white/5" />
+              <div className="relative flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-300/30 bg-rose-500/15 text-rose-200 sm:h-12 sm:w-12">
+                  <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-rose-200">{t.dispatch.orderAssignment}</p>
-                  <h3 id="dispatch-report-title" className="text-xl font-bold tracking-tight text-white">{t.dispatch.reportErrorTitle}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300 sm:mb-1 sm:text-[11px]">{t.dispatch.orderAssignment}</p>
+                  <h3 id="dispatch-report-title" className="text-lg font-bold tracking-tight text-white sm:text-xl">{t.dispatch.reportErrorTitle}</h3>
                 </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-rose-100 via-rose-50 to-violet-100 px-6 py-6 sm:px-8 sm:py-7">
-              <div className="mb-5 flex items-start gap-3 rounded-xl border border-rose-200/70 bg-white/75 px-3.5 py-3 shadow-sm shadow-rose-100/60">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-hidden="true" />
+            <div className="bg-slate-50 px-5 py-4 sm:px-8 sm:py-6">
+              <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 sm:mb-5 sm:gap-3 sm:px-3.5 sm:py-3">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden="true" />
                 <p id="dispatch-report-description" className="text-sm leading-relaxed text-slate-700">{t.dispatch.describeTheIssue}</p>
               </div>
-              <label htmlFor="dispatch-report-reason" className="mb-2 block text-sm font-semibold text-slate-800">
+              <label htmlFor="dispatch-report-reason" className="mb-1.5 block text-sm font-semibold text-slate-800 sm:mb-2">
                 {t.dispatch.errorReasonLabel} <span className="text-rose-600">*</span>
               </label>
               <textarea
@@ -4705,15 +4703,14 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 value={errorReason}
                 onChange={(e) => setErrorReason(e.target.value)}
                 placeholder={t.dispatch.whatWentWrong}
-                className="w-full resize-none rounded-xl border border-rose-200 bg-white/90 px-4 py-3 text-sm leading-relaxed text-slate-900 shadow-sm shadow-rose-100/60 placeholder:text-slate-400 transition-colors focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-200"
-                rows={4}
-                autoFocus
+                className="h-24 w-full resize-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:h-28 sm:px-4 sm:py-3"
+                rows={3}
                 maxLength={500}
               />
-              <div className="ml-auto mt-2 w-fit rounded-full border border-rose-200/70 bg-white/75 px-2.5 py-1 text-xs font-medium text-slate-600">{errorReason.length}/500</div>
-              <div className="mt-5 flex flex-col-reverse gap-3 border-t border-rose-200/80 pt-5 sm:flex-row">
-                <button type="button" onClick={handleCancelError} className="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white/85 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">{t.dispatch.cancelButton}</button>
-                <button type="button" onClick={handleSubmitError} disabled={!errorReason.trim() || isReporting} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(225,29,72,0.6)] transition-all hover:from-rose-700 hover:to-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none disabled:opacity-70">
+              <div className="mt-1 text-right text-xs font-medium text-slate-500">{errorReason.length}/500</div>
+              <div className="mt-3 grid grid-cols-2 gap-2.5 border-t border-slate-200 pt-3 sm:mt-5 sm:gap-3 sm:pt-5">
+                <button type="button" onClick={handleCancelError} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:min-h-12">{t.dispatch.cancelButton}</button>
+                <button type="button" onClick={handleSubmitError} disabled={!errorReason.trim() || isReporting} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rose-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm shadow-rose-900/20 enabled:hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none sm:min-h-12">
                   <Send className="h-4 w-4" aria-hidden="true" />
                   <span>{t.dispatch.submitButton}</span>
                 </button>
