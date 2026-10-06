@@ -4697,7 +4697,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#593050]/10 text-[#593050]">
                   <AlertCircle className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <p id="dispatch-report-description" className="text-[13px] font-medium leading-5 text-slate-700 sm:text-sm">{t.dispatch.describeTheIssue}</p>
+                <p id="dispatch-report-description" className="text-[13px] font-bold leading-5 text-[#593050] sm:text-sm">{t.dispatch.describeTheIssue}</p>
               </div>
               <label htmlFor="dispatch-report-reason" className="mb-1.5 block text-sm font-semibold text-slate-800 sm:mb-2">
                 {t.dispatch.errorReasonLabel} <span className="text-rose-600">*</span>
