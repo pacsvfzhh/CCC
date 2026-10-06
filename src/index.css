@@ -752,6 +752,11 @@ html, body {
   transform: none;
 }
 
+html:has(.employee-shell),
+body:has(.employee-shell) {
+  background-color: #2563eb;
+}
+
 body:has(.employee-shell) .employee-modal-backdrop {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
@@ -1169,8 +1174,6 @@ body {
     transform: translateZ(0);
   }
 
-  /* Fix fixed-position elements jumping on tablet scroll (address bar show/hide) */
-  .employee-header,
   .employee-nav {
     -webkit-transform: translate3d(0,0,0);
     transform: translate3d(0,0,0);

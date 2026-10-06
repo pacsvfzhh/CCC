@@ -763,7 +763,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       {createPortal(
         <header
           ref={employeeHeaderRef}
-          className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : 'translate-y-0'}`}
+          className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : ''}`}
           style={{
             position: 'fixed',
             top: 0,
