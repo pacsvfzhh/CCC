@@ -2727,9 +2727,9 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </>
               )}
 
-              <div className={`relative z-10 ${currentOrder.status === 'pending' ? 'flex flex-1 flex-col p-5 md:p-10' : 'p-3 md:p-8'} ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col motion-safe:animate-[fadeIn_0.28s_ease-out_both]' : ''}`}>
+              <div className={`relative z-10 ${currentOrder.status === 'pending' ? 'flex min-h-0 flex-1 flex-col p-5 md:p-6 lg:p-10' : 'p-3 md:p-8'} ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col motion-safe:animate-[fadeIn_0.28s_ease-out_both]' : ''}`}>
                 {/* Premium Header with Blockchain Aesthetic */}
-                <div className={`flex flex-col md:flex-row items-start md:items-center justify-between mb-3 md:mb-6 space-y-2 md:space-y-0 ${currentOrder.status === 'pending' ? 'border-b border-white/20 pb-4 md:pb-6' : ''}`}>
+                <div className={`flex flex-col md:flex-row items-start md:items-center justify-between mb-3 space-y-2 md:space-y-0 ${currentOrder.status === 'pending' ? 'border-b border-white/20 pb-4 md:mb-4 md:pb-4 lg:mb-6 lg:pb-6' : 'md:mb-6'}`}>
                   <div className="flex items-center space-x-2 md:space-x-4">
                     {/* Enhanced Icon Container */}
                     <div className="relative">
@@ -2850,9 +2850,9 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
 
                 {/* DESKTOP: Side-by-side layout */}
-                <div className={`hidden md:grid gap-4 md:gap-6 ${currentOrder.status === 'accepted' ? (isTablet ? 'min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto]' : 'min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-5 lg:grid-rows-1') : 'grid-cols-1 lg:grid-cols-5 md:flex-1 md:items-center'}`}>
-                  <div className={`${currentOrder.status === 'accepted' && isTablet ? '' : 'lg:col-span-3'} ${currentOrder.status === 'accepted' ? 'min-h-0' : ''}`}>
-                    <div className={`relative transition-all duration-500 ${currentOrder.status === 'pending' ? 'py-6' : 'overflow-hidden rounded-2xl border border-gray-200 bg-white/90 p-8 shadow-sm backdrop-blur-xl'} ${currentOrder.status === 'accepted' ? 'flex h-full min-h-0 flex-col' : ''}`}>
+                <div className={`hidden md:grid gap-4 lg:gap-6 ${currentOrder.status === 'accepted' ? (isTablet ? 'min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto]' : 'min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-5 lg:grid-rows-1') : 'min-h-0 grid-cols-1 md:flex-1 md:grid-rows-[minmax(0,1fr)_auto] md:items-stretch lg:grid-cols-5 lg:grid-rows-1 lg:items-center'}`}>
+                  <div className={`${currentOrder.status === 'accepted' && isTablet ? '' : 'lg:col-span-3'} ${currentOrder.status === 'pending' || currentOrder.status === 'accepted' ? 'min-h-0' : ''}`}>
+                    <div className={`relative transition-all duration-500 ${currentOrder.status === 'pending' ? 'h-full min-h-0 overflow-y-auto py-4 lg:h-auto lg:overflow-visible lg:py-6' : 'overflow-hidden rounded-2xl border border-gray-200 bg-white/90 p-8 shadow-sm backdrop-blur-xl'} ${currentOrder.status === 'accepted' ? 'flex h-full min-h-0 flex-col' : ''}`}>
                       {currentOrder.status !== 'pending' && (
                         <>
                           <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
