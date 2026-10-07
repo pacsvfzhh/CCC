@@ -92,6 +92,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const { t, language, setLanguage } = useLanguage();
   const loadUnreadCountRef = useRef<(() => Promise<void>) | null>(null);
   const checkLoginPopupMessagesRef = useRef<((combinedOnly?: boolean) => Promise<void>) | null>(null);
+  const loginPopupGenerationRef = useRef(0);
   const processRealtimeRecipientRef = useRef<((recipientId: string) => Promise<void>) | null>(null);
   const recoverRealtimeNotificationsRef = useRef<(() => Promise<void>) | null>(null);
   const notificationChannelStatusRef = useRef('CLOSED');
@@ -575,6 +576,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
   const checkLoginPopupMessages = async (combinedOnly = false) => {
     if (financialSessionInvalidRef.current) return;
+    const generation = loginPopupGenerationRef.current;
     try {
       const session = getEmployeeFinancialSession();
       const { data, error } = await supabase.rpc('has_pending_employee_login_notifications', {
@@ -584,7 +586,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         p_combined_only: combinedOnly,
       });
       if (error) throw error;
-      if (data) setShowLoginPopup(true);
+      if (data && generation === loginPopupGenerationRef.current) setShowLoginPopup(true);
     } catch (error) {
       if (isExpiredEmployeeSession(error)) {
         financialSessionInvalidRef.current = true;
@@ -630,7 +632,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       title: result.message.title,
       content: result.message.content,
       priority: result.message.priority,
-      notificationCategory: result.message.notification_category,
+      notificationCategory: result.message.notification_category || 'standard',
       rewardAmount: result.message.reward_amount || null,
       rewardCurrency: result.message.reward_currency || null,
       notification: {
@@ -1538,10 +1540,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         <LoginPopupMessages
           employee={employee}
           onClose={() => {
+            loginPopupGenerationRef.current += 1;
             setShowLoginPopup(false);
             void loadUnreadCountRef.current?.();
           }}
           onSessionExpired={() => {
+            loginPopupGenerationRef.current += 1;
             financialSessionInvalidRef.current = true;
             setShowLoginPopup(false);
             setShowSessionExpired(true);

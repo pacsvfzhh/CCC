@@ -25,6 +25,8 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
   const [unreadMessages, setUnreadMessages] = useState<MessageWithRecipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'login' | 'realtime'>('all');
+  const filterRef = useRef(filter);
+  filterRef.current = filter;
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(initialMessage || null);
   const [failedReadIds, setFailedReadIds] = useState<Set<string>>(new Set());
   const [markingReadId, setMarkingReadId] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
       const visibleMessages = withConfirmedReads((listResult.data || []) as MessageWithRecipient[]);
       const unread = withConfirmedReads(((unreadResult || listResult).data || []) as MessageWithRecipient[]).filter(message => !message.is_read);
       setUnreadMessages(unread);
-      setFailedReadIds(previous => new Set([...previous].filter(id => unread.some(message => message.id === id))));
+      setFailedReadIds(previous => new Set([...previous].filter(id => !visibleMessages.some(message => message.id === id && message.is_read))));
       setMessages(filter === 'all'
         ? [...new Map([...visibleMessages, ...unread].map(message => [message.id, message])).values()]
         : filter === 'unread' ? visibleMessages.filter(message => !message.is_read) : visibleMessages);
@@ -137,7 +139,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
       }
       if (!readAt) throw new Error('Notification read confirmation was not returned.');
       confirmedReadAtRef.current.set(recipientId, readAt);
-      setMessages(prev => filter === 'unread'
+      setMessages(prev => filterRef.current === 'unread'
         ? prev.filter(msg => msg.id !== recipientId)
         : prev.map(msg => msg.id === recipientId ? { ...msg, is_read: true, read_at: readAt } : msg)
       );
@@ -158,9 +160,11 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
     }
   };
 
+  const markAsReadRef = useRef(markAsRead);
+  markAsReadRef.current = markAsRead;
   useEffect(() => {
-    if (selectedMessage && !selectedMessage.is_read) void markAsRead(selectedMessage.id);
-  }, [selectedMessage?.id]);
+    if (selectedMessage && !selectedMessage.is_read) void markAsReadRef.current(selectedMessage.id);
+  }, [selectedMessage]);
 
   const openMessage = (msg: MessageWithRecipient) => {
     setSelectedMessage(msg);

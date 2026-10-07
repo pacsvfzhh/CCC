@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Clock, ChevronRight, Gift, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseTransientError, supabase } from '../../lib/supabase';
@@ -25,6 +25,8 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
   const [readSyncFailed, setReadSyncFailed] = useState(false);
   const confirmingReadRef = useRef(false);
   const completedMessageIdRef = useRef<string | null>(null);
+  const autoAttemptedMessageIdRef = useRef<string | null>(null);
+  const pendingCloseRef = useRef(false);
   const { isMobile, isDesktop } = useResponsive();
   const { t, dateLocale } = useLanguage();
   const loadLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
@@ -116,14 +118,14 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
     } catch (error) {
       console.error('Error loading login popup messages:', error);
       if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired')) onSessionExpired();
-      setMessages([]);
+      else onClose();
     } finally {
       setLoading(false);
     }
   };
   loadLoginPopupMessagesRef.current = loadLoginPopupMessages;
 
-  const completeCurrentDelivery = async () => {
+  const completeCurrentDelivery = useCallback(async () => {
     const msg = messages[currentIndex];
     if (!msg) throw new Error('Notification is no longer available.');
 
@@ -139,35 +141,41 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
       });
       if (!error) {
         const result = data as { success?: boolean; is_read?: boolean; read_at?: string } | null;
-        if (!result?.success || !result.is_read || !result.read_at) throw new Error('Notification read confirmation was not returned.');
+        const readAt = result?.read_at;
+        if (!result?.success || !result.is_read || !readAt) throw new Error('Notification read confirmation was not returned.');
         completedMessageIdRef.current = msg.id;
         setMessages(previous => previous.map(message => message.id === msg.id
-          ? { ...message, is_read: true, read_at: result.read_at || null }
+          ? { ...message, is_read: true, read_at: readAt }
           : message));
         return;
       }
       if (!navigator.onLine || !isSupabaseTransientError(error) || attempt === 2) throw error;
       await new Promise(resolve => window.setTimeout(resolve, (attempt + 1) * 500));
     }
-  };
+  }, [currentIndex, employee.id, messages]);
 
+  const currentMessageId = messages[currentIndex]?.id;
   useEffect(() => {
-    const messageId = messages[currentIndex]?.id;
-    if (loading || !messageId || completedMessageIdRef.current === messageId || confirmingReadRef.current) return;
+    if (loading || !currentMessageId || completedMessageIdRef.current === currentMessageId || autoAttemptedMessageIdRef.current === currentMessageId || confirmingReadRef.current) return;
+    autoAttemptedMessageIdRef.current = currentMessageId;
     confirmingReadRef.current = true;
     setConfirmingRead(true);
     setReadSyncFailed(false);
     void completeCurrentDelivery()
+      .then(() => {
+        if (pendingCloseRef.current) onClose();
+      })
       .catch(error => {
         setReadSyncFailed(true);
         console.error('Error confirming login notification read:', error);
         if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired')) onSessionExpired();
       })
       .finally(() => {
+        pendingCloseRef.current = false;
         confirmingReadRef.current = false;
         setConfirmingRead(false);
       });
-  }, [loading, messages[currentIndex]?.id]);
+  }, [loading, currentMessageId, completeCurrentDelivery, onClose, onSessionExpired]);
 
   const handleNext = async () => {
     if (confirmingReadRef.current) return;
@@ -175,7 +183,11 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
     setConfirmingRead(true);
     setReadSyncFailed(false);
     try {
-      if (completedMessageIdRef.current !== messages[currentIndex]?.id) await completeCurrentDelivery();
+      if (completedMessageIdRef.current !== currentMessageId) await completeCurrentDelivery();
+      if (pendingCloseRef.current) {
+        onClose();
+        return;
+      }
       if (hasMore) {
         setLoading(true);
         const claimed = await claimNextLoginMessage();
@@ -190,18 +202,22 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
       console.error('Error completing login notification delivery:', error);
       if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired')) onSessionExpired();
     } finally {
+      pendingCloseRef.current = false;
       confirmingReadRef.current = false;
       setConfirmingRead(false);
     }
   };
 
   const handleClose = async () => {
-    if (confirmingReadRef.current) return;
+    if (confirmingReadRef.current) {
+      pendingCloseRef.current = true;
+      return;
+    }
     confirmingReadRef.current = true;
     setConfirmingRead(true);
     setReadSyncFailed(false);
     try {
-      if (completedMessageIdRef.current !== messages[currentIndex]?.id) await completeCurrentDelivery();
+      if (completedMessageIdRef.current !== currentMessageId) await completeCurrentDelivery();
       onClose();
     } catch (error) {
       setReadSyncFailed(true);
