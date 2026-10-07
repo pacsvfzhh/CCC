@@ -724,6 +724,15 @@ button {
   }
 }
 
+button.notification-panel-list-close {
+  box-sizing: border-box;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+}
+
 input, select, textarea {
   -webkit-appearance: none;
   -moz-appearance: none;

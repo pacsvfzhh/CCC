@@ -314,11 +314,15 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 </div>
               </div>
               <button
+                type="button"
                 onClick={onClose}
-                className="notification-panel-close flex h-8 w-8 items-center justify-center rounded-lg border-2 border-white/70 bg-white/10 text-white shadow-sm shadow-blue-900/25 backdrop-blur-sm transition-colors hover:bg-white/20 active:scale-95"
+                className="notification-panel-list-close group flex shrink-0 items-center justify-center rounded-xl text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
+                aria-label={t.messages.close}
               >
-                <X className="w-5 h-5" strokeWidth={2.5} />
+                <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] border border-white/10 bg-white/20 backdrop-blur-sm transition-all group-hover:bg-white/30 group-active:scale-95">
+                  <X className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                </span>
               </button>
             </div>
 
@@ -456,7 +460,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                             )}
 
                             {/* Preview */}
-                            <p className={`text-sm line-clamp-2 leading-relaxed mb-3 ${
+                            <p className={`text-sm line-clamp-1 leading-relaxed mb-3 ${
                               isUnread ? 'text-slate-600' : 'text-slate-500'
                             }`}>
                               {msg.messages.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()}
