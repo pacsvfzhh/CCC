@@ -169,14 +169,16 @@ export default function AnnouncementDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="announcement-detail-close absolute right-3 top-3 z-20 flex items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25 active:scale-90 active:bg-white/30"
+            className="announcement-detail-close group absolute right-3 top-3 z-20 flex items-center justify-center rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             style={{
               touchAction: 'manipulation',
               top: isMobileDevice ? 'calc(env(safe-area-inset-top) + 12px)' : '16px',
             }}
             aria-label={closeLabel}
           >
-            <X className="h-[18px] w-[18px] shrink-0 text-white" />
+            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] bg-white/15 backdrop-blur-sm transition-all group-hover:bg-white/25 group-active:scale-90 group-active:bg-white/30">
+              <X className="h-4 w-4 shrink-0 text-white" />
+            </span>
           </button>
 
           <div className="relative z-10">
