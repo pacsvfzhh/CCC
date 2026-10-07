@@ -2043,6 +2043,21 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
         }
 
+        button.customer-service-panel-close {
+          box-sizing: border-box;
+          width: 44px !important;
+          height: 44px !important;
+          min-width: 44px !important;
+          min-height: 44px !important;
+          padding: 0 !important;
+        }
+
+        @media (max-width: 1023px) {
+          .customer-service-panel-header {
+            padding-top: calc(env(safe-area-inset-top) + 12px);
+          }
+        }
+
         /* Stable scrollbar styles */
         .chat-messages-container {
           overflow-y: scroll;
@@ -2300,7 +2315,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
           {showConversationList ? (
             <>
-              <div className="relative z-10 flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 px-4 pt-10 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden">
+              <div className="customer-service-panel-header relative z-10 flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 px-4 pt-3 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden">
                 {/* Decorative elements */}
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/[0.04] rounded-full -translate-y-1/2 translate-x-1/4"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/[0.04] rounded-full translate-y-1/2 -translate-x-1/4"></div>
@@ -2323,11 +2338,15 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95 border border-white/10"
+                    className="customer-service-panel-close group flex flex-shrink-0 items-center justify-center rounded-xl text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
+                    aria-label={t.common.close}
                   >
-                    <X className="w-4 h-4" strokeWidth={2.5} />
+                    <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] border border-white/10 bg-white/20 transition-all group-hover:bg-white/30 group-active:scale-95">
+                      <X className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                    </span>
                   </button>
                 </div>
 
@@ -2562,7 +2581,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             </>
           ) : (
             <>
-              <div className={`relative flex-shrink-0 px-4 pt-10 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden ${
+              <div className={`customer-service-panel-header relative flex-shrink-0 px-4 pt-3 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden ${
                 selectedCustomer?.is_super
                   ? 'bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600'
                   : 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700'
