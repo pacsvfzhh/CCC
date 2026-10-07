@@ -455,7 +455,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                               <h3 className={`font-semibold text-[15px] leading-snug line-clamp-1 ${isUnread ? 'font-bold' : ''} ${style.titleColor}`}>
                                 {msg.messages.title}
                               </h3>
-                              <span className={`text-[11px] font-medium whitespace-nowrap flex-shrink-0 mt-0.5 ${
+                              <span className={`relative z-10 text-[11px] font-medium whitespace-nowrap flex-shrink-0 mt-0.5 ${
                                 isUnread ? 'text-blue-600' : 'text-slate-500'
                               }`}>
                                 {formatRelativeTime(msg.messages.created_at || '')}
@@ -519,7 +519,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
                           {/* Unread dot */}
                           {isUnread && (
-                            <div className="absolute top-4 right-4">
+                            <div className="pointer-events-none absolute right-1 top-1">
                               <div className="relative">
                                 <div className={`w-3 h-3 ${style.dotColor} rounded-full ring-2 ring-white/80`} />
                                 <div className={`absolute inset-0 w-3 h-3 ${style.dotColor} rounded-full ring-2 ring-white/80 msg-anim-ping opacity-75`} />
