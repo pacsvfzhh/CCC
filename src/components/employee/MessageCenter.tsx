@@ -20,6 +20,7 @@ const getDeliveredMessageType = (message: MessageWithRecipient): 'realtime' | 'l
 export default function MessageCenter({ employee, onClose }: MessageCenterProps) {
   const { t, dateLocale } = useLanguage();
   const [messages, setMessages] = useState<MessageWithRecipient[]>([]);
+  const [unreadMessages, setUnreadMessages] = useState<MessageWithRecipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'login' | 'realtime'>('all');
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(null);
@@ -66,16 +67,31 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     setLoading(true);
     try {
       const session = getEmployeeFinancialSession();
-      const { data, error } = await supabase.rpc('get_employee_notification_messages', {
+      const listRequest = supabase.rpc('get_employee_notification_messages', {
         p_user_id: employee.id,
         p_session_token: session.token,
         p_tab_id: session.tabId,
         p_filter: filter,
-        p_limit: 50,
+        p_limit: filter === 'unread' ? 100 : 50,
       });
-      if (error) throw error;
+      const unreadRequest = filter === 'unread' ? null : supabase.rpc('get_employee_notification_messages', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_filter: 'unread',
+        p_limit: 100,
+      });
+      const [listResult, unreadResult] = await Promise.all([listRequest, unreadRequest]);
+      if (listResult.error) throw listResult.error;
+      if (unreadResult?.error) throw unreadResult.error;
       if (requestId !== loadRequestIdRef.current) return;
-      setMessages((data || []) as MessageWithRecipient[]);
+
+      const visibleMessages = (listResult.data || []) as MessageWithRecipient[];
+      const unread = ((unreadResult || listResult).data || []) as MessageWithRecipient[];
+      setUnreadMessages(unread);
+      setMessages(filter === 'all'
+        ? [...new Map([...visibleMessages, ...unread].map(message => [message.id, message])).values()]
+        : visibleMessages);
     } catch (error) {
       if (requestId === loadRequestIdRef.current) console.error('Error loading messages:', error);
     } finally {
@@ -95,13 +111,11 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       });
       if (error) throw error;
       const readAt = String((data as { read_at?: string } | null)?.read_at || new Date().toISOString());
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === recipientId
-            ? { ...msg, is_read: true, read_at: readAt }
-            : msg
-        )
+      setMessages(prev => filter === 'unread'
+        ? prev.filter(msg => msg.id !== recipientId)
+        : prev.map(msg => msg.id === recipientId ? { ...msg, is_read: true, read_at: readAt } : msg)
       );
+      setUnreadMessages(prev => prev.filter(msg => msg.id !== recipientId));
       setSelectedMessage(previous => previous?.id === recipientId ? { ...previous, is_read: true, read_at: readAt } : previous);
     } catch (error) {
       console.error('Error marking message as read:', error);
@@ -228,7 +242,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     };
   };
 
-  const unreadCount = messages.filter(m => !m.is_read).length;
+  const unreadCount = unreadMessages.length;
 
   const sortedMessages = [...messages].sort((a, b) => {
     if (!a.is_read && b.is_read) return -1;
