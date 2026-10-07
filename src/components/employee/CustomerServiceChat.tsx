@@ -2043,13 +2043,22 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
         }
 
-        button.customer-service-panel-close {
+        button.customer-service-panel-close,
+        button.customer-service-search-clear {
           box-sizing: border-box;
           width: 44px !important;
           height: 44px !important;
           min-width: 44px !important;
           min-height: 44px !important;
           padding: 0 !important;
+        }
+
+        input.customer-service-search {
+          box-sizing: border-box;
+          height: 44px;
+          min-height: 44px !important;
+          padding-top: 0;
+          padding-bottom: 0;
         }
 
         @media (max-width: 1023px) {
@@ -2359,12 +2368,12 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t.customerService.searchPlaceholder}
-                    className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 sm:py-2.5 bg-white/15 border border-white/20 rounded-lg text-white text-xs sm:text-sm placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 focus:bg-white/20 transition-all"
+                    className="customer-service-search w-full pl-9 sm:pl-10 pr-[44px] bg-white/15 border border-white/20 rounded-lg text-white text-xs sm:text-sm placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 focus:bg-white/20 transition-all"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 sm:right-3.5 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-lg transition-all group"
+                      className="customer-service-search-clear group absolute right-0 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg transition-all hover:bg-white/10"
                       aria-label="Clear search"
                     >
                       <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-200 group-hover:text-white transition-colors" />
