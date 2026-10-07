@@ -66,6 +66,7 @@ const ko = {
     markAllRead: '모두 읽음으로 표시',
     unread: '읽지 않음',
     read: '읽음',
+    readSyncFailed: '읽음 상태를 저장하지 못했습니다. 다시 시도하세요.',
     close: '닫기',
     notification: '알림',
     prev: '이전',

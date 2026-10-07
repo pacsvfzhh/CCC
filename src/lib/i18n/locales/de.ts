@@ -66,6 +66,7 @@ const de = {
     markAllRead: 'Alle als gelesen markieren',
     unread: 'Ungelesen',
     read: 'Gelesen',
+    readSyncFailed: 'Lesestatus konnte nicht gespeichert werden. Bitte erneut versuchen.',
     close: 'Schließen',
     notification: 'Benachrichtigung',
     prev: 'Zurück',

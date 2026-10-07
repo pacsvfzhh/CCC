@@ -72,6 +72,7 @@ const it = {
     markAllRead: 'Segna tutto come letto',
     unread: 'Non letto',
     read: 'Letto',
+    readSyncFailed: 'Impossibile salvare lo stato di lettura. Riprova.',
     close: 'Chiudi',
     notification: 'Notifica',
     prev: 'Precedente',

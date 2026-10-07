@@ -1507,6 +1507,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             setShowMessageCenter(false);
             void loadUnreadCountRef.current?.();
           }}
+          onSessionExpired={() => {
+            financialSessionInvalidRef.current = true;
+            setShowMessageCenter(false);
+            setShowSessionExpired(true);
+          }}
         />
       )}
 
@@ -1517,6 +1522,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           onClose={() => {
             setShowLoginPopup(false);
             void loadUnreadCountRef.current?.();
+          }}
+          onSessionExpired={() => {
+            financialSessionInvalidRef.current = true;
+            setShowLoginPopup(false);
+            setShowSessionExpired(true);
           }}
         />
       )}

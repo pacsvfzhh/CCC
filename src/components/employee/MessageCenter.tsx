@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Eye, AlertCircle, CheckCircle, Clock, Zap, Shield, Radio, ChevronRight, MailOpen, Sparkles, Gift, Wallet } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, isSupabaseTransientError, supabase } from '../../lib/supabase';
 import { getEmployeeFinancialSession } from '../../lib/auth';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
@@ -11,19 +11,23 @@ import QuickCopyRichContent from './QuickCopyRichContent';
 interface MessageCenterProps {
   employee: Employee;
   onClose: () => void;
+  onSessionExpired: () => void;
 }
 
 const getDeliveredMessageType = (message: MessageWithRecipient): 'realtime' | 'login_popup' =>
   message.delivery_channel
     || (message.messages.delivery_mode === 'realtime_only' ? 'realtime' : 'login_popup');
 
-export default function MessageCenter({ employee, onClose }: MessageCenterProps) {
+export default function MessageCenter({ employee, onClose, onSessionExpired }: MessageCenterProps) {
   const { t, dateLocale } = useLanguage();
   const [messages, setMessages] = useState<MessageWithRecipient[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<MessageWithRecipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'login' | 'realtime'>('all');
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(null);
+  const [readSyncErrorId, setReadSyncErrorId] = useState<string | null>(null);
+  const [markingReadId, setMarkingReadId] = useState<string | null>(null);
+  const pendingReadIdsRef = useRef(new Set<string>());
   const { isDesktop } = useResponsive();
   const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
   const loadRequestIdRef = useRef(0);
@@ -93,7 +97,10 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
         ? [...new Map([...visibleMessages, ...unread].map(message => [message.id, message])).values()]
         : visibleMessages);
     } catch (error) {
-      if (requestId === loadRequestIdRef.current) console.error('Error loading messages:', error);
+      if (requestId === loadRequestIdRef.current) {
+        console.error('Error loading messages:', error);
+        if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+      }
     } finally {
       if (requestId === loadRequestIdRef.current) setLoading(false);
     }
@@ -101,32 +108,49 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   loadMessagesRef.current = loadMessages;
 
   const markAsRead = async (recipientId: string) => {
+    if (pendingReadIdsRef.current.has(recipientId)) return;
+    pendingReadIdsRef.current.add(recipientId);
+    setMarkingReadId(recipientId);
+    setReadSyncErrorId(null);
     try {
       const session = getEmployeeFinancialSession();
-      const { data, error } = await supabase.rpc('mark_employee_notification_read', {
-        p_user_id: employee.id,
-        p_session_token: session.token,
-        p_tab_id: session.tabId,
-        p_recipient_id: recipientId,
-      });
-      if (error) throw error;
-      const readAt = String((data as { read_at?: string } | null)?.read_at || new Date().toISOString());
+      let readAt: string | null = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const { data, error } = await supabase.rpc('mark_employee_notification_read', {
+          p_user_id: employee.id,
+          p_session_token: session.token,
+          p_tab_id: session.tabId,
+          p_recipient_id: recipientId,
+        });
+        if (!error) {
+          readAt = (data as { read_at?: string } | null)?.read_at || null;
+          break;
+        }
+        if (!navigator.onLine || !isSupabaseTransientError(error) || attempt === 2) throw error;
+        await new Promise(resolve => window.setTimeout(resolve, (attempt + 1) * 500));
+      }
+      if (!readAt) throw new Error('Notification read confirmation was not returned.');
       setMessages(prev => filter === 'unread'
         ? prev.filter(msg => msg.id !== recipientId)
         : prev.map(msg => msg.id === recipientId ? { ...msg, is_read: true, read_at: readAt } : msg)
       );
       setUnreadMessages(prev => prev.filter(msg => msg.id !== recipientId));
       setSelectedMessage(previous => previous?.id === recipientId ? { ...previous, is_read: true, read_at: readAt } : previous);
+      setReadSyncErrorId(null);
     } catch (error) {
       console.error('Error marking message as read:', error);
+      setReadSyncErrorId(recipientId);
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+    } finally {
+      pendingReadIdsRef.current.delete(recipientId);
+      setMarkingReadId(current => current === recipientId ? null : current);
     }
   };
 
   const openMessage = (msg: MessageWithRecipient) => {
     setSelectedMessage(msg);
-    if (!msg.is_read) {
-      markAsRead(msg.id);
-    }
+    setReadSyncErrorId(null);
+    if (!msg.is_read) void markAsRead(msg.id);
   };
 
   const getPriorityIcon = (priority: string, className: string) => {
@@ -665,6 +689,12 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
             {/* Detail Footer */}
             <div className="relative flex-shrink-0 bg-white border-t border-blue-100 p-4 lg:p-5">
+              {readSyncErrorId === selectedMessage.id && (
+                <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                  <span>{t.messages.readSyncFailed}</span>
+                  <button type="button" onClick={() => void markAsRead(selectedMessage.id)} disabled={markingReadId === selectedMessage.id} className="shrink-0 rounded-lg border border-rose-200 px-2.5 py-1.5 disabled:opacity-50">{t.common.retry}</button>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {selectedMessage.is_read ? (

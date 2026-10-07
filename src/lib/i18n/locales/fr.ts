@@ -24,6 +24,7 @@ const fr = {
     markAllRead: 'Tout marquer comme lu',
     unread: 'Non lu',
     read: 'Lu',
+    readSyncFailed: 'Impossible d’enregistrer la lecture. Réessayez.',
     close: 'Fermer',
     notification: 'Notification',
     prev: 'Précédent',

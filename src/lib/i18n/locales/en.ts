@@ -603,6 +603,7 @@ const en = {
     markAllRead: 'Mark all as read',
     unread: 'Unread',
     read: 'Read',
+    readSyncFailed: 'Could not save read status. Please retry.',
     close: 'Close',
     notification: 'Notification',
     prev: 'Previous',

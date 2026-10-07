@@ -178,7 +178,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [selectedMessageDetail, setSelectedMessageDetail] = useState<Message | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesError, setMessagesError] = useState(false);
   const [messageStats, setMessageStats] = useState<Map<string, MessageStats>>(new Map());
+  const [readRecipientIdsByMessage, setReadRecipientIdsByMessage] = useState<Map<string, Set<string>>>(new Map());
   const [recipientDetails, setRecipientDetails] = useState<Map<string, { read: Employee[]; unread: Employee[] }>>(new Map());
   const [loadingRecipientDetails, setLoadingRecipientDetails] = useState(false);
   const [recipientSearchQuery, setRecipientSearchQuery] = useState('');
@@ -198,7 +200,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [messageOriginFilter, setMessageOriginFilter] = useState<'all' | 'manual' | 'automation'>('all');
   const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | NotificationDeliveryMode>('all');
   const [messageScopeFilter] = useState<'all' | 'broadcast' | 'targeted'>('all');
-  const [readStatusFilter, setReadStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
+  const [readStatusFilter, setReadStatusFilter] = useState<'all' | 'read' | 'unread' | 'no_recipients'>('all');
   const [sentMessagesSearchQuery, setSentMessagesSearchQuery] = useState('');
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -249,6 +251,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setSelectedEmployeeIds(new Set());
       if (hasInitiallyLoaded.current) {
         void loadAllDataRef.current?.(true);
+        void loadSentMessagesRef.current?.(true);
       }
     }
 
@@ -439,19 +442,23 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         .from('users')
         .select('id, username, employee_id, is_active, is_verified, total_income, created_by, tags, remarks, is_pinned')
         .order('is_pinned', { ascending: false })
-        .order('username');
+        .order('username')
+        .order('id');
 
       if (admin.role === 'secondary_admin') {
         employeesQuery = employeesQuery.eq('created_by', admin.id);
       }
 
-      const [
-        { data: allAdmins, error: adminsError },
-        { data: employeesData, error: employeesError },
-      ] = await Promise.all([adminsQuery, employeesQuery]);
-
+      const { data: allAdmins, error: adminsError } = await adminsQuery;
       if (adminsError) throw adminsError;
-      if (employeesError) throw employeesError;
+
+      const employeesData: Employee[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await employeesQuery.range(offset, offset + 499);
+        if (error) throw error;
+        employeesData.push(...(data || []));
+        if (!data || data.length < 500) break;
+      }
 
       scopedEmployeeIdsRef.current = admin.role === 'secondary_admin'
         ? new Set((employeesData || []).map(employee => employee.id))
@@ -822,57 +829,70 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     sentMessagesLoadingRef.current = true;
     if (!isBackgroundRefresh) setMessagesLoading(true);
     try {
-      let query = supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (admin.role !== 'super_admin' && !admin.is_super_admin) {
-        query = query.eq('sender_id', admin.id);
+      const allMessages: Message[] = [];
+      for (let offset = 0; ; offset += 200) {
+        let query = supabase
+          .from('messages')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(offset, offset + 199);
+        if (admin.role !== 'super_admin' && !admin.is_super_admin) {
+          query = query.eq('sender_id', admin.id);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        allMessages.push(...(data || []) as Message[]);
+        if (!data || data.length < 200) break;
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const messageIds = (data || []).map(msg => msg.id);
-      sentMessageIdsRef.current = new Set(messageIds);
-
-      let allRecipients: Array<{ message_id: string; recipient_id: string; is_read: boolean | null; read_at: string | null }> = [];
-      if (messageIds.length > 0 && (admin.role !== 'secondary_admin' || scopedEmployeeIdsRef.current.size > 0)) {
-        let recipientsQuery = supabase
-          .from('message_recipients')
-          .select('message_id, recipient_id, is_read, read_at')
-          .in('message_id', messageIds);
-        if (admin.role === 'secondary_admin') {
-          recipientsQuery = recipientsQuery.in('recipient_id', Array.from(scopedEmployeeIdsRef.current));
+      const messageIds = allMessages.map(message => message.id);
+      const allRecipients: Array<{ message_id: string; recipient_id: string; is_read: boolean | null; read_at: string | null }> = [];
+      const scopedEmployeeIds = Array.from(scopedEmployeeIdsRef.current);
+      const employeeBatches = admin.role === 'secondary_admin'
+        ? Array.from({ length: Math.ceil(scopedEmployeeIds.length / 100) }, (_, index) => scopedEmployeeIds.slice(index * 100, index * 100 + 100))
+        : [null];
+      for (let index = 0; index < messageIds.length; index += 50) {
+        const batch = messageIds.slice(index, index + 50);
+        for (const employeeBatch of employeeBatches) {
+          for (let offset = 0; ; offset += 500) {
+            let query = supabase
+              .from('message_recipients')
+              .select('message_id, recipient_id, is_read, read_at')
+              .in('message_id', batch)
+              .order('id')
+              .range(offset, offset + 499);
+            if (employeeBatch) query = query.in('recipient_id', employeeBatch);
+            const { data, error } = await query;
+            if (error) throw error;
+            allRecipients.push(...(data || []));
+            if (!data || data.length < 500) break;
+          }
         }
-        const { data: recipients, error: recipientsError } = await recipientsQuery;
-        if (recipientsError) throw recipientsError;
-        allRecipients = recipients || [];
       }
 
       const recipientIds = Array.from(new Set(allRecipients.map(recipient => recipient.recipient_id)));
-      let recipientUsers: Array<{ id: string; username: string; employee_id: string; is_verified: boolean }> = [];
-      if (recipientIds.length > 0) {
-        let recipientUsersQuery = supabase
+      const recipientUsers: Array<{ id: string; username: string; employee_id: string; is_verified: boolean }> = [];
+      for (let index = 0; index < recipientIds.length; index += 100) {
+        let query = supabase
           .from('users')
           .select('id, username, employee_id, is_verified')
-          .in('id', recipientIds);
-        if (admin.role === 'secondary_admin') {
-          recipientUsersQuery = recipientUsersQuery.eq('created_by', admin.id);
-        }
-        const { data: users, error: recipientUsersError } = await recipientUsersQuery;
-        if (recipientUsersError) throw recipientUsersError;
-        recipientUsers = users || [];
+          .in('id', recipientIds.slice(index, index + 100));
+        if (admin.role === 'secondary_admin') query = query.eq('created_by', admin.id);
+        const { data, error } = await query;
+        if (error) throw error;
+        recipientUsers.push(...(data || []));
       }
 
       const recipientEmployeeMap = new Map(recipientUsers?.map(user => [user.id, user]) || []);
       const recipientsByMessage = new Map<string, string[]>();
       const statsByMessage = new Map<string, MessageStats>();
+      const readIdsByMessage = new Map<string, Set<string>>();
       const recipientDetailsByMessage = new Map<string, { read: Employee[]; unread: Employee[] }>();
 
       messageIds.forEach(msgId => {
         recipientsByMessage.set(msgId, []);
+        readIdsByMessage.set(msgId, new Set());
         recipientDetailsByMessage.set(msgId, { read: [], unread: [] });
         statsByMessage.set(msgId, { total_recipients: 0, read_count: 0, unread_count: 0, read_percentage: 0 });
       });
@@ -880,6 +900,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       (allRecipients || []).forEach(recipient => {
         const recipientList = recipientsByMessage.get(recipient.message_id)!;
         recipientList.push(recipient.recipient_id);
+        if (recipient.is_read) readIdsByMessage.get(recipient.message_id)!.add(recipient.recipient_id);
 
         const employee = recipientEmployeeMap.get(recipient.recipient_id);
         if (employee) {
@@ -896,18 +917,22 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         stats.read_percentage = Math.round((stats.read_count / stats.total_recipients) * 100);
       });
 
-      const messagesWithRecipients = (data || []).map(msg => ({
+      const messagesWithRecipients = allMessages.map(msg => ({
         ...msg,
         recipient_ids: recipientsByMessage.get(msg.id) || []
       }));
 
+      sentMessageIdsRef.current = new Set(messageIds);
       setSentMessages(messagesWithRecipients);
       setMessageStats(statsByMessage);
+      setReadRecipientIdsByMessage(readIdsByMessage);
       setRecipientDetails(recipientDetailsByMessage);
+      setMessagesError(false);
       if (!isBackgroundRefresh) setSelectedMessageIds(new Set());
     } catch (error) {
       if (!isSupabaseAbortError(error)) {
         console.error('Error loading messages:', formatSupabaseError(error));
+        setMessagesError(true);
       }
     } finally {
       sentMessagesLoadingRef.current = false;
@@ -928,24 +953,28 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     recipientDetailsLoadingCountRef.current += 1;
     setLoadingRecipientDetails(true);
     try {
-      let recipientsQuery = supabase
-        .from('message_recipients')
-        .select('recipient_id, is_read, read_at')
-        .eq('message_id', messageId);
-      if (admin.role === 'secondary_admin') {
-        const scopedEmployeeIds = Array.from(scopedEmployeeIdsRef.current);
-        if (scopedEmployeeIds.length === 0) {
-          setRecipientDetails(prev => new Map(prev).set(messageId, { read: [], unread: [] }));
-          return;
+      const scopedEmployeeIds = Array.from(scopedEmployeeIdsRef.current);
+      const employeeBatches = admin.role === 'secondary_admin'
+        ? Array.from({ length: Math.ceil(scopedEmployeeIds.length / 100) }, (_, index) => scopedEmployeeIds.slice(index * 100, index * 100 + 100))
+        : [null];
+      const recipients: Array<{ recipient_id: string; is_read: boolean | null; read_at: string | null }> = [];
+      for (const employeeBatch of employeeBatches) {
+        for (let offset = 0; ; offset += 500) {
+          let query = supabase
+            .from('message_recipients')
+            .select('recipient_id, is_read, read_at')
+            .eq('message_id', messageId)
+            .order('id')
+            .range(offset, offset + 499);
+          if (employeeBatch) query = query.in('recipient_id', employeeBatch);
+          const { data, error } = await query;
+          if (error) throw error;
+          recipients.push(...(data || []));
+          if (!data || data.length < 500) break;
         }
-        recipientsQuery = recipientsQuery.in('recipient_id', scopedEmployeeIds);
       }
 
-      const { data: recipients, error } = await recipientsQuery;
-
-      if (error) throw error;
-
-      const rIds = recipients?.map(r => r.recipient_id) || [];
+      const rIds = recipients.map(r => r.recipient_id);
       if (rIds.length === 0) {
         setRecipientDetails(prev => new Map(prev).set(messageId, { read: [], unread: [] }));
         return;
@@ -958,23 +987,20 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       );
       const missingRecipientIds = rIds.filter(recipientId => !employeeMap.has(recipientId));
 
-      if (missingRecipientIds.length > 0) {
+      for (let index = 0; index < missingRecipientIds.length; index += 100) {
         let employeesQuery = supabase
           .from('users')
           .select('id, username, employee_id, is_verified')
-          .in('id', missingRecipientIds);
-        if (admin.role === 'secondary_admin') {
-          employeesQuery = employeesQuery.eq('created_by', admin.id);
-        }
-        const { data: employees, error: empError } = await employeesQuery;
-
-        if (empError) throw empError;
-        employees?.forEach(employee => employeeMap.set(employee.id, employee as Employee));
+          .in('id', missingRecipientIds.slice(index, index + 100));
+        if (admin.role === 'secondary_admin') employeesQuery = employeesQuery.eq('created_by', admin.id);
+        const { data, error } = await employeesQuery;
+        if (error) throw error;
+        data?.forEach(employee => employeeMap.set(employee.id, employee as Employee));
       }
       const read: Employee[] = [];
       const unread: Employee[] = [];
 
-      recipients?.forEach(r => {
+      recipients.forEach(r => {
         const emp = employeeMap.get(r.recipient_id);
         if (emp) {
           const recipientEmployee = { ...emp, message_read_at: r.read_at } as Employee;
@@ -1105,9 +1131,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
     const scopedRecipientIds = (message.recipient_ids || [])
       .filter(recipientId => selectedGroupEmployeeIds.has(recipientId));
-    const readRecipientIds = new Set(
-      (recipientDetails.get(message.id)?.read || []).map(employee => employee.id),
-    );
+    const readRecipientIds = readRecipientIdsByMessage.get(message.id) || new Set<string>();
     const readCount = scopedRecipientIds.filter(recipientId => readRecipientIds.has(recipientId)).length;
     const totalRecipients = scopedRecipientIds.length;
 
@@ -1129,11 +1153,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       const stats = getSelectedGroupMessageStats(message);
       const isFullyRead = stats.total_recipients > 0 && stats.read_count === stats.total_recipients;
 
-      if (isFullyRead) summary.read += 1;
+      if (stats.total_recipients === 0) summary.no_recipients += 1;
+      else if (isFullyRead) summary.read += 1;
       else summary.unread += 1;
       return summary;
     },
-    { total: visibleGroupMessages.length, read: 0, unread: 0 },
+    { total: visibleGroupMessages.length, read: 0, unread: 0, no_recipients: 0 },
   );
 
   const filteredMessages = visibleGroupMessages.filter(msg => {
@@ -1146,7 +1171,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     if (readStatusFilter !== 'all') {
       const stats = getSelectedGroupMessageStats(msg);
       if (readStatusFilter === 'read' && (stats.total_recipients === 0 || stats.read_count !== stats.total_recipients)) return false;
-      if (readStatusFilter === 'unread' && stats.read_count === stats.total_recipients) return false;
+      if (readStatusFilter === 'unread' && (stats.total_recipients === 0 || stats.read_count === stats.total_recipients)) return false;
+      if (readStatusFilter === 'no_recipients' && stats.total_recipients !== 0) return false;
     }
     if (sentMessagesSearchQuery.trim()) {
       const query = sentMessagesSearchQuery.trim().toLowerCase();
@@ -2049,17 +2075,22 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       ['all', '全部', sentMessageReadSummary.total],
                       ['read', '已讀', sentMessageReadSummary.read],
                       ['unread', '未讀', sentMessageReadSummary.unread],
+                      ['no_recipients', '無收件人', sentMessageReadSummary.no_recipients],
                     ] as const).map(([val, label, count]) => {
                       const activeClass = val === 'read'
                         ? 'border-emerald-500 bg-emerald-600 text-white'
                         : val === 'unread'
                           ? 'border-red-400 bg-red-600 text-white'
-                          : 'border-indigo-400 bg-indigo-600 text-white';
+                          : val === 'no_recipients'
+                            ? 'border-slate-400 bg-slate-600 text-white'
+                            : 'border-indigo-400 bg-indigo-600 text-white';
                       const idleClass = val === 'read'
                         ? 'text-emerald-300/80 hover:bg-emerald-950/70 hover:text-emerald-100'
                         : val === 'unread'
                           ? 'text-red-300 hover:bg-red-950/70 hover:text-red-100'
-                          : 'text-indigo-300 hover:bg-indigo-950/70 hover:text-indigo-100';
+                          : val === 'no_recipients'
+                            ? 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+                            : 'text-indigo-300 hover:bg-indigo-950/70 hover:text-indigo-100';
                       return (
                         <button key={val} onClick={() => setReadStatusFilter(val)}
                           className={`flex min-h-9 min-w-0 flex-1 flex-col items-center justify-center rounded border px-1 py-1 text-[9px] font-bold leading-none transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
@@ -2072,6 +2103,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </div>
             </div>
           </div>
+
+          {messagesError && (
+            <div role="alert" className="flex items-center justify-between gap-2 border-b border-red-500/30 bg-red-950/60 px-3 py-2 text-xs text-red-200">
+              <span>通知閱讀統計未能更新，以下資料可能已過時。</span>
+              <button type="button" onClick={() => void loadSentMessages()} className="shrink-0 rounded border border-red-300/40 px-2 py-1 font-bold">重試</button>
+            </div>
+          )}
 
           {/* Message List */}
           <div className="min-h-0 flex-1 space-y-1 overflow-y-auto border-b border-slate-700/60 p-1.5 scrollbar-dark">
@@ -2092,11 +2130,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 const readCount = stats.read_count;
                 const isFullyRead = recipientCount > 0 && readCount === recipientCount;
                 const isPartiallyRead = readCount > 0 && !isFullyRead;
-                const cardTone = isFullyRead
-                  ? 'border-emerald-500/35 border-l-emerald-400 bg-gradient-to-r from-emerald-950/75 via-slate-900/85 to-slate-900/65 hover:border-emerald-300/80 hover:shadow-[0_6px_18px_rgba(16,185,129,0.22)]'
-                  : isPartiallyRead
-                    ? 'border-amber-500/35 border-l-amber-400 bg-gradient-to-r from-amber-950/70 via-slate-900/85 to-slate-900/65 hover:border-amber-300/80 hover:shadow-[0_6px_18px_rgba(245,158,11,0.22)]'
-                    : 'border-red-500/35 border-l-red-400 bg-gradient-to-r from-red-950/70 via-slate-900/85 to-slate-900/65 hover:border-red-300/80 hover:shadow-[0_6px_18px_rgba(239,68,68,0.22)]';
+                const cardTone = recipientCount === 0
+                  ? 'border-slate-600/50 border-l-slate-500 bg-gradient-to-r from-slate-800/70 via-slate-900/85 to-slate-900/65 hover:border-slate-400/70'
+                  : isFullyRead
+                    ? 'border-emerald-500/35 border-l-emerald-400 bg-gradient-to-r from-emerald-950/75 via-slate-900/85 to-slate-900/65 hover:border-emerald-300/80 hover:shadow-[0_6px_18px_rgba(16,185,129,0.22)]'
+                    : isPartiallyRead
+                      ? 'border-amber-500/35 border-l-amber-400 bg-gradient-to-r from-amber-950/70 via-slate-900/85 to-slate-900/65 hover:border-amber-300/80 hover:shadow-[0_6px_18px_rgba(245,158,11,0.22)]'
+                      : 'border-red-500/35 border-l-red-400 bg-gradient-to-r from-red-950/70 via-slate-900/85 to-slate-900/65 hover:border-red-300/80 hover:shadow-[0_6px_18px_rgba(239,68,68,0.22)]';
                 const isSelectedMsg = selectedMessageIds.has(msg.id);
 
                 return (
@@ -2159,13 +2199,15 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           </div>
                           <div className="flex shrink-0 items-center gap-1.5">
                             <span className={`rounded px-1 py-0.5 text-[7px] font-black ${
-                              isFullyRead
-                                ? 'bg-emerald-400/15 text-emerald-300'
-                                : isPartiallyRead
-                                  ? 'bg-amber-400/15 text-amber-300'
-                                  : 'bg-red-400/15 text-red-300'
+                              recipientCount === 0
+                                ? 'bg-slate-400/15 text-slate-300'
+                                : isFullyRead
+                                  ? 'bg-emerald-400/15 text-emerald-300'
+                                  : isPartiallyRead
+                                    ? 'bg-amber-400/15 text-amber-300'
+                                    : 'bg-red-400/15 text-red-300'
                             }`}>
-                              {isFullyRead ? '已讀' : isPartiallyRead ? '部分' : '未讀'} {readCount}/{recipientCount}
+                              {recipientCount === 0 ? '無收件人' : isFullyRead ? '已讀' : isPartiallyRead ? '部分' : '未讀'} {readCount}/{recipientCount}
                             </span>
                             <span className="text-[8px] font-semibold text-slate-200">
                               {formatMessageDateTime(msg.created_at)}

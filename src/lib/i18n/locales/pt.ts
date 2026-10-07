@@ -25,6 +25,7 @@ const pt = {
     markAllRead: 'Marcar tudo como lido',
     unread: 'Não lido',
     read: 'Lido',
+    readSyncFailed: 'Não foi possível salvar o status de leitura. Tente novamente.',
     close: 'Fechar',
     notification: 'Notificação',
     prev: 'Anterior',

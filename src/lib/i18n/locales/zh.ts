@@ -538,6 +538,7 @@ const zh = {
     markAllRead: '全部标记为已读',
     unread: '未读',
     read: '已读',
+    readSyncFailed: '未能保存已读状态，请重试。',
     close: '关闭',
     notification: '通知',
     prev: '上一条',

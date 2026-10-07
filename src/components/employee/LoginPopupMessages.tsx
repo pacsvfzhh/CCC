@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Clock, ChevronRight, Gift, Wallet } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { getEmployeeFinancialSession } from '../../lib/auth';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
@@ -11,15 +11,19 @@ import QuickCopyRichContent from './QuickCopyRichContent';
 interface LoginPopupMessagesProps {
   employee: Employee;
   onClose: () => void;
+  onSessionExpired: () => void;
 }
 
 type ClaimedLoginMessage = MessageWithRecipient & { claim_token: string };
 
-export default function LoginPopupMessages({ employee, onClose }: LoginPopupMessagesProps) {
+export default function LoginPopupMessages({ employee, onClose, onSessionExpired }: LoginPopupMessagesProps) {
   const [messages, setMessages] = useState<ClaimedLoginMessage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmingRead, setConfirmingRead] = useState(false);
+  const [readSyncFailed, setReadSyncFailed] = useState(false);
+  const confirmingReadRef = useRef(false);
   const { isMobile, isDesktop } = useResponsive();
   const { t, dateLocale } = useLanguage();
   const loadLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
@@ -110,6 +114,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
       if (!claimed) onClose();
     } catch (error) {
       console.error('Error loading login popup messages:', error);
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
       setMessages([]);
     } finally {
       setLoading(false);
@@ -135,11 +140,12 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
   };
 
   const handleNext = async () => {
+    if (confirmingReadRef.current) return;
+    confirmingReadRef.current = true;
+    setConfirmingRead(true);
+    setReadSyncFailed(false);
     try {
-      if (!await completeCurrentDelivery(true)) {
-        onClose();
-        return;
-      }
+      if (!await completeCurrentDelivery(true)) throw new Error('Notification delivery could not be confirmed.');
       if (hasMore) {
         setLoading(true);
         const claimed = await claimNextLoginMessage();
@@ -150,16 +156,30 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
       }
     } catch (error) {
       setLoading(false);
+      setReadSyncFailed(true);
       console.error('Error completing login notification delivery:', error);
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+    } finally {
+      confirmingReadRef.current = false;
+      setConfirmingRead(false);
     }
   };
 
   const handleClose = async () => {
+    if (confirmingReadRef.current) return;
+    confirmingReadRef.current = true;
+    setConfirmingRead(true);
+    setReadSyncFailed(false);
     try {
-      await completeCurrentDelivery(false);
+      if (!await completeCurrentDelivery(true)) throw new Error('Notification delivery could not be confirmed.');
       onClose();
     } catch (error) {
+      setReadSyncFailed(true);
       console.error('Error completing login notification delivery:', error);
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+    } finally {
+      confirmingReadRef.current = false;
+      setConfirmingRead(false);
     }
   };
 
@@ -298,6 +318,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               className={`relative flex-shrink-0 border-t px-5 py-4 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm ${isReward ? 'border-amber-200/80 bg-amber-50/90 shadow-amber-900/10' : 'border-slate-200/70 bg-white/95'}`}
               style={{ paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 16px)' : undefined }}
             >
+              {readSyncFailed && <p role="alert" className="mb-2 text-xs font-semibold text-rose-700">{t.messages.readSyncFailed}</p>}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${isReward ? 'bg-amber-100 text-amber-700 ring-amber-200' : 'bg-blue-50 text-blue-600 ring-blue-200'}`}>
@@ -316,7 +337,8 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   
                   <button
                     onClick={handleNext}
-                    className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 active:from-amber-600 active:via-yellow-600 active:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25 active:from-blue-700 active:to-blue-800'}`}
+                    disabled={confirmingRead}
+                    className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 active:from-amber-600 active:via-yellow-600 active:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25 active:from-blue-700 active:to-blue-800'}`}
                   >
                     <span>{hasMore ? t.loginPopup.next : t.loginPopup.gotIt}</span>
                     <ChevronRight className="h-4 w-4" />
@@ -434,6 +456,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
               {/* Footer */}
               <div className={`flex-shrink-0 border-t px-8 py-5 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] ${isReward ? 'border-amber-200/80 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50' : 'border-slate-200/70 bg-gradient-to-r from-white via-slate-50/95 to-blue-50/60'}`}>
+                {readSyncFailed && <p role="alert" className="mb-2 text-xs font-semibold text-rose-700">{t.messages.readSyncFailed}</p>}
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${isReward ? 'bg-amber-100 text-amber-700 ring-amber-200' : 'bg-blue-50 text-blue-600 ring-blue-200'}`}>
@@ -452,7 +475,8 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                     
                     <button
                       onClick={handleNext}
-                      className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/30'}`}
+                      disabled={confirmingRead}
+                      className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/30'}`}
                     >
                       <span>{hasMore ? t.loginPopup.next : t.loginPopup.gotIt}</span>
                       <ChevronRight className="h-4 w-4" />

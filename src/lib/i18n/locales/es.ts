@@ -487,6 +487,7 @@ const es = {
     markAllRead: 'Marcar todo como leído',
     unread: 'No leído',
     read: 'Leído',
+    readSyncFailed: 'No se pudo guardar el estado de lectura. Inténtalo de nuevo.',
     close: 'Cerrar',
     notification: 'Notificación',
     prev: 'Anterior',

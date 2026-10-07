@@ -597,6 +597,7 @@ const hi = {
     markAllRead: 'सभी पढ़ा गया चिह्नित करें',
     unread: 'अपठित',
     read: 'पठित',
+    readSyncFailed: 'पढ़ा गया स्थिति सहेजी नहीं जा सकी। कृपया पुनः प्रयास करें।',
     close: 'बंद करें',
     notification: 'सूचना',
     prev: 'पिछला',

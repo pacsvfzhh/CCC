@@ -66,6 +66,7 @@ const ja = {
     markAllRead: 'すべて既読にする',
     unread: '未読',
     read: '既読',
+    readSyncFailed: '既読状態を保存できませんでした。再試行してください。',
     close: '閉じる',
     notification: '通知',
     prev: '前へ',
