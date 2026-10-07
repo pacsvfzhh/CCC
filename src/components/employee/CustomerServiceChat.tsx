@@ -2055,8 +2055,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
         input.customer-service-search {
           box-sizing: border-box;
-          height: 44px;
-          min-height: 44px !important;
+          height: 40px;
+          min-height: 40px !important;
           padding-top: 0;
           padding-bottom: 0;
         }
@@ -2373,10 +2373,12 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="customer-service-search-clear group absolute right-0 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg transition-all hover:bg-white/10"
+                      className="customer-service-search-clear group absolute right-0 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg"
                       aria-label="Clear search"
                     >
-                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-200 group-hover:text-white transition-colors" />
+                      <span className="flex h-[32px] w-[32px] items-center justify-center rounded-lg transition-colors group-hover:bg-white/10">
+                        <X className="h-[18px] w-[18px] text-blue-200 transition-colors group-hover:text-white" />
+                      </span>
                     </button>
                   )}
                 </div>
