@@ -72,7 +72,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
         p_session_token: session.token,
         p_tab_id: session.tabId,
         p_filter: filter,
-        p_limit: filter === 'unread' ? 100 : 50,
+        p_limit: 100,
       });
       const unreadRequest = filter === 'unread' ? null : supabase.rpc('get_employee_notification_messages', {
         p_user_id: employee.id,
