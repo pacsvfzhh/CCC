@@ -25,7 +25,7 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'login' | 'realtime'>('all');
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(null);
-  const [readSyncErrorId, setReadSyncErrorId] = useState<string | null>(null);
+  const [failedReadIds, setFailedReadIds] = useState<Set<string>>(new Set());
   const [markingReadId, setMarkingReadId] = useState<string | null>(null);
   const pendingReadIdsRef = useRef(new Set<string>());
   const { isDesktop } = useResponsive();
@@ -93,13 +93,14 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
       const visibleMessages = (listResult.data || []) as MessageWithRecipient[];
       const unread = ((unreadResult || listResult).data || []) as MessageWithRecipient[];
       setUnreadMessages(unread);
+      setFailedReadIds(previous => new Set([...previous].filter(id => unread.some(message => message.id === id))));
       setMessages(filter === 'all'
         ? [...new Map([...visibleMessages, ...unread].map(message => [message.id, message])).values()]
         : visibleMessages);
     } catch (error) {
       if (requestId === loadRequestIdRef.current) {
         console.error('Error loading messages:', error);
-        if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+        if ((formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired'))) onSessionExpired();
       }
     } finally {
       if (requestId === loadRequestIdRef.current) setLoading(false);
@@ -111,7 +112,6 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
     if (pendingReadIdsRef.current.has(recipientId)) return;
     pendingReadIdsRef.current.add(recipientId);
     setMarkingReadId(recipientId);
-    setReadSyncErrorId(null);
     try {
       const session = getEmployeeFinancialSession();
       let readAt: string | null = null;
@@ -136,11 +136,15 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
       );
       setUnreadMessages(prev => prev.filter(msg => msg.id !== recipientId));
       setSelectedMessage(previous => previous?.id === recipientId ? { ...previous, is_read: true, read_at: readAt } : previous);
-      setReadSyncErrorId(null);
+      setFailedReadIds(previous => {
+        const next = new Set(previous);
+        next.delete(recipientId);
+        return next;
+      });
     } catch (error) {
       console.error('Error marking message as read:', error);
-      setReadSyncErrorId(recipientId);
-      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+      setFailedReadIds(previous => new Set(previous).add(recipientId));
+      if ((formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired'))) onSessionExpired();
     } finally {
       pendingReadIdsRef.current.delete(recipientId);
       setMarkingReadId(current => current === recipientId ? null : current);
@@ -149,7 +153,6 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
 
   const openMessage = (msg: MessageWithRecipient) => {
     setSelectedMessage(msg);
-    setReadSyncErrorId(null);
     if (!msg.is_read) void markAsRead(msg.id);
   };
 
@@ -399,6 +402,12 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
         {/* Message List */}
         <div className="relative flex-1 overflow-y-auto">
           <div className="px-4 lg:px-6 py-4 pb-8 space-y-3">
+            {failedReadIds.size > 0 && (
+              <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+                <span>{t.messages.readSyncFailed}</span>
+                <button type="button" onClick={() => failedReadIds.forEach(id => void markAsRead(id))} className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5">{t.common.retry}</button>
+              </div>
+            )}
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
@@ -689,7 +698,7 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
 
             {/* Detail Footer */}
             <div className="relative flex-shrink-0 bg-white border-t border-blue-100 p-4 lg:p-5">
-              {readSyncErrorId === selectedMessage.id && (
+              {failedReadIds.has(selectedMessage.id) && (
                 <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
                   <span>{t.messages.readSyncFailed}</span>
                   <button type="button" onClick={() => void markAsRead(selectedMessage.id)} disabled={markingReadId === selectedMessage.id} className="shrink-0 rounded-lg border border-rose-200 px-2.5 py-1.5 disabled:opacity-50">{t.common.retry}</button>

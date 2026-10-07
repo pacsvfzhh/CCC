@@ -114,7 +114,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
       if (!claimed) onClose();
     } catch (error) {
       console.error('Error loading login popup messages:', error);
-      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired')) onSessionExpired();
       setMessages([]);
     } finally {
       setLoading(false);
@@ -158,7 +158,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
       setLoading(false);
       setReadSyncFailed(true);
       console.error('Error completing login notification delivery:', error);
-      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired')) onSessionExpired();
     } finally {
       confirmingReadRef.current = false;
       setConfirmingRead(false);
@@ -176,7 +176,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
     } catch (error) {
       setReadSyncFailed(true);
       console.error('Error completing login notification delivery:', error);
-      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) onSessionExpired();
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired')) onSessionExpired();
     } finally {
       confirmingReadRef.current = false;
       setConfirmingRead(false);
@@ -318,7 +318,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
               className={`relative flex-shrink-0 border-t px-5 py-4 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm ${isReward ? 'border-amber-200/80 bg-amber-50/90 shadow-amber-900/10' : 'border-slate-200/70 bg-white/95'}`}
               style={{ paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 16px)' : undefined }}
             >
-              {readSyncFailed && <p role="alert" className="mb-2 text-xs font-semibold text-rose-700">{t.messages.readSyncFailed}</p>}
+              {readSyncFailed && <div role="alert" className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold text-rose-700"><span>{t.messages.readSyncFailed}</span><button type="button" onClick={onClose} className="shrink-0 underline">{t.messages.close}</button></div>}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${isReward ? 'bg-amber-100 text-amber-700 ring-amber-200' : 'bg-blue-50 text-blue-600 ring-blue-200'}`}>
@@ -456,7 +456,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
 
               {/* Footer */}
               <div className={`flex-shrink-0 border-t px-8 py-5 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] ${isReward ? 'border-amber-200/80 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50' : 'border-slate-200/70 bg-gradient-to-r from-white via-slate-50/95 to-blue-50/60'}`}>
-                {readSyncFailed && <p role="alert" className="mb-2 text-xs font-semibold text-rose-700">{t.messages.readSyncFailed}</p>}
+                {readSyncFailed && <div role="alert" className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold text-rose-700"><span>{t.messages.readSyncFailed}</span><button type="button" onClick={onClose} className="shrink-0 underline">{t.messages.close}</button></div>}
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${isReward ? 'bg-amber-100 text-amber-700 ring-amber-200' : 'bg-blue-50 text-blue-600 ring-blue-200'}`}>

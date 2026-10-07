@@ -378,6 +378,23 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     };
   }, [admin.id, admin.role]);
 
+  useEffect(() => {
+    if (!isActive) return;
+    const refreshReadStatus = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        void loadSentMessagesRef.current?.(true);
+      }
+    };
+    window.addEventListener('online', refreshReadStatus);
+    window.addEventListener('focus', refreshReadStatus);
+    document.addEventListener('visibilitychange', refreshReadStatus);
+    return () => {
+      window.removeEventListener('online', refreshReadStatus);
+      window.removeEventListener('focus', refreshReadStatus);
+      document.removeEventListener('visibilitychange', refreshReadStatus);
+    };
+  }, [isActive]);
+
   // Close tag dropdown on outside click
   useEffect(() => {
     if (!showTagDropdown) return;
@@ -508,7 +525,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setAdminGroups(filteredGroups);
       setAllEmployees(employeesByAdmin);
 
-      if (admin.role === 'secondary_admin' && sentMessageIdsRef.current.size > 0) {
+      if (admin.role === 'secondary_admin') {
         void loadSentMessagesRef.current?.(true);
       }
 
@@ -1119,6 +1136,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const selectedGroupMessages = sentMessages.filter(message => (
     !selectedAdminId
     || (message.recipient_ids || []).some(recipientId => selectedGroupEmployeeIds.has(recipientId))
+    || (message.recipient_ids?.length === 0 && message.sender_id === selectedAdminId)
   ));
   const getSelectedGroupMessageStats = (message: Message): MessageStats => {
     const existingStats = messageStats.get(message.id) || {
