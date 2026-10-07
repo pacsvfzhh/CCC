@@ -10,6 +10,7 @@ import QuickCopyRichContent from './QuickCopyRichContent';
 
 interface MessageCenterProps {
   employee: Employee;
+  initialMessage?: MessageWithRecipient | null;
   onClose: () => void;
   onSessionExpired: () => void;
 }
@@ -18,16 +19,17 @@ const getDeliveredMessageType = (message: MessageWithRecipient): 'realtime' | 'l
   message.delivery_channel
     || (message.messages.delivery_mode === 'realtime_only' ? 'realtime' : 'login_popup');
 
-export default function MessageCenter({ employee, onClose, onSessionExpired }: MessageCenterProps) {
+export default function MessageCenter({ employee, initialMessage, onClose, onSessionExpired }: MessageCenterProps) {
   const { t, dateLocale } = useLanguage();
   const [messages, setMessages] = useState<MessageWithRecipient[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<MessageWithRecipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'login' | 'realtime'>('all');
-  const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(initialMessage || null);
   const [failedReadIds, setFailedReadIds] = useState<Set<string>>(new Set());
   const [markingReadId, setMarkingReadId] = useState<string | null>(null);
   const pendingReadIdsRef = useRef(new Set<string>());
+  const confirmedReadAtRef = useRef(new Map<string, string>());
   const { isDesktop } = useResponsive();
   const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
   const loadRequestIdRef = useRef(0);
@@ -90,13 +92,17 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
       if (unreadResult?.error) throw unreadResult.error;
       if (requestId !== loadRequestIdRef.current) return;
 
-      const visibleMessages = (listResult.data || []) as MessageWithRecipient[];
-      const unread = ((unreadResult || listResult).data || []) as MessageWithRecipient[];
+      const withConfirmedReads = (rows: MessageWithRecipient[]) => rows.map(message => {
+        const readAt = confirmedReadAtRef.current.get(message.id);
+        return readAt ? { ...message, is_read: true, read_at: readAt } : message;
+      });
+      const visibleMessages = withConfirmedReads((listResult.data || []) as MessageWithRecipient[]);
+      const unread = withConfirmedReads(((unreadResult || listResult).data || []) as MessageWithRecipient[]).filter(message => !message.is_read);
       setUnreadMessages(unread);
       setFailedReadIds(previous => new Set([...previous].filter(id => unread.some(message => message.id === id))));
       setMessages(filter === 'all'
         ? [...new Map([...visibleMessages, ...unread].map(message => [message.id, message])).values()]
-        : visibleMessages);
+        : filter === 'unread' ? visibleMessages.filter(message => !message.is_read) : visibleMessages);
     } catch (error) {
       if (requestId === loadRequestIdRef.current) {
         console.error('Error loading messages:', error);
@@ -130,6 +136,7 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
         await new Promise(resolve => window.setTimeout(resolve, (attempt + 1) * 500));
       }
       if (!readAt) throw new Error('Notification read confirmation was not returned.');
+      confirmedReadAtRef.current.set(recipientId, readAt);
       setMessages(prev => filter === 'unread'
         ? prev.filter(msg => msg.id !== recipientId)
         : prev.map(msg => msg.id === recipientId ? { ...msg, is_read: true, read_at: readAt } : msg)
@@ -151,9 +158,12 @@ export default function MessageCenter({ employee, onClose, onSessionExpired }: M
     }
   };
 
+  useEffect(() => {
+    if (selectedMessage && !selectedMessage.is_read) void markAsRead(selectedMessage.id);
+  }, [selectedMessage?.id]);
+
   const openMessage = (msg: MessageWithRecipient) => {
     setSelectedMessage(msg);
-    if (!msg.is_read) void markAsRead(msg.id);
   };
 
   const getPriorityIcon = (priority: string, className: string) => {

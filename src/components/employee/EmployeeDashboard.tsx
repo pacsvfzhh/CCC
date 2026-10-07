@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
-import { Employee } from '../../types';
+import { Employee, MessageWithRecipient } from '../../types';
 import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, logout } from '../../lib/auth';
 import { logEmployeeLogin } from '../../lib/loginHistoryService';
 import { formatSupabaseError, isSupabaseTransientError, supabase } from '../../lib/supabase';
@@ -40,15 +40,19 @@ interface EmployeeDashboardProps {
 
 type RealtimeNotificationClaim = {
   claim_token: string;
-  recipient: { id: string };
-  message: {
-    title: string;
-    content: string;
-    priority: string;
-    notification_category: string;
-    reward_amount: number | null;
-    reward_currency: string | null;
-  };
+  recipient: Omit<MessageWithRecipient, 'messages'>;
+  message: MessageWithRecipient['messages'];
+};
+
+type MessageToast = {
+  recipientId: string;
+  title: string;
+  content: string;
+  priority: string;
+  notificationCategory: string;
+  rewardAmount: number | null;
+  rewardCurrency: string | null;
+  notification: MessageWithRecipient;
 };
 
 type EmployeeFinancialSession = ReturnType<typeof getEmployeeFinancialSession>;
@@ -65,14 +69,15 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['announcements']));
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showMessageCenter, setShowMessageCenter] = useState(false);
+  const [messageToOpen, setMessageToOpen] = useState<MessageWithRecipient | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [hasNewOrder, setHasNewOrder] = useState(false);
   const [hasOrderTimeout, setHasOrderTimeout] = useState(false);
   const [showMessageToast, setShowMessageToast] = useState(false);
-  const [latestMessage, setLatestMessage] = useState<{ recipientId: string; title: string; content: string; priority: string; notificationCategory: string; rewardAmount: number | null; rewardCurrency: string | null } | null>(null);
-  const [messageToastQueue, setMessageToastQueue] = useState<Array<{ recipientId: string; title: string; content: string; priority: string; notificationCategory: string; rewardAmount: number | null; rewardCurrency: string | null }>>([]);
+  const [latestMessage, setLatestMessage] = useState<MessageToast | null>(null);
+  const [messageToastQueue, setMessageToastQueue] = useState<MessageToast[]>([]);
   const [audioContextReady, setAudioContextReady] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
@@ -611,7 +616,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       completion = await supabase.rpc('complete_notification_delivery', completionPayload);
     }
     if (completion.error) throw completion.error;
-    if (!(completion.data as { success?: boolean } | null)?.success) {
+    const delivered = completion.data as { success?: boolean; delivery_channel?: MessageWithRecipient['delivery_channel']; delivered_at?: string; is_read?: boolean; read_at?: string | null } | null;
+    if (!delivered?.success) {
       throw new Error('Notification delivery could not be confirmed.');
     }
     if (deliveredRecipientIdsRef.current.has(recipientId)) return;
@@ -625,8 +631,16 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       content: result.message.content,
       priority: result.message.priority,
       notificationCategory: result.message.notification_category,
-      rewardAmount: result.message.reward_amount,
-      rewardCurrency: result.message.reward_currency,
+      rewardAmount: result.message.reward_amount || null,
+      rewardCurrency: result.message.reward_currency || null,
+      notification: {
+        ...result.recipient,
+        delivery_channel: delivered.delivery_channel || 'realtime',
+        delivered_at: delivered.delivered_at || null,
+        is_read: delivered.is_read || false,
+        read_at: delivered.read_at || null,
+        messages: result.message,
+      },
     }]);
     void loadUnreadCountRef.current?.();
   };
@@ -824,6 +838,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   <button
                     onClick={() => {
                       dismissMessageToast();
+                      setMessageToOpen(null);
                       setShowMessageCenter(true);
                       setHasNewMessage(false);
                     }}
@@ -885,7 +900,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                         {/* Content */}
                         <div
-                          onClick={() => { dismissMessageToast(); setShowMessageCenter(true); }}
+                          onClick={() => { setMessageToOpen(latestMessage.notification); dismissMessageToast(); setShowMessageCenter(true); setHasNewMessage(false); }}
                           className="relative px-3 sm:px-4 pt-3 sm:pt-3.5 pb-3 sm:pb-3.5 cursor-pointer touch-manipulation"
                           style={{ WebkitTapHighlightColor: 'transparent' }}
                         >
@@ -1503,13 +1518,16 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       {showMessageCenter && (
         <MessageCenter
           employee={employee}
+          initialMessage={messageToOpen}
           onClose={() => {
             setShowMessageCenter(false);
+            setMessageToOpen(null);
             void loadUnreadCountRef.current?.();
           }}
           onSessionExpired={() => {
             financialSessionInvalidRef.current = true;
             setShowMessageCenter(false);
+            setMessageToOpen(null);
             setShowSessionExpired(true);
           }}
         />

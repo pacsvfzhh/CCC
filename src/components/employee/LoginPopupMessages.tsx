@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Clock, ChevronRight, Gift, Wallet } from 'lucide-react';
-import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { formatSupabaseError, isSupabaseTransientError, supabase } from '../../lib/supabase';
 import { getEmployeeFinancialSession } from '../../lib/auth';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
@@ -24,6 +24,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
   const [confirmingRead, setConfirmingRead] = useState(false);
   const [readSyncFailed, setReadSyncFailed] = useState(false);
   const confirmingReadRef = useRef(false);
+  const completedMessageIdRef = useRef<string | null>(null);
   const { isMobile, isDesktop } = useResponsive();
   const { t, dateLocale } = useLanguage();
   const loadLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
@@ -122,22 +123,51 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
   };
   loadLoginPopupMessagesRef.current = loadLoginPopupMessages;
 
-  const completeCurrentDelivery = async (markRead: boolean) => {
+  const completeCurrentDelivery = async () => {
     const msg = messages[currentIndex];
-    if (!msg) return false;
+    if (!msg) throw new Error('Notification is no longer available.');
 
     const session = getEmployeeFinancialSession();
-    const { data, error } = await supabase.rpc('complete_notification_delivery', {
-      p_user_id: employee.id,
-      p_session_token: session.token,
-      p_tab_id: session.tabId,
-      p_recipient_id: msg.id,
-      p_claim_token: msg.claim_token,
-      p_mark_read: markRead,
-    });
-    if (error) throw error;
-    return Boolean((data as { success?: boolean } | null)?.success);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const { data, error } = await supabase.rpc('complete_notification_delivery', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_recipient_id: msg.id,
+        p_claim_token: msg.claim_token,
+        p_mark_read: true,
+      });
+      if (!error) {
+        const result = data as { success?: boolean; is_read?: boolean; read_at?: string } | null;
+        if (!result?.success || !result.is_read || !result.read_at) throw new Error('Notification read confirmation was not returned.');
+        completedMessageIdRef.current = msg.id;
+        setMessages(previous => previous.map(message => message.id === msg.id
+          ? { ...message, is_read: true, read_at: result.read_at || null }
+          : message));
+        return;
+      }
+      if (!navigator.onLine || !isSupabaseTransientError(error) || attempt === 2) throw error;
+      await new Promise(resolve => window.setTimeout(resolve, (attempt + 1) * 500));
+    }
   };
+
+  useEffect(() => {
+    const messageId = messages[currentIndex]?.id;
+    if (loading || !messageId || completedMessageIdRef.current === messageId || confirmingReadRef.current) return;
+    confirmingReadRef.current = true;
+    setConfirmingRead(true);
+    setReadSyncFailed(false);
+    void completeCurrentDelivery()
+      .catch(error => {
+        setReadSyncFailed(true);
+        console.error('Error confirming login notification read:', error);
+        if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired') || formatSupabaseError(error).toLowerCase().includes('employee session has expired')) onSessionExpired();
+      })
+      .finally(() => {
+        confirmingReadRef.current = false;
+        setConfirmingRead(false);
+      });
+  }, [loading, messages[currentIndex]?.id]);
 
   const handleNext = async () => {
     if (confirmingReadRef.current) return;
@@ -145,7 +175,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
     setConfirmingRead(true);
     setReadSyncFailed(false);
     try {
-      if (!await completeCurrentDelivery(true)) throw new Error('Notification delivery could not be confirmed.');
+      if (completedMessageIdRef.current !== messages[currentIndex]?.id) await completeCurrentDelivery();
       if (hasMore) {
         setLoading(true);
         const claimed = await claimNextLoginMessage();
@@ -171,7 +201,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
     setConfirmingRead(true);
     setReadSyncFailed(false);
     try {
-      if (!await completeCurrentDelivery(true)) throw new Error('Notification delivery could not be confirmed.');
+      if (completedMessageIdRef.current !== messages[currentIndex]?.id) await completeCurrentDelivery();
       onClose();
     } catch (error) {
       setReadSyncFailed(true);
