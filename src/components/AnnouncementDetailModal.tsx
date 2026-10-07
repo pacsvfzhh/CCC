@@ -169,14 +169,14 @@ export default function AnnouncementDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25 active:scale-90 active:bg-white/30"
+            className="announcement-detail-close absolute right-3 top-3 z-20 flex items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25 active:scale-90 active:bg-white/30"
             style={{
               touchAction: 'manipulation',
               top: isMobileDevice ? 'calc(env(safe-area-inset-top) + 12px)' : '16px',
             }}
             aria-label={closeLabel}
           >
-            <X className="h-4 w-4 text-white" />
+            <X className="h-[18px] w-[18px] shrink-0 text-white" />
           </button>
 
           <div className="relative z-10">
@@ -270,6 +270,7 @@ export default function AnnouncementDetailModal({
         @keyframes announcement-detail-spin { to { transform: rotate(360deg); } }
         @keyframes announcement-detail-pulse { 50% { transform: scale(1.08); opacity: .65; } }
         @keyframes announcement-detail-progress { 0% { transform: translateX(-100%); } 50% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+        button.announcement-detail-close { box-sizing: border-box; width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; }
         .announcement-detail-scroll::-webkit-scrollbar { display: none; }
         .announcement-detail-content { overflow-x: hidden; overflow-wrap: break-word; word-break: break-word; }
         .announcement-detail-content h1,
