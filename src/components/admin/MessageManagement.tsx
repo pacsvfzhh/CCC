@@ -1183,7 +1183,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const getPriorityLabel = (priority: Message['priority']) => ({
     low: '低',
     normal: '普通',
-    high: '高',
+    high: '重要',
     urgent: '緊急',
   })[priority];
 
