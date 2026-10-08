@@ -735,12 +735,16 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       </aside>
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section aria-label="已刪員工帳戶列表" className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-900`}>
-          <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 py-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div><p className="mt-1 text-[10px] text-slate-400">確認後直接永久清除，不另存歸檔或清理憑證</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 text-[11px] font-bold text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button></div></div>
+          <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 pt-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1.5"><h2 className="shrink-0 whitespace-nowrap text-sm font-black leading-6 text-white">已刪員工帳戶</h2><span className="shrink-0 rounded-md bg-cyan-400/10 px-1.5 text-[10px] font-bold leading-5 tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div>
+              <button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex h-6 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md border border-rose-400/40 bg-rose-500/10 px-1.5 text-[11px] font-bold leading-none text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3 w-3" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button>
+            </div>
+            <p className="mt-1 text-[10px] text-slate-400">確認後直接永久清除，不另存歸檔或清理憑證</p>
             {deleteError && !selectedId && <p role="alert" className="mt-2 text-xs text-rose-300">{deleteError}</p>}
             {pendingCleanup.map(job => <button key={job.job_id} type="button" disabled={deleting} onClick={() => void retryPendingCleanup(job.job_id)} className={`mt-2 block text-left text-xs text-amber-200 underline disabled:opacity-50 ${focusClass}`}>上次刪除的附件或原圖尚有 {job.file_count} 個待核對，點此重試清理</button>)}
             {retainedSharedImages !== null && retainedSharedImages > 0 && <p role="status" className="mt-2 text-xs text-amber-200">有 {retainedSharedImages} 張原圖仍被其他內容引用，為避免影響共用內容已保留。</p>}
-            <div className="mt-2 grid grid-cols-[28px_minmax(0,1fr)_auto] gap-2 text-[10px] font-bold text-slate-400"><span>序號</span><span>員工帳戶</span><span>操作</span></div>
+            <div className="-mx-3 mt-2 grid grid-cols-[28px_minmax(0,1fr)_auto] gap-2 border-t border-cyan-300/20 bg-sky-900/40 px-3 py-1.5 text-[10px] font-bold"><span className="text-slate-300">序號</span><span className="text-cyan-200">員工帳戶</span><span className="text-rose-200">操作</span></div>
           </div>
           <ol className="min-w-0 divide-y divide-slate-700/50">
             {items.length === 0 && !loading && !loadError && <li className="px-4 py-10 text-center text-xs text-slate-400">沒有符合條件的員工檔案。</li>}
