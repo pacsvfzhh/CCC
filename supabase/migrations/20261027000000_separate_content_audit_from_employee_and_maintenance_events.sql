@@ -17,7 +17,7 @@ BEGIN
   FOR change IN SELECT * FROM (VALUES
     ('public.get_content_audit_filter_counts(uuid)'::regprocedure, 'counts'),
     ('public.list_content_audit_cards(uuid, text, uuid, uuid, text, text, timestamptz, timestamptz, integer, integer)'::regprocedure, 'cards'),
-    ('public.list_content_audit_cards_filtered(uuid, text, uuid, text, text, timestamptz, timestamptz, integer, integer)'::regprocedure, 'filtered'),
+    ('public.list_content_audit_cards_filtered(uuid, text, uuid, text, text, text, timestamptz, timestamptz, integer, integer)'::regprocedure, 'filtered'),
     ('public.prepare_content_audit_delete(uuid, text, uuid, text, text, text, timestamptz, timestamptz, uuid)'::regprocedure, 'prepare')
   ) AS functions(signature, kind) LOOP
     definition := pg_get_functiondef(change.signature);
