@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -154,6 +154,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [loading, setLoading] = useState(true);
 
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
+  const employeeListRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (employeeListRef.current) employeeListRef.current.scrollTop = 0;
+  }, [selectedEmployeeIds]);
   const [employeeTagPreview, setEmployeeTagPreview] = useState<{ employeeId: string; tags: string[]; left: number; top: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'verified'>('all');
@@ -702,7 +706,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       );
     }
 
-    return filtered;
+    return [...filtered].sort((a, b) => Number(selectedEmployeeIds.has(b.id)) - Number(selectedEmployeeIds.has(a.id)));
   };
 
   const toggleTagFilter = (tag: string) => {
@@ -1622,7 +1626,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           </div>
 
           {/* Employee List */}
-          <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark" onScroll={() => setEmployeeTagPreview(null)}>
+          <div ref={employeeListRef} className="min-h-0 flex-1 overflow-y-auto scrollbar-dark" onScroll={() => setEmployeeTagPreview(null)}>
             {!selectedAdminId ? (
               <div className="px-4 py-14 text-center">
                 <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center mx-auto mb-3 border border-slate-700/50">
