@@ -702,12 +702,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       );
     }
 
-    filtered.sort((a, b) => {
-      const aSelected = selectedEmployeeIds.has(a.id) ? 0 : 1;
-      const bSelected = selectedEmployeeIds.has(b.id) ? 0 : 1;
-      return aSelected - bSelected;
-    });
-
     return filtered;
   };
 
@@ -1260,6 +1254,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const filteredEmployees = getFilteredEmployees();
   const selectedAdminGroup = adminGroups.find(group => group.id === selectedAdminId);
   const selectedGroupEmployees = selectedAdminId ? allEmployees.get(selectedAdminId) || [] : allEmployeesFlat;
+  const tagEmployeeCounts = new Map<string, number>();
+  selectedGroupEmployees.forEach(employee => {
+    new Set(employee.tags || []).forEach(tag => {
+      tagEmployeeCounts.set(tag, (tagEmployeeCounts.get(tag) || 0) + 1);
+    });
+  });
   const selectedGroupEmployeeCount = selectedAdminGroup?.total_employees ?? selectedGroupEmployees.length;
   const selectedInCurrentGroup = selectedGroupEmployees.filter(employee => selectedEmployeeIds.has(employee.id)).length;
   const allEmployeesSelected = allEmployeesFlat.length > 0 && allEmployeesFlat.every(emp => selectedEmployeeIds.has(emp.id));
@@ -1494,12 +1494,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               )}
             </div>
           )}
-          {selectedEmployeeIds.size > 0 && (
-            <button onClick={clearSelection} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-500/60 bg-slate-900/45 px-3 text-[11px] font-bold text-slate-200 transition-colors hover:border-blue-300/50 hover:bg-blue-500/15 hover:text-white">
-              <X className="h-3 w-3" />
-              清除
-            </button>
-          )}
           <button onClick={() => setShowAutomation(true)} className="flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-500/15 to-blue-500/15 px-3 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/55 hover:from-cyan-500/25 hover:to-blue-500/25">
             <Sparkles className="h-3.5 w-3.5" />
             自動化任務
@@ -1564,7 +1558,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-150 ${showTagDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   {showTagDropdown && (
-                    <div className="absolute right-0 top-full z-50 mt-2 w-52 max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-[#3a1c09] via-slate-950/[0.98] to-[#241108] shadow-2xl shadow-slate-950/80 ring-1 ring-orange-200/10 backdrop-blur-xl">
+                    <div className="absolute right-0 top-full z-50 mt-2 w-60 max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-[#3a1c09] via-slate-950/[0.98] to-[#241108] shadow-2xl shadow-slate-950/80 ring-1 ring-orange-200/10 backdrop-blur-xl">
                       <div className="border-b border-amber-300/20 bg-gradient-to-r from-amber-500/25 via-orange-500/10 to-transparent px-3.5 py-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
@@ -1594,7 +1588,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border shadow-inner transition-colors ${selectedTags.has(tag) ? 'border-amber-100/70 bg-gradient-to-br from-amber-300/40 to-orange-500/30 text-amber-50' : 'border-amber-200/20 bg-slate-950/70 text-amber-200/45 group-hover:border-amber-300/55 group-hover:text-amber-100'}`}>
                               {selectedTags.has(tag) ? <Check className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
                             </span>
-                            <span className={selectedTags.has(tag) ? 'font-black tracking-tight text-amber-50' : 'font-semibold text-amber-50/80 group-hover:text-white'}>{tag}</span>
+                            <span className={`min-w-0 flex-1 truncate ${selectedTags.has(tag) ? 'font-black tracking-tight text-amber-50' : 'font-semibold text-amber-50/80 group-hover:text-white'}`}>{tag}</span>
+                            <span className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-black tabular-nums ${selectedTags.has(tag) ? 'border-amber-200/45 bg-amber-200/20 text-amber-50' : 'border-amber-200/20 bg-amber-300/10 text-amber-200/75'}`} aria-label={`${tag}：${tagEmployeeCounts.get(tag) || 0} 名員工`}>{tagEmployeeCounts.get(tag) || 0}</span>
                           </button>
                         ))}
                       </div>
