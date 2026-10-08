@@ -526,6 +526,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [chatIdentity, setChatIdentity] = useState<ChatIdentity | null>(null);
   const [conversationPage, setConversationPage] = useState(0);
+  const [loadedConversationPage, setLoadedConversationPage] = useState(0);
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [conversationError, setConversationError] = useState<string | null>(null);
+  const [conversationRetryKey, setConversationRetryKey] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailKey, setDetailKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -535,6 +539,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [deleting, setDeleting] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Array<{ job_id: string; card_count: number; event_count: number; finished_at: string | null }>>([]);
   const detailRef = useRef<HTMLDivElement>(null);
+  const conversationContentRef = useRef<HTMLDivElement>(null);
+  const conversationIdentityRef = useRef<ChatIdentity | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const deletionContextRef = useRef(deletionContext);
   const mountedRef = useRef(false);
@@ -745,39 +751,56 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   }, [events.length, total, loading, listLoadError]);
 
   useEffect(() => {
-    if (!selectedCard) return;
-    let cancelled = false;
     setDetail(null);
     setConversation(null);
     setChatIdentity(null);
-    setDetailLoading(true);
+    conversationIdentityRef.current = null;
+    setLoadedConversationPage(0);
+    setConversationError(null);
+    setDetailLoading(Boolean(selectedCard));
+  }, [selectedCard, detailKey]);
+
+  useEffect(() => {
+    if (!selectedCard) return;
+    let cancelled = false;
+    const conversationTarget = selectedCard.card_id.startsWith('conversation:') && selectedCard.customer_id && selectedCard.employee_id
+      ? { customerId: selectedCard.customer_id, employeeId: selectedCard.employee_id } : null;
+    if (conversationTarget) {
+      setConversationLoading(true);
+      setConversationError(null);
+    }
     const load = async () => {
       try {
-        if (selectedCard.card_id.startsWith('conversation:') && selectedCard.customer_id && selectedCard.employee_id) {
+        if (conversationTarget) {
           const { data, error: rpcError } = await supabase.rpc('get_content_audit_conversation', {
             p_admin_session_token: getAdminFinancialSessionToken(),
             p_operation_id: selectedCard.operation_id,
             p_type: selectedCard.entity_type,
-            p_customer_id: selectedCard.customer_id,
-            p_employee_id: selectedCard.employee_id,
+            p_customer_id: conversationTarget.customerId,
+            p_employee_id: conversationTarget.employeeId,
             p_page: conversationPage,
             p_page_size: TRANSCRIPT_PAGE_SIZE,
           });
           if (rpcError) throw rpcError;
           if (!data || typeof data !== 'object' || !('items' in data) || !Array.isArray(data.items)) throw new Error('找不到此對話。');
           const record = data as unknown as ConversationDetail;
-          const evidenceId = record.items.find(item => !item.cleared_at)?.id;
-          let identity: ChatIdentity = { customerName: null, employeeNumber: null, employeeNumberSource: null };
-          if (evidenceId) {
-            const { data: eventData, error: eventError } = await supabase.rpc('get_content_audit_event', {
-              p_admin_session_token: getAdminFinancialSessionToken(), p_event_id: evidenceId,
-            });
-            if (eventError) throw eventError;
-            identity = await getChatIdentity((eventData as AuditDetail | null)?.before_data, selectedCard.employee_id);
+          let identity = conversationIdentityRef.current;
+          if (!identity) {
+            identity = { customerName: null, employeeNumber: null, employeeNumberSource: null };
+            const evidenceId = record.items.find(item => !item.cleared_at)?.id;
+            if (evidenceId) {
+              const { data: eventData, error: eventError } = await supabase.rpc('get_content_audit_event', {
+                p_admin_session_token: getAdminFinancialSessionToken(), p_event_id: evidenceId,
+              });
+              if (eventError) throw eventError;
+              identity = await getChatIdentity((eventData as AuditDetail | null)?.before_data, conversationTarget.employeeId);
+            }
           }
           if (!cancelled) {
+            conversationIdentityRef.current = identity;
             setChatIdentity(identity);
             setConversation(record);
+            setLoadedConversationPage(conversationPage);
           }
         } else {
           const { data, error: rpcError } = await supabase.rpc('get_content_audit_event', {
@@ -794,14 +817,24 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           }
         }
       } catch (err) {
-        if (!cancelled) setError(`載入稽核詳情失敗：${formatSupabaseError(err)}`);
+        if (!cancelled) {
+          if (conversationTarget) setConversationError(formatSupabaseError(err));
+          else setError(`載入稽核詳情失敗：${formatSupabaseError(err)}`);
+        }
       } finally {
-        if (!cancelled) setDetailLoading(false);
+        if (!cancelled) {
+          setDetailLoading(false);
+          setConversationLoading(false);
+        }
       }
     };
     void load();
     return () => { cancelled = true; };
-  }, [selectedCard, conversationPage, detailKey]);
+  }, [selectedCard, conversationPage, detailKey, conversationRetryKey]);
+
+  useEffect(() => {
+    if (conversation) conversationContentRef.current?.scrollTo({ top: 0 });
+  }, [conversation]);
 
   const switchView = (next: 'content' | 'employees') => {
     if (view === next) return false;
@@ -1127,18 +1160,22 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                   </aside>
                   <section className="flex min-h-[520px] min-w-0 flex-col lg:min-h-0">
                     <div className={`flex shrink-0 items-center gap-3 border-b border-white/10 px-4 py-3 ${conversation.entity_type === 'aaa_service' ? 'bg-gradient-to-r from-slate-950 to-orange-950/70' : 'bg-gradient-to-r from-slate-950 to-emerald-950/70'}`}><MessageCircle className="h-5 w-5 text-white" /><h3 className="text-sm font-bold text-white">原聊天內容 · {conversation.total} 則</h3></div>
-                    <div className={`audit-detail-scroll min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-6 ${conversation.entity_type === 'aaa_service' ? 'bg-[linear-gradient(180deg,#24170f_0%,#1b1513_40%,#24170f_100%)]' : 'bg-[linear-gradient(180deg,#0b2118_0%,#101c19_40%,#0b2118_100%)]'}`}>
-                      {conversation.items.map(message => (
-                        <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : chatIdentity?.customerName || '客戶'} workspace={conversation.entity_type} />
-                      ))}
+                    <div className="relative min-h-0 flex-1">
+                      <div ref={conversationContentRef} aria-busy={conversationLoading} className={`audit-detail-scroll h-full space-y-3 overflow-y-auto p-4 transition-opacity motion-reduce:transition-none sm:p-6 ${conversationLoading ? 'pointer-events-none opacity-40' : ''} ${conversation.entity_type === 'aaa_service' ? 'bg-[linear-gradient(180deg,#24170f_0%,#1b1513_40%,#24170f_100%)]' : 'bg-[linear-gradient(180deg,#0b2118_0%,#101c19_40%,#0b2118_100%)]'}`}>
+                        {conversationError && <div role="alert" className="rounded-xl border border-rose-400/30 bg-rose-950/80 px-4 py-3 text-xs text-rose-100">此頁載入失敗，仍顯示第 {loadedConversationPage + 1} 頁：{conversationError} <button type="button" onClick={() => setConversationRetryKey(key => key + 1)} className={`ml-2 font-bold text-cyan-200 underline ${buttonFocus}`}>重試載入</button></div>}
+                        {conversation.items.map(message => (
+                          <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : chatIdentity?.customerName || '客戶'} workspace={conversation.entity_type} />
+                        ))}
+                      </div>
+                      {conversationLoading && <div role="status" className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-950/45 text-sm text-slate-200"><RefreshCw className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />載入第 {conversationPage + 1} 頁聊天內容…</div>}
                     </div>
                     {conversation.total > TRANSCRIPT_PAGE_SIZE && <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-slate-900 px-4 py-2 text-xs text-slate-300">
-                      <span>第 {conversationPage + 1} / {Math.ceil(conversation.total / TRANSCRIPT_PAGE_SIZE)} 頁</span>
-                      <span className="flex gap-2"><button type="button" disabled={conversationPage === 0} onClick={() => setConversationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>上一頁</button><button type="button" disabled={(conversationPage + 1) * TRANSCRIPT_PAGE_SIZE >= conversation.total} onClick={() => setConversationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>下一頁</button></span>
+                      <span>第 {loadedConversationPage + 1} / {Math.ceil(conversation.total / TRANSCRIPT_PAGE_SIZE)} 頁</span>
+                      <span className="flex gap-2"><button type="button" disabled={conversationLoading || loadedConversationPage === 0} onClick={() => { setConversationLoading(true); setConversationPage(loadedConversationPage - 1); setConversationRetryKey(key => key + 1); }} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>上一頁</button><button type="button" disabled={conversationLoading || (loadedConversationPage + 1) * TRANSCRIPT_PAGE_SIZE >= conversation.total} onClick={() => { setConversationLoading(true); setConversationPage(loadedConversationPage + 1); setConversationRetryKey(key => key + 1); }} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>下一頁</button></span>
                     </div>}
                   </section>
                 </div>
-              ) : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : detail.entity_type === 'notification' ? (
+              ) : conversationError ? <div role="alert" className="px-4 py-12 text-center text-sm text-rose-200">載入對話失敗：{conversationError} <button type="button" disabled={conversationLoading} onClick={() => setConversationRetryKey(key => key + 1)} className={`ml-2 text-cyan-200 underline disabled:opacity-40 ${buttonFocus}`}>{conversationLoading ? '載入中…' : '重試載入'}</button></div> : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : detail.entity_type === 'notification' ? (
                 <div className="audit-detail-scroll grid h-full min-h-0 min-w-0 overflow-y-auto lg:grid-cols-[310px_minmax(0,1fr)] lg:overflow-hidden">
                   <aside className="audit-detail-scroll min-w-0 space-y-5 border-b border-white/10 bg-[radial-gradient(circle_at_0%_0%,rgba(56,189,248,0.11),transparent_44%),linear-gradient(180deg,#101d31,#0a1222)] p-4 sm:p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-r-white/10">
                     <div className="flex items-start gap-3"><span className="rounded-xl border border-violet-400/25 bg-violet-400/10 p-2 text-violet-200"><Megaphone className="h-5 w-5" /></span><div className="min-w-0"><h3 className="text-base font-black text-white">通知異動詳情</h3><p className="mt-1 text-xs text-slate-400">通知原文 · 私人稽核檔案</p></div></div>
