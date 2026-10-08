@@ -274,23 +274,6 @@ Deno.serve(async (request) => {
       if (completeError) throw completeError;
       return response(deleted);
     }
-    if (body.action === 'clear') {
-      if (typeof body.eventId !== 'string' || typeof body.reason !== 'string') return response({ error: 'Invalid clear request.' }, 400);
-      const { data: started, error: beginError } = await db.rpc('begin_content_audit_clear', {
-        p_admin_session_token: token, p_event_id: body.eventId, p_reason: body.reason,
-      });
-      if (beginError) throw beginError;
-      const paths = started.paths_to_remove as string[];
-      if (paths.length) {
-        const { error: removeError } = await db.storage.from(evidenceBucket).remove(paths);
-        if (removeError) throw new Error('Evidence media cleanup is incomplete. Retry while purge mode is enabled.');
-      }
-      const { data, error } = await db.rpc('finish_content_audit_clear', {
-        p_admin_session_token: token, p_event_id: body.eventId,
-      });
-      if (error) throw error;
-      return response(data);
-    }
     if (!Array.isArray(body.targetIds) || !body.targetIds.length || !body.targetIds.every((id: unknown) => typeof id === 'string' && /^[\da-f-]{36}$/i.test(id))) {
       return response({ error: 'Invalid record IDs.' }, 400);
     }
