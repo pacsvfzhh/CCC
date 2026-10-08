@@ -24,7 +24,7 @@ interface AuditEvent {
   action: AuditAction;
   owner_admin_id: string;
   owner_username: string | null;
-  actor_admin_id: string;
+  actor_admin_id: string | null;
   actor_username: string;
   actor_role: string;
   customer_id: string | null;
@@ -125,7 +125,7 @@ function auditActionLabel(type: AuditType, action: AuditAction): string {
 function notificationOriginLabel(origin: AuditEvent['notification_origin']): string {
   if (origin === 'manual_admin') return '管理員手動通知';
   if (origin === 'automation') return '系統自動通知';
-  return origin === 'unverified' ? '舊版手動通知' : '通知 · 來源未留存';
+  return origin === 'unverified' ? '舊通知 · 來源待核實' : '通知 · 來源未留存';
 }
 
 function snapshotNotificationOrigin(snapshot: unknown): AuditEvent['notification_origin'] {
@@ -1032,10 +1032,11 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               ) : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : detail.entity_type === 'notification' ? (
                 <div className="audit-detail-scroll grid h-full min-h-0 min-w-0 overflow-y-auto lg:grid-cols-[310px_minmax(0,1fr)] lg:overflow-hidden">
                   <aside className="audit-detail-scroll min-w-0 space-y-5 border-b border-white/10 bg-[radial-gradient(circle_at_0%_0%,rgba(56,189,248,0.11),transparent_44%),linear-gradient(180deg,#101d31,#0a1222)] p-4 sm:p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-r-white/10">
-                    <div className="flex items-start gap-3"><span className="rounded-xl border border-violet-400/25 bg-violet-400/10 p-2 text-violet-200"><Megaphone className="h-5 w-5" /></span><div className="min-w-0"><h3 className="text-base font-black text-white">通知異動詳情</h3><p className="mt-1 text-xs text-slate-400">管理員手動發送通知 · 私人稽核檔案</p></div></div>
+                    <div className="flex items-start gap-3"><span className="rounded-xl border border-violet-400/25 bg-violet-400/10 p-2 text-violet-200"><Megaphone className="h-5 w-5" /></span><div className="min-w-0"><h3 className="text-base font-black text-white">通知異動詳情</h3><p className="mt-1 text-xs text-slate-400">通知原文 · 私人稽核檔案</p></div></div>
                     <div className="flex flex-wrap items-center gap-2"><span className="rounded-md border border-violet-400/30 bg-violet-400/10 px-2 py-1 text-[11px] font-bold text-violet-200">{notificationOriginLabel(snapshotNotificationOrigin(detail.before_data))}</span><span className={`rounded-md border px-2 py-1 text-[11px] font-bold ${actionStyles[detail.action]}`}>{auditActionLabel(detail.entity_type, detail.action)}</span></div>
                     <dl className="grid grid-cols-2 gap-2 lg:grid-cols-1"><MetadataRow label="通知發送時間 (UTC+8)" value={formatAuditTime(snapshotNotificationSentAt(detail.before_data))} /><MetadataRow label="異動時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="實際操作者" value={detail.actor_username} /><MetadataRow label="所屬管理員" value={detail.owner_username ?? detail.owner_admin_id} />{detail.cleared_at && <MetadataRow label="正式清除時間 (UTC+8)" value={formatAuditTime(detail.cleared_at)} />}{detail.clear_started_at && !detail.cleared_at && <MetadataRow label="證據清除狀態" value="清除尚未完成" />}{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}</dl>
-                    {snapshotNotificationOrigin(detail.before_data) === 'unverified' && <p className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">此通知發送於自動化通知功能上線前，依當時流程歸為舊版手動通知；舊版未留下逐筆發送操作紀錄。</p>}
+                    {snapshotNotificationOrigin(detail.before_data) === 'unverified' && <p className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">此舊通知沒有可驗證的發送來源紀錄，不能確認是否由管理員手動發出；封存的是清理前仍可查到的內容。</p>}
+                    {detail.actor_role === 'system_maintenance' && <p className="rounded-lg border border-cyan-400/25 bg-cyan-500/10 px-3 py-2 text-xs leading-5 text-cyan-100">此通知因已無收件人，由授權的資料庫維護操作移出即時列表；這不是原發送管理員的刪除操作。舊版收件歷史可能已無法還原。</p>}
                     {!detail.cleared_at && <section className="rounded-xl border border-slate-700 bg-slate-950/50 text-xs"><h4 className="border-b border-slate-700 px-3 py-2 font-bold text-cyan-200">收件員工 · {detail.recipient_identities?.length ?? 0} 位</h4>{detail.recipient_identities?.length ? <><p className="px-3 pt-2 text-[11px] text-slate-400">已讀 {detail.recipient_identities.filter(recipient => recipient.is_read).length} 位</p><ol className="audit-detail-scroll max-h-48 divide-y divide-slate-700 overflow-y-auto px-3">{detail.recipient_identities.map((recipient, index) => <li key={index} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2"><span className="min-w-0 break-all font-semibold text-white">{recipient.account || '帳號未留存'}</span><span className="text-cyan-200" title={recipient.from_current_account ? '目前帳戶，非事件時快照' : undefined}>ID {recipient.employee_number || '—'}</span><span className="ml-auto text-slate-400">{recipient.is_read ? '已讀' : '未讀'}</span></li>)}</ol></> : <p className="px-3 py-3 text-slate-400">未留存收件員工資料。</p>}</section>}
                     <section><h4 className="mb-2 text-xs font-bold text-white">同一通知的版本歷程</h4><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{auditActionLabel(detail.entity_type, version.action)}{version.cleared_at ? ' · 已清除' : ''}</span><time dateTime={version.occurred_at} className="tabular-nums text-slate-400">{formatAuditTime(version.occurred_at)}</time></button>)}</div></section>
 
