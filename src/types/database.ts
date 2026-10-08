@@ -2346,6 +2346,10 @@ export interface Database {
       };
     };
     Functions: {
+      cancel_audit_deletion_confirmation: {
+        Args: { p_admin_session_token: string; p_job_kind: 'content' | 'employee'; p_job_id: string };
+        Returns: { success: boolean; cancelled: boolean };
+      };
       prepare_deleted_employee_archive_delete: {
         Args: { p_admin_session_token: string; p_owner: string | null; p_search: string | null; p_record_id: string | null; p_notification_id: string | null };
         Returns: { job_id: string; account_count: number; notification_count: number };

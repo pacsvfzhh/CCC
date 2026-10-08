@@ -12,12 +12,14 @@ const files = {
   audit: '20261002000000_protect_manual_notifications_and_service_chats.sql',
   archive: '20261008000000_audit_deleted_employee_accounts.sql',
   content: '20261014000000_bulk_delete_content_audit_evidence.sql',
+  conversation: '20261015000000_delete_entire_audit_conversation_card.sql',
   employee: '20261016000000_delete_archived_employee_records.sql',
   purge: '20261023000000_purge_deleted_employee_data.sql',
   harden: '20261024000000_harden_deleted_employee_purge.sql',
   shared: '20261025000001_remove_deleted_employee_notifications.sql',
   receipts: '20261028000000_remove_audit_cleanup_receipts.sql',
   current: '20261029000000_reclaim_deleted_notification_content_and_media.sql',
+  confirmations: '20261030000000_reclaim_audit_deletion_confirmations.sql',
 };
 const sql = Object.fromEntries(await Promise.all(Object.entries(files).map(async ([key, name]) =>
   [key, await readFile(new URL(name, migrationDir), 'utf8')])));
@@ -227,6 +229,7 @@ async function installFixture() {
   await db.exec(functionSQL(sql.audit, 'private.content_audit_storage_urls'));
   await db.exec(functionSQL(sql.employee, 'public.prepare_deleted_employee_archive_delete'));
   await db.exec(sql.content);
+  await db.exec(sql.conversation);
   await db.exec(sql.purge);
   await db.exec(`CREATE TRIGGER archive_employee_before_delete BEFORE DELETE ON public.users
     FOR EACH ROW EXECUTE FUNCTION private.archive_employee_before_delete()`);
@@ -235,6 +238,14 @@ async function installFixture() {
   await db.exec(blockSQL(sql.receipts, 'remove_employee_image_receipts'));
   await db.exec(sql.receipts.slice(sql.receipts.indexOf('ALTER TABLE private.employee_chat_image_deletion_claims ALTER COLUMN')));
   await db.exec(sql.current);
+  await db.exec(`CREATE SCHEMA cron;
+    CREATE TABLE cron.job(jobid bigserial PRIMARY KEY, jobname text UNIQUE, schedule text, command text);
+    CREATE FUNCTION cron.schedule(text, text, text) RETURNS bigint LANGUAGE sql AS $$
+      INSERT INTO cron.job(jobname, schedule, command) VALUES ($1, $2, $3)
+      ON CONFLICT (jobname) DO UPDATE SET schedule = excluded.schedule, command = excluded.command
+      RETURNING jobid;
+    $$;`);
+  await db.exec(sql.confirmations.replace('CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;', ''));
   await db.query('INSERT INTO private.content_audit_storage_origins(origin) VALUES ($1)', ['https://fixture.invalid']);
   await db.query('INSERT INTO public.admins(id, role) VALUES ($1, $4), ($2, $5), ($3, $4)',
     [ADMIN, SECONDARY, OTHER_ADMIN, 'super_admin', 'secondary_admin']);
@@ -688,6 +699,141 @@ describe('audit cleanup: real PostgreSQL migration regressions', { concurrency: 
     assert.equal('content' in (await operationRow(op.operationId)).request_data, false);
     assert.equal(await value('SELECT count(*)::int AS value FROM private.deleted_employee_accounts WHERE id = $1', [archive.recordId]), 1);
     assert.equal(await value('SELECT count(*)::int AS value FROM public.users WHERE id = $1', [archive.employeeId]), 1);
+  });
+
+  test('confirmation cancellation removes only its preview and is idempotent for both panels', async () => {
+    const event = await addEvent();
+    const content = await prepareContent(event.id);
+    const archive = await addArchive();
+    const employee = await prepareEmployee(archive.recordId);
+    for (const [kind, jobId] of [['content', content.job_id], ['employee', employee.job_id]]) {
+      assert.deepEqual(await rpc('public.cancel_audit_deletion_confirmation', [SESSION, kind, jobId]),
+        { success: true, cancelled: true });
+      assert.deepEqual(await rpc('public.cancel_audit_deletion_confirmation', [SESSION, kind, jobId]),
+        { success: true, cancelled: false });
+    }
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.content_audit_events WHERE id = $1', [event.id]), 1);
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.deleted_employee_accounts WHERE id = $1', [archive.recordId]), 1);
+    assert.equal(await value('SELECT count(*)::int AS value FROM public.users WHERE id = $1', [archive.employeeId]), 1);
+  });
+
+  test('cancellation checks super-admin identity, owner and session without deleting evidence', async () => {
+    const event = await addEvent();
+    const { job_id: jobId } = await prepareContent(event.id);
+    await expectSQLFailure('SELECT public.cancel_audit_deletion_confirmation($1,$2,$3)',
+      [SECONDARY_SESSION, 'content', jobId], /Super administrator/);
+    for (const session of [EXPIRED_SESSION, REVOKED_SESSION]) {
+      await expectSQLFailure('SELECT public.cancel_audit_deletion_confirmation($1,$2,$3)',
+        [session, 'content', jobId], /session/i);
+    }
+    assert.deepEqual(await rpc('public.cancel_audit_deletion_confirmation', [OTHER_SESSION, 'content', jobId]),
+      { success: true, cancelled: false });
+    const otherToken = randomUUID();
+    await db.query(`INSERT INTO public.admin_financial_sessions(token_hash, admin_id, expires_at)
+      VALUES (private.hash_financial_token($1), $2, now() + interval '1 hour')`, [otherToken, ADMIN]);
+    assert.deepEqual(await rpc('public.cancel_audit_deletion_confirmation', [otherToken, 'content', jobId]),
+      { success: true, cancelled: false });
+    await expectSQLFailure('SELECT public.cancel_audit_deletion_confirmation($1,$2,$3)',
+      [SESSION, 'unsupported', jobId], /Invalid deletion confirmation kind/);
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.content_audit_delete_jobs WHERE id = $1', [jobId]), 1);
+    for (const role of ['anon', 'authenticated']) {
+      assert.equal(await value("SELECT has_function_privilege($1, 'public.cancel_audit_deletion_confirmation(uuid,text,uuid)', 'EXECUTE') AS value", [role]), false);
+      assert.equal(await value("SELECT has_function_privilege($1, 'private.collect_audit_deletion_confirmations()', 'EXECUTE') AS value", [role]), false);
+    }
+    assert.equal(await value("SELECT has_function_privilege('service_role', 'public.cancel_audit_deletion_confirmation(uuid,text,uuid)', 'EXECUTE') AS value"), true);
+  });
+
+  test('scheduled collector removes expired confirmations but preserves valid previews and every finished job', async () => {
+    const event = await addEvent();
+    const expiredContent = await prepareContent(event.id);
+    const liveContent = await prepareContent(event.id);
+    const archive = await addArchive();
+    const expiredEmployee = await prepareEmployee(archive.recordId);
+    const liveEmployee = await prepareEmployee(archive.recordId);
+    const pendingContent = await finishedJob('content', [media('chat-images', 'pending-content.png')]);
+    const pendingEmployee = await finishedJob('employee', [media('chat-images', 'pending-employee.png')]);
+    await object('chat-images', 'pending-content.png');
+    await object('chat-images', 'pending-employee.png');
+    await recheck('content', pendingContent, [media('chat-images', 'pending-content.png')]);
+    await recheck('employee', pendingEmployee, [media('chat-images', 'pending-employee.png')]);
+    await db.query('UPDATE private.content_audit_delete_jobs SET expires_at = now() - interval \'1 hour\' WHERE id = ANY($1)', [[expiredContent.job_id, pendingContent]]);
+    await db.query('UPDATE private.deleted_employee_delete_jobs SET expires_at = now() - interval \'1 hour\' WHERE id = ANY($1)', [[expiredEmployee.job_id, pendingEmployee]]);
+    assert.deepEqual(await rpc('private.collect_audit_deletion_confirmations', []),
+      { content_confirmations: 1, employee_confirmations: 1 });
+    for (const [table, ids] of [['content_audit_delete_jobs', [liveContent.job_id, pendingContent]],
+      ['deleted_employee_delete_jobs', [liveEmployee.job_id, pendingEmployee]]]) {
+      assert.equal(await value(`SELECT count(*)::int AS value FROM private.${table} WHERE id = ANY($1)`, [ids]), 2);
+    }
+    for (const [kind, jobId] of [['content', pendingContent], ['employee', pendingEmployee]]) {
+      assert.deepEqual(await rpc('public.cancel_audit_deletion_confirmation', [SESSION, kind, jobId]),
+        { success: true, cancelled: false });
+    }
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.content_audit_public_media_claims WHERE job_id IS NOT NULL'), 2);
+    assert.equal(await value('SELECT count(*)::int AS value FROM storage.objects'), 2);
+    assert.deepEqual(await value("SELECT jsonb_build_object('schedule', schedule, 'command', command) AS value FROM cron.job WHERE jobname = 'collect-audit-deletion-confirmations'"),
+      { schedule: '* * * * *', command: 'SELECT private.collect_audit_deletion_confirmations();' });
+  });
+
+  test('collector treats partially missing selections as invalid without touching remaining evidence', async () => {
+    const first = await addEvent();
+    const second = await addEvent();
+    const { job_id: jobId } = await prepareContent(first.id);
+    await db.query('UPDATE private.content_audit_delete_jobs SET target_ids = $2 WHERE id = $1', [jobId, [first.id, second.id]]);
+    await db.query('DELETE FROM private.content_audit_events WHERE id = $1', [first.id]);
+    assert.deepEqual(await rpc('private.collect_audit_deletion_confirmations', []),
+      { content_confirmations: 1, employee_confirmations: 0 });
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.content_audit_events WHERE id = $1', [second.id]), 1);
+  });
+
+  test('collector reclaims stale notification-only and legacy archived-employee confirmations', async () => {
+    const archive = await addArchive();
+    const notification = await addNotification(archive.recordId, randomUUID());
+    const notificationJob = await prepareEmployee(null, notification);
+    await db.query('DELETE FROM private.deleted_employee_notifications WHERE id = $1', [notification]);
+    const orphanJob = randomUUID();
+    await db.query(`INSERT INTO private.deleted_employee_delete_jobs
+      (id, admin_id, token_hash, account_ids, notification_ids, notification_count, account_fingerprint,
+       notification_fingerprint, orphan_employee_ids)
+      VALUES ($1, $2, private.hash_financial_token($3), '{}', '{}', 0, md5('[]'), md5('[]'), $4)`,
+      [orphanJob, ADMIN, SESSION, [randomUUID()]]);
+    assert.deepEqual(await rpc('private.collect_audit_deletion_confirmations', []),
+      { content_confirmations: 0, employee_confirmations: 2 });
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.deleted_employee_delete_jobs WHERE id = ANY($1)', [[notificationJob.job_id, orphanJob]]), 0);
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.deleted_employee_accounts WHERE id = $1', [archive.recordId]), 1);
+  });
+
+  test('content finish immediately reclaims duplicate previews and keeps the active attachment retry', async () => {
+    const event = await addEvent();
+    const first = await prepareContent(event.id);
+    await prepareContent(event.id);
+    await rpc('public.finish_content_audit_delete', [SESSION, first.job_id]);
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.content_audit_delete_jobs'), 1);
+    assert.equal(await value('SELECT finished_at IS NOT NULL AS value FROM private.content_audit_delete_jobs WHERE id = $1', [first.job_id]), true);
+    assert.deepEqual(await rpc('public.complete_content_audit_delete', [SESSION, first.job_id]), { success: true });
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.content_audit_delete_jobs'), 0);
+  });
+
+  test('employee finish reclaims duplicate account and notification previews without losing media retries', async () => {
+    const archive = await addArchive();
+    const notification = await addNotification(archive.recordId, randomUUID());
+    const first = await prepareEmployee(archive.recordId);
+    await prepareEmployee(archive.recordId);
+    await prepareEmployee(null, notification);
+    await rpc('public.finish_deleted_employee_archive_delete', [SESSION, first.job_id]);
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.deleted_employee_delete_jobs'), 1);
+    assert.equal(await value('SELECT finished_at IS NOT NULL AS value FROM private.deleted_employee_delete_jobs WHERE id = $1', [first.job_id]), true);
+    assert.deepEqual(await rpc('public.complete_deleted_employee_archive_delete', [SESSION, first.job_id]), { success: true });
+    assert.equal(await value('SELECT count(*)::int AS value FROM private.deleted_employee_delete_jobs'), 0);
+  });
+
+  test('all preparation paths collect safely before creating a new preview', async () => {
+    for (const name of ['public.prepare_content_audit_delete', 'public.prepare_content_audit_conversation_delete',
+      'public.prepare_deleted_employee_archive_delete', 'public.prepare_unpurged_archived_employee_delete']) {
+      const definition = await value(`SELECT pg_get_functiondef(oid) AS value FROM pg_proc
+        WHERE pronamespace = 'public'::regnamespace AND proname = $1`, [name.split('.')[1]]);
+      assert.match(definition, /PERFORM private\.collect_audit_deletion_confirmations\(\);/);
+      assert.doesNotMatch(definition, /DELETE FROM private\.(content_audit|deleted_employee)_delete_jobs WHERE expires_at/);
+    }
   });
 
   test('employee finish accepts valid percent-encoded chat image paths through the actual old-function patch chain', async () => {

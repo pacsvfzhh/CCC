@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, ArrowLeft, Bell, ChevronRight, Megaphone, MessageCircle, Search, Trash2, UserRoundX, X } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
-import { executeEmployeeArchiveDeletion, listPendingEmployeeArchiveDeletions, loadAuditedMedia } from '../../lib/contentAudit';
+import { cancelAuditDeletionConfirmation, executeEmployeeArchiveDeletion, listPendingEmployeeArchiveDeletions, loadAuditedMedia } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
@@ -240,25 +240,77 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [openConversation, setOpenConversation] = useState<{ type: 'aaa_service' | 'ccc_service'; id: string } | null>(null);
   const [notificationDetail, setNotificationDetail] = useState<NotificationDetail | null>(null);
   const [notificationDetailError, setNotificationDetailError] = useState<string | null>(null);
-  const [deletePreview, setDeletePreview] = useState<{ job_id: string; account_count: number; notification_count: number; scope: 'bulk' | 'account' | 'notification'; filters: Filters; recordId: string | null; notificationId: string | null } | null>(null);
+  const deletionContext = useMemo(() => ({ draft, filters, selectedId, notificationId, section, isActive }), [draft, filters, selectedId, notificationId, section, isActive]);
+  const [deletePreview, setDeletePreview] = useState<{ job_id: string; account_count: number; notification_count: number; scope: 'bulk' | 'account' | 'notification'; filters: Filters; recordId: string | null; notificationId: string | null; context: typeof deletionContext } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingCleanup, setPendingCleanup] = useState<Array<{ job_id: string; file_count: number }>>([]);
   const [retainedSharedImages, setRetainedSharedImages] = useState<number | null>(null);
-  const filtersRef = useRef(filters);
-  const selectedIdRef = useRef(selectedId);
-  const notificationIdRef = useRef(notificationId);
+  const deletionContextRef = useRef(deletionContext);
+  const mountedRef = useRef(false);
+  const deletePreviewRef = useRef(deletePreview);
+  const executingJobRef = useRef<string | null>(null);
+  const prepareRequestRef = useRef<object | null>(null);
+  const onDeleteResultRef = useRef(onDeleteResult);
+  onDeleteResultRef.current = onDeleteResult;
   const notificationCacheRef = useRef(new Map<string, NotificationDetail>());
   const notificationRequestsRef = useRef(new Map<string, Promise<NotificationDetail>>());
-  filtersRef.current = filters;
-  selectedIdRef.current = selectedId;
-  notificationIdRef.current = notificationId;
+  deletionContextRef.current = deletionContext;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const notificationLoadMoreRef = useRef<HTMLDivElement>(null);
   const withdrawalListRef = useRef<HTMLDivElement>(null);
   const withdrawalLoadMoreRef = useRef<HTMLDivElement>(null);
   const deleteDialogRef = useRef<HTMLElement>(null);
   const detailPaneRef = useRef<HTMLDivElement>(null);
+
+  const cancelConfirmation = useCallback(async (jobId: string) => {
+    try {
+      const result = await cancelAuditDeletionConfirmation('employee', jobId);
+      if (!result.success) throw new Error('確認暫存回收未獲確認。');
+      if (mountedRef.current && result.cancelled) {
+        setPendingCleanup(previous => previous.filter(job => job.job_id !== jobId));
+      } else if (mountedRef.current && !result.cancelled) {
+        try {
+          const jobs = await listPendingEmployeeArchiveDeletions();
+          if (mountedRef.current) setPendingCleanup(jobs);
+        } catch (pendingError) {
+          if (mountedRef.current) setDeleteError(`確認已關閉，任務未被取消；待清理任務查詢失敗：${formatSupabaseError(pendingError)}。請重新整理核對，這不是實際員工資料刪除的結果。`);
+        }
+      }
+    } catch (error) {
+      if (mountedRef.current) {
+        const message = `刪除確認已關閉，但確認暫存尚未回收，將由到期回收：${formatSupabaseError(error)}。這不是實際員工資料刪除的結果。`;
+        setDeleteError(message);
+        onDeleteResultRef.current({ type: 'error', message });
+      }
+    }
+  }, []);
+
+  const dismissDeletePreview = useCallback(() => {
+    const preview = deletePreviewRef.current;
+    if (preview && executingJobRef.current === preview.job_id) return;
+    deletePreviewRef.current = null;
+    if (mountedRef.current) setDeletePreview(null);
+    if (preview) void cancelConfirmation(preview.job_id);
+  }, [cancelConfirmation]);
+
+  const invalidateDeletionPreview = useCallback(() => {
+    prepareRequestRef.current = null;
+    if (mountedRef.current && !executingJobRef.current) setDeleting(false);
+    dismissDeletePreview();
+  }, [dismissDeletePreview]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      invalidateDeletionPreview();
+    };
+  }, [invalidateDeletionPreview]);
+
+  useEffect(() => {
+    invalidateDeletionPreview();
+  }, [draft, filters, selectedId, notificationId, section, isActive, invalidateDeletionPreview]);
 
   const adminGroups = [
     ...owners,
@@ -599,8 +651,11 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   };
 
   const prepareDeletion = async (recordId?: string, archivedNotificationId?: string) => {
-    if (deleting || (!recordId && !archivedNotificationId && (loading || loadError || total === 0))) return;
-    const requestedFilters = filters;
+    if (!mountedRef.current || !isActive || prepareRequestRef.current || executingJobRef.current || deletePreviewRef.current
+      || (!recordId && !archivedNotificationId && (loading || loadError || total === 0))) return;
+    const request = {};
+    const requestedContext = deletionContextRef.current;
+    prepareRequestRef.current = request;
     setDeleting(true);
     setDeleteError(null);
     setRetainedSharedImages(null);
@@ -614,18 +669,25 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       });
       if (error) throw error;
       if (!data || typeof data.job_id !== 'string' || typeof data.account_count !== 'number' || typeof data.notification_count !== 'number') {
+        if (typeof data?.job_id === 'string') void cancelConfirmation(data.job_id);
         throw new Error('刪除範圍格式不正確。');
       }
-      if (filtersRef.current !== requestedFilters || (recordId && selectedIdRef.current !== recordId)
-        || (archivedNotificationId && notificationIdRef.current !== archivedNotificationId)) {
-        setDeleteError('篩選或選取檔案已變更，請重新預覽刪除範圍。');
+      if (!mountedRef.current || prepareRequestRef.current !== request || deletionContextRef.current !== requestedContext) {
+        void cancelConfirmation(data.job_id);
         return;
       }
-      setDeletePreview({ ...data, scope: archivedNotificationId ? 'notification' : recordId ? 'account' : 'bulk', filters: requestedFilters, recordId: recordId || null, notificationId: archivedNotificationId || null });
+      const preview = { ...data, scope: archivedNotificationId ? 'notification' as const : recordId ? 'account' as const : 'bulk' as const, filters, recordId: recordId || null, notificationId: archivedNotificationId || null, context: requestedContext };
+      deletePreviewRef.current = preview;
+      setDeletePreview(preview);
     } catch (error) {
-      setDeleteError(`無法準備刪除：${formatSupabaseError(error)}`);
+      if (mountedRef.current && prepareRequestRef.current === request && deletionContextRef.current === requestedContext) {
+        setDeleteError(`無法準備刪除：${formatSupabaseError(error)}`);
+      }
     } finally {
-      setDeleting(false);
+      if (prepareRequestRef.current === request) {
+        prepareRequestRef.current = null;
+        if (mountedRef.current) setDeleting(false);
+      }
     }
   };
 
@@ -642,58 +704,79 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   }, [deletePreview]);
 
   const confirmDeletion = async () => {
-    if (!deletePreview || deleting) return;
-    if (filtersRef.current !== deletePreview.filters
-      || (deletePreview.recordId && selectedIdRef.current !== deletePreview.recordId)
-      || (deletePreview.notificationId && notificationIdRef.current !== deletePreview.notificationId)) {
-      setDeletePreview(null);
+    const preview = deletePreviewRef.current;
+    if (!mountedRef.current || !preview || prepareRequestRef.current || executingJobRef.current) return;
+    const context = deletionContextRef.current;
+    if (!context.isActive || context !== preview.context || context.filters !== preview.filters
+      || (preview.recordId && context.selectedId !== preview.recordId)
+      || (preview.notificationId && context.notificationId !== preview.notificationId)) {
+      invalidateDeletionPreview();
       setDeleteError('篩選或選取檔案已變更，請重新預覽刪除範圍。');
       return;
     }
+    executingJobRef.current = preview.job_id;
     setDeleting(true);
     setDeleteError(null);
     try {
-      const result = await executeEmployeeArchiveDeletion(deletePreview.job_id);
+      const result = await executeEmployeeArchiveDeletion(preview.job_id);
+      deletePreviewRef.current = null;
+      if (!mountedRef.current) return;
       setRetainedSharedImages(result.retained_shared_images);
-      if (deletePreview.scope !== 'notification') {
+      if (preview.scope !== 'notification') {
         setSelectedId(null);
         onSelectEmployee(null);
       }
       setNotificationId(null);
       setNotificationPage(0);
       setDeletePreview(null);
-      onDeleteResult({ type: 'success', message: deletePreview.scope === 'notification'
+      setPendingCleanup(previous => previous.filter(job => job.job_id !== preview.job_id));
+      onDeleteResult({ type: 'success', message: preview.scope === 'notification'
         ? '已永久清除此筆員工通知檔案。'
-        : deletePreview.scope === 'account' ? '已永久刪除此筆員工檔案及相關資料。' : `已永久刪除 ${deletePreview.account_count} 筆員工檔案及相關資料。` });
+        : preview.scope === 'account' ? '已永久刪除此筆員工檔案及相關資料。' : `已永久刪除 ${preview.account_count} 筆員工檔案及相關資料。` });
       onDeleted();
     } catch (error) {
+      if (!mountedRef.current) return;
       onDeleted();
       try {
         const jobs = await listPendingEmployeeArchiveDeletions();
+        if (!mountedRef.current) return;
         setPendingCleanup(jobs);
-        const mediaPending = jobs.some(job => job.job_id === deletePreview.job_id);
+        const mediaPending = jobs.some(job => job.job_id === preview.job_id);
+        if (mediaPending) {
+          // 正文已移除，轉交pending附件重試，不再當成未執行的確認暫存。
+          deletePreviewRef.current = null;
+          setDeletePreview(null);
+        }
         setDeleteError(mediaPending
           ? `員工資料已從資料庫移除，但附件或原圖清理未完成：${formatSupabaseError(error)}。請點選上方的清理重試。`
           : `刪除未能確認：${formatSupabaseError(error)}。請重新整理並核對員工是否仍在列表中。`);
         onDeleteResult({ type: 'error', message: mediaPending ? '員工資料已移除，但附件或原圖清理未完成，請重試。' : '刪除結果無法確認，請核對員工檔案。' });
-      } catch {
-        setDeleteError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對員工資料與待清理檔案。`);
+      } catch (pendingError) {
+        if (!mountedRef.current) return;
+        setDeleteError(`無法核對刪除結果：${formatSupabaseError(error)}。待清理任務查詢失敗：${formatSupabaseError(pendingError)}。請重新整理後核對員工資料與待清理檔案，或重試本次確認。`);
         onDeleteResult({ type: 'error', message: '無法核對刪除結果，請重新整理員工檔案。' });
       }
     } finally {
-      setDeleting(false);
+      executingJobRef.current = null;
+      if (!mountedRef.current || preview.context !== deletionContextRef.current) dismissDeletePreview();
+      if (mountedRef.current) setDeleting(false);
     }
   };
 
   const retryPendingCleanup = async (jobId: string) => {
-    if (deleting) return;
+    if (!mountedRef.current || !isActive || prepareRequestRef.current || executingJobRef.current) return;
+    if (deletePreviewRef.current && deletePreviewRef.current.job_id !== jobId) dismissDeletePreview();
+    const preview = deletePreviewRef.current;
+    executingJobRef.current = jobId;
     setDeleting(true);
     setDeleteError(null);
     try {
       const result = await executeEmployeeArchiveDeletion(jobId);
+      if (deletePreviewRef.current?.job_id === jobId) deletePreviewRef.current = null;
+      if (!mountedRef.current) return;
       setRetainedSharedImages(result.retained_shared_images);
-      setPendingCleanup(await listPendingEmployeeArchiveDeletions());
-      if (deletePreview?.scope !== 'notification') {
+      setPendingCleanup(previous => previous.filter(job => job.job_id !== jobId));
+      if (preview?.scope !== 'notification') {
         setSelectedId(null);
         onSelectEmployee(null);
       }
@@ -701,10 +784,26 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       onDeleteResult({ type: 'success', message: '員工檔案的附件及原圖清理已完成。' });
       onDeleted();
     } catch (error) {
+      if (!mountedRef.current) return;
       setDeleteError(`附件或原圖清理未完成：${formatSupabaseError(error)}`);
       onDeleteResult({ type: 'error', message: '員工檔案的附件或原圖清理未完成，請重試。' });
+      try {
+        const jobs = await listPendingEmployeeArchiveDeletions();
+        if (mountedRef.current) setPendingCleanup(jobs);
+      } catch (pendingError) {
+        if (mountedRef.current) setDeleteError(`附件或原圖清理未完成：${formatSupabaseError(error)}。待清理任務查詢失敗：${formatSupabaseError(pendingError)}。請重新整理或重試清理。`);
+      }
+      return;
     } finally {
-      setDeleting(false);
+      executingJobRef.current = null;
+      if (mountedRef.current) setDeleting(false);
+    }
+    // 清理已成功；後續列表讀取失敗不能改成刪除失敗。
+    try {
+      const jobs = await listPendingEmployeeArchiveDeletions();
+      if (mountedRef.current) setPendingCleanup(jobs);
+    } catch (error) {
+      if (mountedRef.current) setDeleteError(`附件及原圖清理已完成，但待清理任務查詢失敗：${formatSupabaseError(error)}。請重新整理清單。`);
     }
   };
 
@@ -765,7 +864,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         </section>
         <section aria-label="員工檔案與歷史內容" className={`${selectedId ? 'flex' : 'hidden lg:flex'} min-h-0 min-w-0 flex-col bg-slate-900`}>
           {!selectedId ? <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-slate-400">從左側選擇員工，查看帳戶、手動通知及兩個工作區的完整聊天紀錄。</div> : <>
-            <div className="flex shrink-0 items-center gap-3 border-b border-slate-700 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-3"><button type="button" onClick={() => { setSelectedId(null); setNotificationId(null); setOpenConversation(null); onSelectEmployee(null); }} aria-label="返回員工列表" className={`rounded-lg border border-slate-600 p-2 text-slate-200 lg:hidden ${focusClass}`}><ArrowLeft className="h-4 w-4" /></button><div className="min-w-0"><h2 className="truncate text-base font-black text-white">{detail?.account_username || items.find(item => item.id === selectedId)?.account_username || '已刪員工檔案'}</h2><p className="truncate text-xs text-cyan-200">員工 ID：{detail?.employee_number || items.find(item => item.id === selectedId)?.employee_number || '已清除'} · 所屬管理員：{detail?.owner_username || items.find(item => item.id === selectedId)?.owner_username || '—'}</p></div></div>
+            <div className="flex shrink-0 items-center gap-3 border-b border-slate-700 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-3"><button type="button" onClick={() => { invalidateDeletionPreview(); setSelectedId(null); setNotificationId(null); setOpenConversation(null); onSelectEmployee(null); }} aria-label="返回員工列表" className={`rounded-lg border border-slate-600 p-2 text-slate-200 lg:hidden ${focusClass}`}><ArrowLeft className="h-4 w-4" /></button><div className="min-w-0"><h2 className="truncate text-base font-black text-white">{detail?.account_username || items.find(item => item.id === selectedId)?.account_username || '已刪員工檔案'}</h2><p className="truncate text-xs text-cyan-200">員工 ID：{detail?.employee_number || items.find(item => item.id === selectedId)?.employee_number || '已清除'} · 所屬管理員：{detail?.owner_username || items.find(item => item.id === selectedId)?.owner_username || '—'}</p></div></div>
             <nav aria-label="員工檔案分類" className="grid shrink-0 grid-cols-4 border-b border-slate-700 bg-slate-950/75">{sections.map(([tab, label]) => <button key={tab} type="button" onClick={() => showSection(tab)} className={`min-w-0 border-b-2 px-1 py-3 text-[11px] font-bold sm:text-xs ${section === tab ? 'border-cyan-300 bg-cyan-500/15 text-white' : 'border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'} ${focusClass}`}>{label}</button>)}</nav>
             <div ref={detailPaneRef} className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_85%_0%,rgba(34,211,238,0.06),transparent_42%)] p-4 scrollbar-dark sm:p-5">
               {detailLoading && !detail && <p role="status" className="py-10 text-center text-sm text-slate-400">載入員工檔案中…</p>}
@@ -807,7 +906,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         </section>
       </div>
     </div>
-    {deletePreview && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section ref={deleteDialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="employee-delete-title" onKeyDown={event => { if (event.key === 'Escape' && !deleting) { setDeletePreview(null); setDeleteError(null); } if (event.key !== 'Tab') return; const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')); if (!buttons.length) { event.preventDefault(); event.currentTarget.focus(); return; } if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); } }} className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><p className="mt-1 text-xs text-slate-300">清除完成後不保留封存內容或清理憑證，無法還原。</p><h2 id="employee-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部員工檔案？' : deletePreview.scope === 'account' ? '刪除此員工檔案？': '刪除此筆私人通知？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.account_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">位員工 · {deletePreview.notification_count.toLocaleString()} 筆私人通知</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含目前篩選條件下尚未載入的員工檔案，以及各員工的聊天留證、歷史訂單與財務資料。' : deletePreview.scope === 'account' ? '同時移除此員工的聊天留證、歷史訂單與財務資料；共用素材不受影響。': '只移除此筆私人通知；員工檔案和其他通知仍保留。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">{deletePreview.scope === 'notification' ? '只永久移除此筆私人通知；員工檔案及其他資料不受影響。' : '將永久清除此範圍內員工的封存檔案、私人通知、聊天留證副本、訂單、錢包與財務資料，無法還原；共用富媒體範本與原始素材不受影響。'}</p>{deleteError && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{deleteError}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" autoFocus onClick={() => { setDeletePreview(null); setDeleteError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${focusClass}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${focusClass}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
+    {deletePreview && deletePreview.context === deletionContext && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section ref={deleteDialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="employee-delete-title" onKeyDown={event => { if (event.key === 'Escape' && !executingJobRef.current) { event.stopPropagation(); setDeleteError(null); invalidateDeletionPreview(); } if (event.key !== 'Tab') return; const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')); if (!buttons.length) { event.preventDefault(); event.currentTarget.focus(); return; } if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); } }} className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><p className="mt-1 text-xs text-slate-300">清除完成後不保留封存內容或清理憑證，無法還原。</p><h2 id="employee-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部員工檔案？' : deletePreview.scope === 'account' ? '刪除此員工檔案？': '刪除此筆私人通知？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.account_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">位員工 · {deletePreview.notification_count.toLocaleString()} 筆私人通知</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含目前篩選條件下尚未載入的員工檔案，以及各員工的聊天留證、歷史訂單與財務資料。' : deletePreview.scope === 'account' ? '同時移除此員工的聊天留證、歷史訂單與財務資料；共用素材不受影響。': '只移除此筆私人通知；員工檔案和其他通知仍保留。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">{deletePreview.scope === 'notification' ? '只永久移除此筆私人通知；員工檔案及其他資料不受影響。' : '將永久清除此範圍內員工的封存檔案、私人通知、聊天留證副本、訂單、錢包與財務資料，無法還原；共用富媒體範本與原始素材不受影響。'}</p>{deleteError && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{deleteError}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" autoFocus onClick={() => { setDeleteError(null); invalidateDeletionPreview(); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${focusClass}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${focusClass}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
     {openConversation && selectedId && selectedConversation && detail?.id === selectedId && createPortal(
       <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-[radial-gradient(circle_at_50%_20%,rgba(30,64,175,0.22),rgba(2,6,23,0.88)_60%)] p-0 backdrop-blur-md sm:p-4" onMouseDown={event => { if (event.target === event.currentTarget) setOpenConversation(null); }}>
         <section role="dialog" aria-modal="true" aria-labelledby="archived-conversation-title" className="audit-detail-modal flex h-full min-h-0 w-full max-w-[1240px] flex-col overflow-hidden border border-white/15 bg-slate-950 shadow-[0_32px_110px_rgba(2,6,23,0.75)] sm:h-[94vh] sm:rounded-2xl">

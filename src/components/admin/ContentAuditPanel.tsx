@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -6,7 +6,7 @@ import {
   Gift, Image as ImageIcon, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, UserRoundX, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
-import { executeAuditedDeletion, listPendingAuditedDeletions, loadAuditedMedia, prepareAuditedConversationDeletion, prepareAuditedDeletion } from '../../lib/contentAudit';
+import { cancelAuditDeletionConfirmation, executeAuditedDeletion, listPendingAuditedDeletions, loadAuditedMedia, prepareAuditedConversationDeletion, prepareAuditedDeletion } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
@@ -530,15 +530,80 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [detailKey, setDetailKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [deleteFeedback, setDeleteFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [deletePreview, setDeletePreview] = useState<{ job_id: string; card_count: number; event_count: number; scope: 'bulk' | 'single' | 'conversation'; finished_at?: string | null } | null>(null);
+  const deletionContext = useMemo(() => ({ draft, filters, selectedId, view }), [draft, filters, selectedId, view]);
+  const [deletePreview, setDeletePreview] = useState<{ job_id: string; card_count: number; event_count: number; scope: 'bulk' | 'single' | 'conversation'; finished_at?: string | null; context: typeof deletionContext } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Array<{ job_id: string; card_count: number; event_count: number; finished_at: string | null }>>([]);
   const detailRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const filtersRef = useRef(filters);
-  const selectedIdRef = useRef(selectedId);
-  filtersRef.current = filters;
-  selectedIdRef.current = selectedId;
+  const deletionContextRef = useRef(deletionContext);
+  const mountedRef = useRef(false);
+  const deletePreviewRef = useRef(deletePreview);
+  const executingJobRef = useRef<string | null>(null);
+  const prepareRequestRef = useRef<object | null>(null);
+  deletionContextRef.current = deletionContext;
+
+  const cancelConfirmation = useCallback(async (jobId: string) => {
+    try {
+      const result = await cancelAuditDeletionConfirmation('content', jobId);
+      if (!result.success) throw new Error('確認暫存回收未獲確認。');
+      if (mountedRef.current && result.cancelled) {
+        setPendingDeletes(previous => previous.filter(job => job.job_id !== jobId));
+      } else if (mountedRef.current && !result.cancelled) {
+        // 已進入附件清理的任務不取消，保留pending重試入口。
+        try {
+          const jobs = await listPendingAuditedDeletions();
+          if (mountedRef.current) setPendingDeletes(jobs);
+        } catch (pendingError) {
+          if (mountedRef.current) setError(`確認已關閉，任務未被取消；待清理任務查詢失敗：${formatSupabaseError(pendingError)}。請重新整理核對，這不是實際內容刪除的結果。`);
+        }
+      }
+    } catch (err) {
+      if (mountedRef.current) {
+        const message = `刪除確認已關閉，但確認暫存尚未回收，將由到期回收：${formatSupabaseError(err)}。這不是實際內容刪除的結果。`;
+        setError(message);
+        setDeleteFeedback({ type: 'error', message });
+      }
+    }
+  }, []);
+
+  const dismissDeletePreview = useCallback(() => {
+    const preview = deletePreviewRef.current;
+    if (preview && executingJobRef.current === preview.job_id) return;
+    deletePreviewRef.current = null;
+    if (mountedRef.current) setDeletePreview(null);
+    if (preview && !preview.finished_at) void cancelConfirmation(preview.job_id);
+  }, [cancelConfirmation]);
+
+  const invalidateDeletionPreview = useCallback(() => {
+    prepareRequestRef.current = null;
+    if (mountedRef.current && !executingJobRef.current) setDeleting(false);
+    dismissDeletePreview();
+  }, [dismissDeletePreview]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      invalidateDeletionPreview();
+    };
+  }, [invalidateDeletionPreview]);
+
+  useEffect(() => {
+    invalidateDeletionPreview();
+  }, [draft, filters, selectedId, view, invalidateDeletionPreview]);
+
+  useEffect(() => {
+    if (!deletePreview) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !executingJobRef.current) {
+        setError(null);
+        invalidateDeletionPreview();
+      }
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [deletePreview, invalidateDeletionPreview]);
 
   useEffect(() => {
     if (!deleteFeedback) return;
@@ -740,6 +805,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
   const switchView = (next: 'content' | 'employees') => {
     if (view === next) return false;
+    invalidateDeletionPreview();
     setError(null);
     setDraft(emptyFilters);
     setFilters({ ...emptyFilters });
@@ -796,11 +862,12 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   };
 
   const closeEvent = useCallback(() => {
+    invalidateDeletionPreview();
     setSelectedId(null);
     setSelectedCard(null);
     setDetail(null);
     setConversation(null);
-  }, []);
+  }, [invalidateDeletionPreview]);
 
   const selectEvent = (id: string) => {
     const version = detail?.timeline.find(item => item.id === id);
@@ -823,13 +890,17 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   }, [selectedId, view, deletePreview, closeEvent]);
 
   const prepareDeletion = async (eventId?: string) => {
-    if (deleting || (!eventId && (!total || loading || listLoadError))) return;
+    if (!mountedRef.current || view !== 'content' || prepareRequestRef.current || executingJobRef.current || deletePreviewRef.current
+      || (!pendingDeletes.length && !eventId && (!total || loading || listLoadError))) return;
     if (pendingDeletes.length) {
-      setDeletePreview({ ...pendingDeletes[0], scope: 'bulk' });
+      const preview = { ...pendingDeletes[0], scope: 'bulk' as const, context: deletionContextRef.current };
+      deletePreviewRef.current = preview;
+      setDeletePreview(preview);
       return;
     }
-    const requestedFilters = filters;
-    const requestedSelection = selectedId;
+    const request = {};
+    const requestedContext = deletionContextRef.current;
+    prepareRequestRef.current = request;
     const entireConversation = Boolean(eventId && selectedCard?.id === eventId && selectedCard.card_id.startsWith('conversation:'));
     setDeleting(true);
     setError(null);
@@ -843,30 +914,46 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         from: eventId || !filters.from ? null : localDayStart(filters.from),
         to: eventId || !filters.to ? null : localDayStart(filters.to, true),
       }, eventId);
-      if (filtersRef.current !== requestedFilters || (eventId && selectedIdRef.current !== requestedSelection)) {
-        setError('篩選或選取紀錄已變更，請重新預覽刪除範圍。');
+      if (!mountedRef.current || prepareRequestRef.current !== request || deletionContextRef.current !== requestedContext) {
+        void cancelConfirmation(prepared.job_id);
         return;
       }
-      setDeletePreview({ ...prepared, scope: entireConversation ? 'conversation' : eventId ? 'single' : 'bulk' });
+      const preview = { ...prepared, scope: entireConversation ? 'conversation' as const : eventId ? 'single' as const : 'bulk' as const, context: requestedContext };
+      deletePreviewRef.current = preview;
+      setDeletePreview(preview);
     } catch (err) {
-      setError(`無法準備刪除：${formatSupabaseError(err)}`);
+      if (mountedRef.current && prepareRequestRef.current === request && deletionContextRef.current === requestedContext) {
+        setError(`無法準備刪除：${formatSupabaseError(err)}`);
+      }
     } finally {
-      setDeleting(false);
+      if (prepareRequestRef.current === request) {
+        prepareRequestRef.current = null;
+        if (mountedRef.current) setDeleting(false);
+      }
     }
   };
 
   const confirmDeletion = async () => {
-    if (!deletePreview || deleting) return;
+    const preview = deletePreviewRef.current;
+    if (!mountedRef.current || !preview || prepareRequestRef.current || executingJobRef.current) return;
+    if (preview.context !== deletionContextRef.current) {
+      invalidateDeletionPreview();
+      setError('篩選或選取紀錄已變更，請重新預覽刪除範圍。');
+      return;
+    }
+    executingJobRef.current = preview.job_id;
     setDeleting(true);
     setError(null);
     try {
-      const result = await executeAuditedDeletion(deletePreview.job_id);
-      const completion = deletePreview.finished_at
+      const result = await executeAuditedDeletion(preview.job_id);
+      deletePreviewRef.current = null;
+      if (!mountedRef.current) return;
+      const completion = preview.finished_at
         ? '附件及原圖清理已完成。'
-        : `已永久清除 ${deletePreview.event_count} 筆內容稽核證據及不再使用的附件。`;
+        : `已永久清除 ${preview.event_count} 筆內容稽核證據及不再使用的附件。`;
       setDeleteFeedback({ type: 'success', message: completion + (result.retained_shared_images > 0
         ? ` 有 ${result.retained_shared_images} 個素材仍被範本或其他內容引用，已保留。` : '') });
-      setPendingDeletes(previous => previous.filter(job => job.job_id !== deletePreview.job_id));
+      setPendingDeletes(previous => previous.filter(job => job.job_id !== preview.job_id));
       setDeletePreview(null);
       setSelectedId(null);
       setSelectedCard(null);
@@ -875,10 +962,29 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       setPage(0);
       setRefreshKey(key => key + 1);
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(`刪除未完成：${formatSupabaseError(err)}。可重試本次確認；若已過期，取消後重新預覽。`);
       setDeleteFeedback({ type: 'error', message: `內容稽核證據清理未完成：${formatSupabaseError(err)}。請重試本次確認。` });
+      try {
+        const jobs = await listPendingAuditedDeletions();
+        if (!mountedRef.current) return;
+        setPendingDeletes(jobs);
+        const pending = jobs.find(job => job.job_id === preview.job_id);
+        if (pending && deletePreviewRef.current?.job_id === preview.job_id) {
+          const updatedPreview = { ...preview, ...pending };
+          deletePreviewRef.current = updatedPreview;
+          setDeletePreview(updatedPreview);
+        }
+        setPage(0);
+        setRefreshKey(key => key + 1);
+        setDetailKey(key => key + 1);
+      } catch (pendingError) {
+        if (mountedRef.current) setError(`刪除未完成：${formatSupabaseError(err)}。待清理任務查詢失敗：${formatSupabaseError(pendingError)}。請重試本次確認或重新整理核對。`);
+      }
     } finally {
-      setDeleting(false);
+      executingJobRef.current = null;
+      if (!mountedRef.current || preview.context !== deletionContextRef.current) dismissDeletePreview();
+      if (mountedRef.current) setDeleting(false);
     }
   };
 
@@ -935,7 +1041,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       <header className="shrink-0 border-b border-cyan-300/20 bg-[radial-gradient(circle_at_82%_0%,rgba(6,182,212,0.18),transparent_34%),linear-gradient(90deg,#020617_0%,#0f172a_55%,#083344_100%)] px-3 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.32)] sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <button type="button" onClick={onBack} aria-label="返回歷史資料管理" className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/15 px-2.5 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:opacity-50 ${buttonFocus}`}><ArrowLeft className="h-4 w-4" aria-hidden="true" />返回</button>
+            <button type="button" onClick={() => { invalidateDeletionPreview(); onBack(); }} aria-label="返回歷史資料管理" className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/15 px-2.5 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:opacity-50 ${buttonFocus}`}><ArrowLeft className="h-4 w-4" aria-hidden="true" />返回</button>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-500/10 text-cyan-300"><ShieldCheck className="h-5 w-5" aria-hidden="true" /></span>
             <div className="min-w-0"><h1 className="text-lg font-black text-white sm:text-xl">{view === 'content' ? '內容稽核總覽' : '已刪員工紀錄'}</h1><p className="text-[11px] text-slate-400">{view === 'content' ? '單獨操作的通知、模擬客戶與經理對話異動' : '員工帳戶刪除及連帶內容留證'} · 時間均為 UTC+8</p></div>
           </div>
@@ -970,7 +1076,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         <main className="audit-detail-scroll flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col">
             <section aria-label="稽核事件清單" className="audit-detail-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-              <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-[radial-gradient(circle_at_78%_-70%,rgba(34,211,238,0.2),transparent_48%),linear-gradient(100deg,#111d34,#0b162a)] px-4 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.2)] sm:px-5"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200"><Database className="h-5 w-5" /></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-black tracking-wide text-white">異動紀錄</h2><span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-100">{total.toLocaleString()} 筆</span></div><p className="mt-0.5 text-[11px] text-slate-400">僅顯示單獨內容操作；員工刪除請見「刪除員工」 · 刪除涵蓋未載入的紀錄</p></div></div><button type="button" onClick={() => pendingDeletes.length ? setDeletePreview({ ...pendingDeletes[0], scope: 'bulk' }) : void prepareDeletion()} disabled={deleting || (!pendingDeletes.length && (loading || listLoadError || total === 0))} className={`inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-100 transition hover:border-rose-300/70 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : pendingDeletes.length ? `完成上次刪除（${pendingDeletes.length}）` : '全部刪除'}</button></div>
+              <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-[radial-gradient(circle_at_78%_-70%,rgba(34,211,238,0.2),transparent_48%),linear-gradient(100deg,#111d34,#0b162a)] px-4 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.2)] sm:px-5"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200"><Database className="h-5 w-5" /></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-black tracking-wide text-white">異動紀錄</h2><span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-100">{total.toLocaleString()} 筆</span></div><p className="mt-0.5 text-[11px] text-slate-400">僅顯示單獨內容操作；員工刪除請見「刪除員工」 · 刪除涵蓋未載入的紀錄</p></div></div><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || (!pendingDeletes.length && (loading || listLoadError || total === 0))} className={`inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-100 transition hover:border-rose-300/70 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : pendingDeletes.length ? `完成上次刪除（${pendingDeletes.length}）` : '全部刪除'}</button></div>
               <div className="hidden grid-cols-[36px_124px_134px_minmax(130px,1.1fr)_100px_100px_minmax(120px,1.4fr)_148px] items-center gap-2 border-b border-white/10 bg-[linear-gradient(90deg,#1e3050,#14243c)] px-4 py-3 text-[10px] font-black uppercase tracking-[0.08em] text-cyan-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] min-[1440px]:grid"><span>序號</span><span>資料類型</span><span>操作</span><span>員工帳號／ID</span><span>所屬管理員</span><span>實際操作者</span><span>內容摘要</span><span>異動時間（UTC+8）</span></div>
               <div className="flex items-center justify-between border-b border-white/10 bg-[linear-gradient(90deg,#1e3050,#14243c)] px-4 py-2.5 text-[10px] font-black tracking-wide text-cyan-100/80 min-[1440px]:hidden"><span>資料類型 · 操作 · 員工</span><span>異動紀錄 / 時間</span></div>
               <ol className="min-w-0 divide-y divide-slate-700/50">
@@ -1082,7 +1188,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         </div>, document.body,
       )}
 
-      {deletePreview && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="audit-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><p className="mt-1 text-xs text-slate-300">清除完成後不保留封存內容或清理憑證，無法還原。</p><h2 id="audit-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.finished_at ? '完成上次刪除的附件清理？' : deletePreview.scope === 'bulk' ? '刪除目前篩選的全部紀錄？' : deletePreview.scope === 'conversation' ? '刪除整段對話紀錄？' : '刪除此筆異動紀錄？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.card_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">列 · {deletePreview.event_count.toLocaleString()} 筆證據</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.finished_at ? '紀錄已刪除，但私有附件尚未確認清理完成。請完成清理，無法還原原紀錄。' : deletePreview.scope === 'bulk' ? '包含符合篩選但尚未載入的頁面；整段對話列會刪除該段所有封存訊息。' : deletePreview.scope === 'conversation' ? '將刪除這段對話的全部封存訊息，包括其他尚未載入的訊息頁面；不影響其他對話。' : '只刪除目前選取的這一筆事件；不會自動刪除其他紀錄。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">將永久移除這些稽核事件、原文與私有附件，不另保留清除記錄，無法還原。資料庫備份、外部複本及「已刪員工」獨立檔案不在本次刪除範圍。</p><p className="mt-2 text-xs leading-5 text-cyan-100">這裡只清除私人稽核留證；修改後仍在使用的通知與聊天內容不會被刪除或還原。</p>{error && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{error}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setDeletePreview(null); setError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : deletePreview.finished_at ? '完成附件清理' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
+      {deletePreview && deletePreview.context === deletionContext && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="audit-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><p className="mt-1 text-xs text-slate-300">清除完成後不保留封存內容或清理憑證，無法還原。</p><h2 id="audit-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.finished_at ? '完成上次刪除的附件清理？' : deletePreview.scope === 'bulk' ? '刪除目前篩選的全部紀錄？' : deletePreview.scope === 'conversation' ? '刪除整段對話紀錄？' : '刪除此筆異動紀錄？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.card_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">列 · {deletePreview.event_count.toLocaleString()} 筆證據</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.finished_at ? '紀錄已刪除，但私有附件尚未確認清理完成。請完成清理，無法還原原紀錄。' : deletePreview.scope === 'bulk' ? '包含符合篩選但尚未載入的頁面；整段對話列會刪除該段所有封存訊息。' : deletePreview.scope === 'conversation' ? '將刪除這段對話的全部封存訊息，包括其他尚未載入的訊息頁面；不影響其他對話。' : '只刪除目前選取的這一筆事件；不會自動刪除其他紀錄。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">將永久移除這些稽核事件、原文與私有附件，不另保留清除記錄，無法還原。資料庫備份、外部複本及「已刪員工」獨立檔案不在本次刪除範圍。</p><p className="mt-2 text-xs leading-5 text-cyan-100">這裡只清除私人稽核留證；修改後仍在使用的通知與聊天內容不會被刪除或還原。</p>{error && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{error}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setError(null); invalidateDeletionPreview(); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : deletePreview.finished_at ? '完成附件清理' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
     </div>
   );
 }

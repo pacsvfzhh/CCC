@@ -202,6 +202,16 @@ Deno.serve(async (request) => {
         headers: { ...cors, 'Content-Type': 'application/octet-stream', 'X-Audit-Media-Type': blob.type, 'X-Content-Type-Options': 'nosniff' },
       });
     }
+    if (body.action === 'cancel_confirmation') {
+      if (!['content', 'employee'].includes(body.jobKind) || typeof body.jobId !== 'string' || !/^[\da-f-]{36}$/i.test(body.jobId)) {
+        return response({ error: 'Invalid deletion confirmation.' }, 400);
+      }
+      const { data, error } = await db.rpc('cancel_audit_deletion_confirmation', {
+        p_admin_session_token: token, p_job_kind: body.jobKind, p_job_id: body.jobId,
+      });
+      if (error) throw error;
+      return response(data);
+    }
     if (body.action === 'pending_employee_deletes') {
       const { data, error } = await db.rpc('list_pending_deleted_employee_archive_deletes', {
         p_admin_session_token: token,
