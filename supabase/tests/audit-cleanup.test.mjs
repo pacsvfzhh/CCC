@@ -22,6 +22,19 @@ const files = {
 const sql = Object.fromEntries(await Promise.all(Object.entries(files).map(async ([key, name]) =>
   [key, await readFile(new URL(name, migrationDir), 'utf8')])));
 
+test('retired residual cleanup cannot run from the dashboard, audit panel or Edge Function', async () => {
+  for (const file of [
+    'src/components/admin/AdminDashboard.tsx',
+    'src/components/admin/ContentAuditPanel.tsx',
+    'supabase/functions/content-audit/index.ts',
+  ]) {
+    const source = await readFile(new URL(`../../${file}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(source,
+      /executeApprovedCleanup|prepare_approved_residual_cleanup|Approved residual cleanup was not completed/,
+      `${file} must not contain the retired one-time cleanup workflow`);
+  }
+});
+
 function section(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
   assert.notEqual(start, -1, `Fixture SQL start not found: ${startMarker}`);
