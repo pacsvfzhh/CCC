@@ -15,6 +15,20 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 $$;
 REVOKE ALL ON FUNCTION private.content_audit_orphan_notification_snapshots(uuid[]) FROM PUBLIC, anon, authenticated;
 
+CREATE OR REPLACE FUNCTION private.reject_archived_notification_recipient()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE v_archived_at timestamptz;
+BEGIN
+  SELECT archived_at INTO v_archived_at FROM public.users
+  WHERE id = NEW.recipient_id FOR KEY SHARE;
+  IF NOT FOUND OR v_archived_at IS NOT NULL THEN
+    RAISE EXCEPTION 'An archived employee cannot receive notifications.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.prepare_content_audit_change(
   p_admin_session_token uuid, p_action text, p_target_ids uuid[], p_employee_id uuid DEFAULT NULL
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
@@ -71,7 +85,15 @@ BEGIN
     IF v_role <> 'super_admin' OR cardinality(p_target_ids) <> 1 THEN
       RAISE EXCEPTION 'Only a super administrator can remove one secondary administrator.';
     END IF;
-    SELECT jsonb_build_object('admin_id', a.id, 'username', a.username,
+    PERFORM 1 FROM public.users u
+    WHERE u.created_by = p_target_ids[1] AND u.archived_at IS NULL
+    ORDER BY u.id FOR UPDATE;
+    PERFORM 1 FROM public.messages m
+    JOIN public.message_recipients r ON r.message_id = m.id
+    JOIN public.users u ON u.id = r.recipient_id
+    WHERE u.created_by = p_target_ids[1] AND u.archived_at IS NULL
+    ORDER BY m.id FOR UPDATE OF m;
+    SELECT jsonb_build_object('admin_id', a.id, 'username',
       'messages', (SELECT COALESCE(jsonb_agg(private.content_audit_chat_snapshot(m) ORDER BY m.id), '[]'::jsonb)
         FROM public.customer_employee_conversations m
         JOIN public.simulated_customers c ON c.id = m.customer_id
@@ -86,6 +108,11 @@ BEGIN
     v_count := CASE WHEN v_snapshots IS NULL THEN 0 ELSE 1 END;
   ELSIF p_action = 'employee_delete' THEN
     PERFORM private.assert_admin_can_manage_user(v_admin, v_role, p_target_ids[1]);
+    PERFORM 1 FROM public.users WHERE id = p_target_ids[1] AND archived_at IS NULL FOR UPDATE;
+    PERFORM 1 FROM public.messages m
+    JOIN public.message_recipients r ON r.message_id = m.id
+    WHERE r.recipient_id = p_target_ids[1]
+    ORDER BY m.id FOR UPDATE OF m;
     SELECT jsonb_build_object('employee', jsonb_build_object('id', u.id, 'username', u.username, 'employee_id', u.employee_id),
       'messages', (SELECT COALESCE(jsonb_agg(private.content_audit_chat_snapshot(m) ORDER BY m.id), '[]'::jsonb)
        FROM public.customer_employee_conversations m WHERE m.employee_id = u.id)
@@ -153,7 +180,8 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION private.remove_deleted_employee_notification_recipients(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE DELETE ON public.message_recipients FROM anon, authenticated;
+REVOKE DELETE, TRUNCATE ON public.message_recipients FROM anon, authenticated;
+REVOKE TRUNCATE ON public.messages FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION private.archive_employees_before_admin_delete()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
