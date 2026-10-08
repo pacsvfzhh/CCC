@@ -294,7 +294,16 @@ Deno.serve(async (request) => {
     if (!Array.isArray(body.targetIds) || !body.targetIds.length || !body.targetIds.every((id: unknown) => typeof id === 'string' && /^[\da-f-]{36}$/i.test(id))) {
       return response({ error: 'Invalid record IDs.' }, 400);
     }
-    return await mutate(body as Change);
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await mutate(body as Change);
+      } catch (error) {
+        if (!['employee_delete', 'admin_delete'].includes(body.action)
+          || !(error instanceof Error)
+          || !error.message.includes('Notification evidence changed; retry employee deletion.')
+          || attempt === 2) throw error;
+      }
+    }
   } catch (error) {
     return response({ error: error instanceof Error ? error.message : 'Operation failed.' }, 400);
   }

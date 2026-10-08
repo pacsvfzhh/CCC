@@ -140,7 +140,7 @@ BEGIN
       AND NOT (COALESCE(NULLIF(current_setting('content_audit.media', true), ''), '{}')::jsonb ? message.id::text)
       AND (cardinality(private.content_audit_storage_urls(jsonb_build_object('content', message.content))) > 0
         OR message.content ~* '<(img|video|source)[[:space:]>]')) THEN
-    RAISE EXCEPTION 'Notification attachment evidence must be preserved before employee deletion.';
+    RAISE EXCEPTION 'Notification evidence changed; retry employee deletion.';
   END IF;
   DELETE FROM public.messages message WHERE message.id = ANY(v_message_ids)
     AND NOT EXISTS (SELECT 1 FROM public.message_recipients recipient WHERE recipient.message_id = message.id);
