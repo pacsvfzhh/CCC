@@ -939,6 +939,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
       sentMessageIdsRef.current = new Set(messageIds);
       setSentMessages(messagesWithRecipients);
+      setSelectedMessageDetail(previous => previous ? messagesWithRecipients.find(message => message.id === previous.id) || null : null);
       setMessageStats(statsByMessage);
       setReadRecipientIdsByMessage(readIdsByMessage);
       setRecipientDetails(recipientDetailsByMessage);
