@@ -106,7 +106,7 @@ interface NavigationPreferences {
 
 const legacyNavigationLabelTranslations: Record<string, string> = {
   Employees: '員工詳情數據',
-  Messages: '訊息',
+  Messages: '通知',
   '员工详情数据': '員工詳情數據',
   Withdrawals: '提款',
   Locked: '已鎖定',
@@ -118,14 +118,23 @@ const legacyNavigationLabelTranslations: Record<string, string> = {
   Announcements: '公告',
   'Order Assignment': '訂單指派',
   'Order Assign': '訂單指派',
-  Verification: '驗證',
-  Verifications: '驗證',
+  Verification: '身份驗證',
+  Verifications: '身份驗證',
   Configuration: '設定',
   Configuratio: '設定',
-  Products: '產品',
-  'Valid Data': '有效資料',
+  Products: '產品目錄',
+  'Valid Data': '交單數據',
   Admins: '管理員',
   'History Data': '歷史資料',
+};
+
+const previousDefaultNavigationLabels: Partial<Record<AdminTabId, string[]>> = {
+  messages: ['訊息', '讯息'],
+  customerservice: ['模拟客户'],
+  cccservice: ['经理'],
+  verifications: ['驗證', '验证'],
+  products: ['產品', '产品'],
+  validdata: ['有效資料', '有效资料'],
 };
 
 interface NavigationDragState {
@@ -455,17 +464,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     { id: 'employeesearch', label: '員工搜尋', icon: Search },
     { id: 'loginhistory', label: '登入紀錄', icon: Activity },
     { id: 'accountlocks', label: '已鎖定', icon: Shield },
-    { id: 'messages', label: '訊息', icon: Bell },
+    { id: 'messages', label: '通知', icon: Bell },
     { id: 'announcements', label: '公告', icon: FileText },
     { id: 'customerservice', label: '模擬客戶', icon: MessageCircle },
     { id: 'cccservice', label: '經理', icon: Headphones },
     { id: 'dispatch', label: '訂單指派', icon: PackageSearch },
     { id: 'withdrawals', label: '提款', icon: FileText },
-    { id: 'verifications', label: '驗證', icon: UserCheck },
+    { id: 'verifications', label: '身份驗證', icon: UserCheck },
     { id: 'config', label: '設定', icon: Settings },
     ...(admin.role === 'super_admin' ? [
-      { id: 'products' as const, label: '產品', icon: Package },
-      { id: 'validdata' as const, label: '有效資料', icon: Database },
+      { id: 'products' as const, label: '產品目錄', icon: Package },
+      { id: 'validdata' as const, label: '交單數據', icon: Database },
       { id: 'admins' as const, label: '管理員', icon: Shield },
       { id: 'history' as const, label: '歷史資料', icon: History },
     ] : []),
@@ -483,7 +492,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       const customLabel = navigationPreferences.labels[id]?.trim();
       return {
         ...tab,
-        label: customLabel ? legacyNavigationLabelTranslations[customLabel] || customLabel : tab.label,
+        label: customLabel && !previousDefaultNavigationLabels[id]?.includes(customLabel)
+          ? legacyNavigationLabelTranslations[customLabel] || customLabel
+          : tab.label,
       };
     });
   }, [defaultTabs, navigationPreferences]);
