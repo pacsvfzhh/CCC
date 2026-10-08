@@ -222,6 +222,7 @@ async function installFixture() {
   await db.exec(blockSQL(sql.receipts, 'remove_employee_image_receipts'));
   await db.exec(sql.receipts.slice(sql.receipts.indexOf('ALTER TABLE private.employee_chat_image_deletion_claims ALTER COLUMN')));
   await db.exec(sql.current);
+  await db.query('INSERT INTO private.content_audit_storage_origins(origin) VALUES ($1)', ['https://fixture.invalid']);
   await db.query('INSERT INTO public.admins(id, role) VALUES ($1, $4), ($2, $5), ($3, $4)',
     [ADMIN, SECONDARY, OTHER_ADMIN, 'super_admin', 'secondary_admin']);
   for (const [token, admin, expired, revoked] of [
@@ -332,6 +333,24 @@ describe('audit cleanup: real PostgreSQL migration regressions', { concurrency: 
     assert.equal(await rpc('private.content_audit_decode_uri_path', ['bad%']), null);
     assert.equal(await rpc('private.content_audit_decode_uri_path', ['folder/a%2Bb.png']), 'folder/a+b.png');
   });
+
+  test('foreign Storage origin cannot select or retain a same-named local file', async () => {
+    await object('template-images', 'local.png');
+    const foreign = 'https://foreign.invalid/storage/v1/object/public/template-images/local.png';
+    assert.deepEqual(await rpc('private.content_audit_public_media_candidates', [[foreign]]), []);
+    await reference('public.cs_message_templates', 'content', `<img src="${foreign}">`);
+    assert.equal(await rpc('private.content_audit_public_media_in_use', ['template-images', 'local.png']), false);
+    const event = await addEvent();
+    await addOperation(event.messageId, { title: foreign });
+    assert.deepEqual((await finishContent(event.id)).public_media_to_remove, []);
+  });
+
+  for (const kind of ['content', 'employee']) {
+    test(`upgrade rejects unfinished ${kind} media cleanup before changing schema`, async () => {
+      await finishedJob(kind, []);
+      await expectSQLFailure(blockSQL(sql.current, 'pending_cleanup'), [], /Finish pending media cleanup/);
+    });
+  }
 
   test('same-named file in a different bucket is not a reference', async () => {
     await reference('public.cs_message_templates', 'content', `<img src="${mediaURL('template-images', 'same.png')}">`);
@@ -487,6 +506,29 @@ describe('audit cleanup: real PostgreSQL migration regressions', { concurrency: 
     await recheck('content', jobId, paths);
     await expectSQLFailure('INSERT INTO public.rich_card_contents(html_content) VALUES ($1)',
       [`<img src="${mediaURL('template-images', 'folder/photo%20one.png')}">`], /reserved for permanent deletion/);
+  });
+
+  for (const table of ['public.cs_message_templates', 'public.rich_card_contents']) {
+    test(`single-quoted encoded HTML protects existing ${table} media`, async () => {
+      const path = 'folder/photo one.png';
+      await object('template-images', path);
+      const html = `<img src='${mediaURL('template-images', 'folder/photo%20one.png')}'>`;
+      await reference(table, table.endsWith('contents') ? 'html_content' : 'content', html);
+      const paths = [media('template-images', path)];
+      const jobId = await finishedJob('content', paths);
+      assert.deepEqual(await recheck('content', jobId, paths), { paths_to_remove: [], retained_shared_images: 1 });
+      assert.equal(await claimRow('template-images', path), undefined);
+    });
+  }
+
+  test('single-quoted encoded HTML cannot bypass a claimed media reference', async () => {
+    const path = 'folder/photo one.png';
+    await object('template-images', path);
+    const paths = [media('template-images', path)];
+    const jobId = await finishedJob('content', paths);
+    await recheck('content', jobId, paths);
+    await expectSQLFailure('INSERT INTO public.rich_card_contents(html_content) VALUES ($1)',
+      [`<img src='${mediaURL('template-images', 'folder/photo%20one.png')}'>`], /reserved for permanent deletion/);
   });
 
   test('conflicting jobs fail atomically and recheck can be retried after the prior cleanup', async () => {

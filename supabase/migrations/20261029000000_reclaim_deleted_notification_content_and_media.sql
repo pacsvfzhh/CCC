@@ -1,3 +1,16 @@
+DO $pending_cleanup$
+BEGIN
+  IF EXISTS (SELECT 1 FROM private.content_audit_delete_jobs WHERE finished_at IS NOT NULL)
+    OR EXISTS (SELECT 1 FROM private.deleted_employee_delete_jobs WHERE finished_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'Finish pending media cleanup before upgrading permanent deletion.';
+  END IF;
+END;
+$pending_cleanup$;
+
+CREATE TABLE private.content_audit_storage_origins (origin text PRIMARY KEY);
+REVOKE ALL ON private.content_audit_storage_origins FROM PUBLIC, anon, authenticated;
+INSERT INTO private.content_audit_storage_origins(origin) VALUES ('https://hxpbpqoqkoiiplvdwmld.supabase.co');
+
 ALTER TABLE private.content_audit_delete_jobs
   ADD COLUMN public_media_to_remove jsonb NOT NULL DEFAULT '[]'::jsonb,
   ADD COLUMN retained_shared_images integer NOT NULL DEFAULT 0;
@@ -38,11 +51,13 @@ CREATE FUNCTION private.content_audit_public_media_candidates(p_urls text[])
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
   WITH parsed AS (
-    SELECT matched.parts[1] AS bucket,
-      private.content_audit_decode_uri_path(matched.parts[2]) AS path
+    SELECT matched.parts[2] AS bucket,
+      private.content_audit_decode_uri_path(matched.parts[3]) AS path
     FROM unnest(COALESCE(p_urls, '{}'::text[])) source(url)
     CROSS JOIN LATERAL regexp_match(source.url,
-      '^https?://[^/?#]+/storage/v1/object/public/(chat-images|template-images|announcement-images|super-customer-avatars)/([^?#]+)$') matched(parts)
+      '^(https?://[^/?#]+)/storage/v1/object/public/(chat-images|template-images|announcement-images|super-customer-avatars)/([^?#]+)$') matched(parts)
+    WHERE EXISTS (SELECT 1 FROM private.content_audit_storage_origins trusted
+      WHERE trusted.origin = lower(matched.parts[1]))
   )
   SELECT COALESCE(jsonb_agg(jsonb_build_object('bucket', candidate.bucket, 'path', candidate.path)
     ORDER BY candidate.bucket, candidate.path), '[]'::jsonb)
@@ -51,16 +66,18 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 $$;
 
 CREATE FUNCTION private.content_audit_document_uses_media(p_document jsonb, p_bucket text, p_path text)
-RETURNS boolean LANGUAGE sql IMMUTABLE
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, private, pg_temp AS $$
-  SELECT strpos(p_document::text, '/storage/v1/object/public/' || p_bucket || '/' || p_path) > 0
-    OR EXISTS (
-      SELECT 1 FROM jsonb_path_query(p_document, '$.** ? (@.type() == "string")') leaf(value)
-      CROSS JOIN LATERAL regexp_matches(leaf.value #>> '{}',
-        '/storage/v1/object/public/([^/"[:space:]]+)/([^"<>[:space:]?#]+)', 'g') url(parts)
-      WHERE url.parts[1] = p_bucket
-        AND private.content_audit_decode_uri_path(replace(url.parts[2], '&amp;', '&')) = p_path
-    );
+  SELECT EXISTS (SELECT 1 FROM private.content_audit_storage_origins trusted
+    WHERE strpos(p_document::text, trusted.origin || '/storage/v1/object/public/' || p_bucket || '/' || p_path) > 0)
+  OR EXISTS (
+    SELECT 1 FROM jsonb_path_query(p_document, '$.** ? (@.type() == "string")') leaf(value)
+    CROSS JOIN LATERAL regexp_matches(leaf.value #>> '{}',
+      '(https?://[^/?#"''[:space:]]+)/storage/v1/object/public/([^/"''[:space:]]+)/([^"''<>[:space:]?#)}]+)', 'g') url(parts)
+    JOIN private.content_audit_storage_origins trusted ON trusted.origin = lower(url.parts[1])
+    WHERE url.parts[2] = p_bucket
+      AND private.content_audit_decode_uri_path(replace(url.parts[3], '&amp;', '&')) = p_path
+  );
 $$;
 
 CREATE FUNCTION private.content_audit_public_media_in_use(p_bucket text, p_path text)
@@ -214,6 +231,9 @@ BEGIN
       OR regexp_replace(candidate.path, '^.*/', '') !~ '^[A-Za-z0-9_.-]+[.][A-Za-z0-9]{2,8}$') THEN
     RAISE EXCEPTION 'An archived chat image path must be reviewed before permanent deletion.';
   END IF;$legacy$, '');
+  IF strpos(v_definition, 'An archived chat image path must be reviewed') > 0 THEN
+    RAISE EXCEPTION 'Unexpected legacy employee path validation.';
+  END IF;
   v_definition := replace(v_definition, 'v_public_paths jsonb;', 'v_public_paths jsonb; v_all_public_paths jsonb; v_notification_ids uuid[]; v_urls text[];');
   v_definition := replace(v_definition, v_anchor, $capture$
   SELECT array_agg(DISTINCT message_id) INTO v_notification_ids FROM (
