@@ -42,7 +42,12 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
 
   useLayoutEffect(() => {
     const scrollY = window.scrollY;
+    const html = document.documentElement;
     const body = document.body;
+    const root = document.getElementById('root');
+    const previousHtmlOverflowY = html.style.getPropertyValue('overflow-y');
+    const previousHtmlOverflowYPriority = html.style.getPropertyPriority('overflow-y');
+    const rootWasInert = root?.inert ?? false;
     const previousStyles = {
       position: body.style.position,
       top: body.style.top,
@@ -51,6 +56,9 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
       overflow: body.style.overflow,
       paddingRight: body.style.paddingRight,
     };
+
+    html.style.setProperty('overflow-y', 'hidden', 'important');
+    if (root) root.inert = true;
 
     if (isDesktop) {
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -66,6 +74,9 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
 
     return () => {
       Object.assign(body.style, previousStyles);
+      if (previousHtmlOverflowY) html.style.setProperty('overflow-y', previousHtmlOverflowY, previousHtmlOverflowYPriority);
+      else html.style.removeProperty('overflow-y');
+      if (root) root.inert = rootWasInert;
       if (!isDesktop) window.scrollTo(0, scrollY);
     };
   }, [isDesktop]);
@@ -414,7 +425,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
         </div>
 
         {/* Message List */}
-        <div className="relative flex-1 overflow-y-auto">
+        <div className="relative flex-1 overflow-y-auto overscroll-y-contain">
           <div className="px-4 lg:px-6 py-4 pb-8 space-y-3">
             {failedReadIds.size > 0 && (
               <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
@@ -698,7 +709,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                   </div>
                 )}
 
-                <div className={`min-h-0 flex-1 overflow-y-auto p-4 lg:p-5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
+                <div className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 lg:p-5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
                   <QuickCopyRichContent
                     html={selectedMessage.messages.content}
                     copyLabel={t.messages.quickCopy}
