@@ -234,13 +234,6 @@ Deno.serve(async (request) => {
       if (completeError) throw completeError;
       return response({ ...deleted, retained_shared_images: retainedSharedImages });
     }
-    if (body.action === 'prepare_approved_residual_cleanup') {
-      const { data, error } = await db.rpc('prepare_approved_content_residual_cleanup', {
-        p_admin_session_token: token,
-      });
-      if (error) throw error;
-      return response(data);
-    }
     if (body.action === 'pending_deletes') {
       const { data, error } = await db.rpc('list_content_audit_pending_deletes', {
         p_admin_session_token: token,

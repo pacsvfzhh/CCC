@@ -541,21 +541,6 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   selectedIdRef.current = selectedId;
 
   useEffect(() => {
-    const executeApprovedCleanup = async () => {
-      const { data, error: prepareError } = await supabase.functions.invoke('content-audit', {
-        body: { action: 'prepare_approved_residual_cleanup', sessionToken: getAdminFinancialSessionToken() },
-      });
-      if (prepareError || data?.error) throw new Error(data?.error || formatSupabaseError(prepareError));
-      const result = await executeAuditedDeletion(data.job_id);
-      setDeleteFeedback({ type: 'success', message: `已清除 ${data.redacted_notifications} 則舊通知正文副本及無引用圖片，共用素材保留 ${result.retained_shared_images} 個。` });
-      setRefreshKey(key => key + 1);
-    };
-    void executeApprovedCleanup().catch(err => {
-      setError(`已授權的舊資料清理未完成：${formatSupabaseError(err)}。`);
-    });
-  }, []);
-
-  useEffect(() => {
     if (!deleteFeedback) return;
     const timer = window.setTimeout(() => setDeleteFeedback(null), 5000);
     return () => window.clearTimeout(timer);
