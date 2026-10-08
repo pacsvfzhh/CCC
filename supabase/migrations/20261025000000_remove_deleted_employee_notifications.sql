@@ -93,7 +93,7 @@ BEGIN
     JOIN public.users u ON u.id = r.recipient_id
     WHERE u.created_by = p_target_ids[1] AND u.archived_at IS NULL
     ORDER BY m.id FOR UPDATE OF m;
-    SELECT jsonb_build_object('admin_id', a.id, 'username',
+    SELECT jsonb_build_object('admin_id', a.id, 'username', a.username,
       'messages', (SELECT COALESCE(jsonb_agg(private.content_audit_chat_snapshot(m) ORDER BY m.id), '[]'::jsonb)
         FROM public.customer_employee_conversations m
         JOIN public.simulated_customers c ON c.id = m.customer_id
