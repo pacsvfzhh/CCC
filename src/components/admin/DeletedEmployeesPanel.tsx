@@ -31,24 +31,6 @@ type EmployeeDetail = DeletedEmployee & { account_summary: { is_verified: boolea
 type WithdrawalRow = { id: string; amount: number; status: 'pending' | 'approved' | 'rejected' | 'cancelled'; created_at: string | null };
 type NotificationRow = { id: string; title: string | null; sender_username: string | null; sent_at: string | null; is_read: string | null; audit_origin: string | null; cleared_at: string | null };
 type NotificationDetail = { id: string; message_data: Record<string, unknown> | null; recipient_data: Record<string, unknown> | null; cleared_at: string | null };
-type LegacyArchivedEmployee = {
-  employee_id: string;
-  original_username: string | null;
-  archived_alias: string;
-  owner_username: string | null;
-  archived_at: string;
-  order_count: number;
-  processing_order_count: number;
-  historical_order_count: number;
-  withdrawal_count: number;
-  pending_withdrawal_count: number;
-  available_balance: number | null;
-  frozen_balance: number | null;
-  audit_count: number;
-  active_chat_count: number;
-  candidate_image_count: number;
-  quick_send_image_count: number;
-};
 type Filters = { owner: string; search: string };
 type Section = 'profile' | 'notifications' | 'aaa_service' | 'ccc_service';
 
@@ -263,14 +245,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingCleanup, setPendingCleanup] = useState<Array<{ job_id: string; file_count: number }>>([]);
   const [retainedSharedImages, setRetainedSharedImages] = useState<number | null>(null);
-  const [showLegacy, setShowLegacy] = useState(false);
-  const [legacyItems, setLegacyItems] = useState<LegacyArchivedEmployee[]>([]);
-  const [legacyLoading, setLegacyLoading] = useState(false);
-  const [legacyBusy, setLegacyBusy] = useState(false);
-  const [legacyError, setLegacyError] = useState<string | null>(null);
-  const [legacySuccess, setLegacySuccess] = useState<string | null>(null);
-  const [legacyPreview, setLegacyPreview] = useState<{ jobId: string; employee: LegacyArchivedEmployee } | null>(null);
-  const [legacyConfirmation, setLegacyConfirmation] = useState('');
   const filtersRef = useRef(filters);
   const selectedIdRef = useRef(selectedId);
   const notificationIdRef = useRef(notificationId);
@@ -299,93 +273,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     ? (openConversation.type === 'aaa_service' ? aaaGroups : cccGroups).find(group => group.id === openConversation.id)
     : null;
 
-  const loadLegacy = async (): Promise<LegacyArchivedEmployee[]> => {
-    setLegacyLoading(true);
-    setLegacyError(null);
-    try {
-      const { data, error } = await supabase.rpc('list_unpurged_archived_employees', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-      });
-      if (error) throw error;
-      if (!Array.isArray(data) || !data.every(item => typeof item.employee_id === 'string'
-        && (item.original_username === null || typeof item.original_username === 'string')
-        && typeof item.archived_alias === 'string' && typeof item.order_count === 'number'
-        && typeof item.candidate_image_count === 'number')) {
-        throw new Error('舊歸檔核對服務尚未更新，暫時無法安全預覽。');
-      }
-      setLegacyItems(data);
-      return data;
-    } catch (error) {
-      setLegacyItems([]);
-      setLegacyError(`無法核對舊歸檔員工：${formatSupabaseError(error)}`);
-      throw error;
-    } finally {
-      setLegacyLoading(false);
-    }
-  };
-
-  const prepareLegacyDeletion = async (employeeId: string) => {
-    if (legacyBusy || legacyLoading) return;
-    setLegacyBusy(true);
-    setLegacyError(null);
-    setLegacySuccess(null);
-    try {
-      const employee = (await loadLegacy()).find(item => item.employee_id === employeeId);
-      if (!employee) throw new Error('此員工已不在待清理名單，請重新核對。');
-      if (!employee.original_username) throw new Error('無法唯一核實此員工的原帳號，已停止刪除。');
-      if (employee.active_chat_count) throw new Error('此員工仍有即時聊天紀錄，服務端將拒絕永久刪除。');
-      const { data, error } = await supabase.rpc('prepare_unpurged_archived_employee_delete', {
-        p_admin_session_token: getAdminFinancialSessionToken(), p_employee_id: employeeId,
-      });
-      if (error) throw error;
-      if (!data || typeof data.job_id !== 'string' || data.account_count !== 1 || data.notification_count !== 0
-        || data.original_username !== employee.original_username) throw new Error('刪除範圍或原帳號已變更，請重新核對。');
-      setLegacyConfirmation('');
-      setLegacyPreview({ jobId: data.job_id, employee });
-    } catch (error) {
-      setLegacyError(`無法準備刪除：${formatSupabaseError(error)}`);
-    } finally {
-      setLegacyBusy(false);
-    }
-  };
-
-  const confirmLegacyDeletion = async () => {
-    if (!legacyPreview || legacyBusy || !legacyPreview.employee.original_username
-      || legacyConfirmation !== legacyPreview.employee.original_username) return;
-    setLegacyBusy(true);
-    setLegacyError(null);
-    setLegacySuccess(null);
-    try {
-      const result = await executeEmployeeArchiveDeletion(legacyPreview.jobId);
-      setRetainedSharedImages(result.retained_shared_images);
-      setLegacyPreview(null);
-      setLegacyConfirmation('');
-      setLegacySuccess(`${legacyPreview.employee.original_username} 已永久刪除；${result.retained_shared_images} 張仍被其他內容引用的原圖已保留。`);
-      onDeleteResult({ type: 'success', message: `舊歸檔員工「${legacyPreview.employee.original_username}」已永久刪除。` });
-      onDeleted();
-      await loadLegacy().catch(() => {});
-    } catch (error) {
-      setLegacyPreview(null);
-      setLegacyConfirmation('');
-      onDeleted();
-      try {
-        const jobs = await listPendingEmployeeArchiveDeletions();
-        setPendingCleanup(jobs);
-        await loadLegacy().catch(() => {});
-        const mediaPending = jobs.some(job => job.job_id === legacyPreview.jobId);
-        setLegacyError(mediaPending
-          ? `員工資料已移除，但媒體仍待清理：${formatSupabaseError(error)}。請關閉此視窗，從主頁的待清理提示重試。`
-          : `無法確認刪除結果：${formatSupabaseError(error)}。請重新載入並核對資料。`);
-        onDeleteResult({ type: 'error', message: mediaPending ? '員工資料已移除，但媒體清理未完成，請重試。' : '無法確認舊歸檔員工刪除結果，請核對資料。' });
-      } catch {
-        setLegacyError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對資料與待清理檔案。`);
-        onDeleteResult({ type: 'error', message: '無法核對舊歸檔員工刪除結果，請重新整理資料。' });
-      }
-    } finally {
-      setLegacyBusy(false);
-    }
-  };
-
   const fetchNotification = useCallback((id: string): Promise<NotificationDetail> => {
     const cached = notificationCacheRef.current.get(id);
     if (cached) return Promise.resolve(cached);
@@ -405,14 +292,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   }, []);
 
   useEffect(() => { setPage(0); setNotificationPage(0); }, [refreshKey]);
-
-  useEffect(() => {
-    if (!isActive) {
-      setShowLegacy(false);
-      setLegacyPreview(null);
-      setLegacyConfirmation('');
-    }
-  }, [isActive]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -857,7 +736,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section aria-label="已刪員工帳戶列表" className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-900`}>
           <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 py-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div><p className="mt-1 text-[10px] text-slate-400">刪除涵蓋未載入檔案；舊版歸檔需單獨核對</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => { setShowLegacy(true); void loadLegacy().catch(() => {}); }} className={`rounded-lg border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-2 text-[11px] font-bold text-cyan-100 hover:bg-cyan-500/20 ${focusClass}`}>舊歸檔員工</button><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 text-[11px] font-bold text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button></div></div>
+            <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div><p className="mt-1 text-[10px] text-slate-400">確認後直接永久清除，不另存歸檔或清理憑證</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 text-[11px] font-bold text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button></div></div>
             {deleteError && !selectedId && <p role="alert" className="mt-2 text-xs text-rose-300">{deleteError}</p>}
             {pendingCleanup.map(job => <button key={job.job_id} type="button" disabled={deleting} onClick={() => void retryPendingCleanup(job.job_id)} className={`mt-2 block text-left text-xs text-amber-200 underline disabled:opacity-50 ${focusClass}`}>上次刪除的附件或原圖尚有 {job.file_count} 個待核對，點此重試清理</button>)}
             {retainedSharedImages !== null && retainedSharedImages > 0 && <p role="status" className="mt-2 text-xs text-amber-200">有 {retainedSharedImages} 張原圖仍被其他內容引用，為避免影響共用內容已保留。</p>}
@@ -924,47 +803,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         </section>
       </div>
     </div>
-    {showLegacy && createPortal(
-      <div role="presentation" className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5">
-        <section role="dialog" aria-modal="true" aria-labelledby="legacy-archive-title" onKeyDown={event => {
-          if (event.key === 'Escape' && !legacyBusy) { setShowLegacy(false); setLegacyPreview(null); }
-          if (event.key !== 'Tab') return;
-          const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)'));
-          if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1]?.focus(); }
-          else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0]?.focus(); }
-        }} className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 text-slate-100 shadow-2xl">
-          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 bg-slate-950/60 p-4 sm:p-5">
-            <div><p className="text-[10px] font-bold tracking-widest text-cyan-300">獨立核對 · 不含於全部刪除</p><h2 id="legacy-archive-title" className="mt-1 text-lg font-bold">舊歸檔員工</h2><p className="mt-1 text-xs text-slate-400">僅超級管理員可查閱；需逐人預覽與確認。</p></div>
-            <button type="button" autoFocus aria-label="關閉舊歸檔核對" disabled={legacyBusy} onClick={() => { setShowLegacy(false); setLegacyPreview(null); }} className={`rounded-lg border border-white/10 p-2 text-slate-300 hover:bg-white/10 disabled:opacity-40 ${focusClass}`}><X className="h-4 w-4" /></button>
-          </header>
-          <div className="min-h-0 space-y-3 overflow-y-auto p-4 sm:p-5">
-            {legacyError && <p role="alert" className="rounded-lg border border-rose-400/25 bg-rose-500/10 p-3 text-xs text-rose-200">{legacyError}</p>}
-            {legacySuccess && <p role="status" className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-3 text-xs text-emerald-200">{legacySuccess}</p>}
-            {legacyPreview ? <>
-              <p className="text-sm font-bold text-rose-200">確認永久刪除原帳號 {legacyPreview.employee.original_username}</p>
-              <p className="break-all text-xs text-slate-400">員工識別：{legacyPreview.employee.employee_id} · 歸檔別名：{legacyPreview.employee.archived_alias}</p>
-              <p className="text-xs leading-5 text-slate-300">會一併刪除此員工的帳戶、訂單、錢包與財務資料、提現紀錄及私有聊天留證；即使有處理中訂單或待審核提現，也不會保留。其他內容正在使用的原圖會在刪除時重新核對並保留。此操作無法復原。</p>
-              <div className="rounded-lg border border-white/10 bg-slate-950/50 p-3 text-xs leading-6 text-slate-300">
-                <p>目前訂單 {legacyPreview.employee.order_count} 筆（處理中 {legacyPreview.employee.processing_order_count} 筆）；歷史訂單 {legacyPreview.employee.historical_order_count} 筆</p>
-                <p>提現 {legacyPreview.employee.withdrawal_count} 筆（待審核 {legacyPreview.employee.pending_withdrawal_count} 筆）；可用／凍結 $ {legacyPreview.employee.available_balance ?? 0} / $ {legacyPreview.employee.frozen_balance ?? 0}</p>
-                <p>內容留證 {legacyPreview.employee.audit_count} 筆；目前聊天 {legacyPreview.employee.active_chat_count} 筆（有聊天將拒絕刪除）</p>
-                <p>候選原圖 {legacyPreview.employee.candidate_image_count} 張；目前快速發送範本仍引用 {legacyPreview.employee.quick_send_image_count} 張，實際保留數以執行時復核為準</p>
-              </div>
-              <label htmlFor="legacy-archive-confirm" className="block text-xs text-slate-300">請輸入原始登入帳號 <strong className="text-white">{legacyPreview.employee.original_username}</strong> 確認刪除</label>
-              <input id="legacy-archive-confirm" type="text" autoComplete="off" spellCheck={false} value={legacyConfirmation} onChange={event => setLegacyConfirmation(event.target.value)} disabled={legacyBusy} className={inputClass} />
-              <div className="flex justify-end gap-2"><button type="button" disabled={legacyBusy} onClick={() => { setLegacyPreview(null); setLegacyConfirmation(''); }} className={`rounded-lg border border-slate-600 px-4 py-2 text-xs disabled:opacity-40 ${focusClass}`}>返回核對</button><button type="button" disabled={legacyBusy || legacyConfirmation !== legacyPreview.employee.original_username} onClick={() => void confirmLegacyDeletion()} className={`rounded-lg bg-rose-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40 ${focusClass}`}>{legacyBusy ? '清理中…' : '永久刪除此員工'}</button></div>
-            </> : <>
-              <div className="flex justify-between gap-3 text-xs text-slate-400"><p>以下資料不會出現在現有的員工清單或「全部刪除」範圍。</p><button type="button" disabled={legacyLoading || legacyBusy} onClick={() => void loadLegacy().catch(() => {})} className={`shrink-0 text-cyan-200 underline disabled:opacity-40 ${focusClass}`}>刷新</button></div>
-              {legacyLoading ? <p role="status" className="py-5 text-center text-xs text-slate-400">正在核對舊歸檔員工…</p> : !legacyError && !legacyItems.length ? <p className="py-5 text-center text-xs text-slate-400">沒有需要清理的舊歸檔員工。</p> : null}
-              {!legacyLoading && legacyItems.map(employee => <article key={employee.employee_id} className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-xs sm:p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-bold text-white">{employee.original_username || '原帳號無法核實'}</h3><p className="mt-1 break-all text-slate-400">員工識別：{employee.employee_id} · 歸檔別名：{employee.archived_alias}</p><p className="mt-1 text-slate-400">目前關聯管理員：{employee.owner_username || '已不存在'} · 歸檔：{displayTime(employee.archived_at)}</p></div><button type="button" disabled={legacyBusy || legacyLoading || !employee.original_username || employee.active_chat_count > 0} onClick={() => void prepareLegacyDeletion(employee.employee_id)} className={`rounded-lg border border-rose-400/40 px-3 py-2 font-bold text-rose-200 hover:bg-rose-500/10 disabled:opacity-40 ${focusClass}`}>預覽單人刪除</button></div>
-                <p className="mt-2 text-slate-300">訂單 {employee.order_count}（處理中 {employee.processing_order_count}） · 提現 {employee.withdrawal_count}（待審核 {employee.pending_withdrawal_count}） · 留證 {employee.audit_count}</p>{!employee.original_username && <p className="mt-1 text-amber-200">原帳號無法唯一核實，禁止刪除。</p>}{employee.active_chat_count > 0 && <p className="mt-1 text-amber-200">仍有即時聊天紀錄，服務端禁止刪除。</p>}
-              </article>)}
-            </>}
-          </div>
-        </section>
-      </div>, document.body,
-    )}
     {deletePreview && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section ref={deleteDialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="employee-delete-title" onKeyDown={event => { if (event.key === 'Escape' && !deleting) { setDeletePreview(null); setDeleteError(null); } if (event.key !== 'Tab') return; const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')); if (!buttons.length) { event.preventDefault(); event.currentTarget.focus(); return; } if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); } }} className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><p className="mt-1 text-xs text-slate-300">清除完成後不保留封存內容或清理憑證，無法還原。</p><h2 id="employee-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部員工檔案？' : deletePreview.scope === 'account' ? '刪除此員工檔案？': '刪除此筆私人通知？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.account_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">位員工 · {deletePreview.notification_count.toLocaleString()} 筆私人通知</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含目前篩選條件下尚未載入的員工檔案，以及各員工的聊天留證、歷史訂單與財務資料。' : deletePreview.scope === 'account' ? '同時移除此員工的聊天留證、歷史訂單與財務資料；共用素材不受影響。': '只移除此筆私人通知；員工檔案和其他通知仍保留。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">{deletePreview.scope === 'notification' ? '只永久移除此筆私人通知；員工檔案及其他資料不受影響。' : '將永久清除此範圍內員工的封存檔案、私人通知、聊天留證副本、訂單、錢包與財務資料，無法還原；共用富媒體範本與原始素材不受影響。'}</p>{deleteError && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{deleteError}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" autoFocus onClick={() => { setDeletePreview(null); setDeleteError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${focusClass}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${focusClass}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
     {openConversation && selectedId && selectedConversation && detail?.id === selectedId && createPortal(
       <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-[radial-gradient(circle_at_50%_20%,rgba(30,64,175,0.22),rgba(2,6,23,0.88)_60%)] p-0 backdrop-blur-md sm:p-4" onMouseDown={event => { if (event.target === event.currentTarget) setOpenConversation(null); }}>
