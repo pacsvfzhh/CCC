@@ -322,4 +322,40 @@ BEGIN
 END;
 $$;
 
+DO $retain_shared_notification_evidence$
+DECLARE definition text;
+BEGIN
+  definition := pg_get_functiondef('public.finish_deleted_employee_archive_delete(uuid, uuid)'::regprocedure);
+  IF strpos(definition, 'DELETE FROM private.content_audit_events WHERE employee_id = ANY(v_employee_ids);') = 0 THEN
+    RAISE EXCEPTION 'Unexpected employee purge definition.';
+  END IF;
+  EXECUTE replace(definition,
+    'DELETE FROM private.content_audit_events WHERE employee_id = ANY(v_employee_ids);',
+    $shared_events$
+  UPDATE private.content_audit_events event
+  SET employee_id = (
+    SELECT archive.employee_id
+    FROM private.deleted_employee_notifications notification
+    JOIN private.deleted_employee_accounts archive ON archive.id = notification.record_id
+    WHERE notification.message_id = event.entity_id
+      AND notification.id <> ALL(v_job.notification_ids)
+      AND notification.record_id <> ALL(v_job.account_ids)
+      AND archive.employee_id <> ALL(v_employee_ids)
+    ORDER BY archive.deleted_at, archive.employee_id LIMIT 1
+  )
+  WHERE event.employee_id = ANY(v_employee_ids)
+    AND event.entity_type = 'notification'
+    AND event.action IN ('employee_delete', 'admin_delete')
+    AND EXISTS (
+      SELECT 1 FROM private.deleted_employee_notifications notification
+      JOIN private.deleted_employee_accounts archive ON archive.id = notification.record_id
+      WHERE notification.message_id = event.entity_id
+        AND notification.id <> ALL(v_job.notification_ids)
+        AND notification.record_id <> ALL(v_job.account_ids)
+        AND archive.employee_id <> ALL(v_employee_ids)
+    );
+  DELETE FROM private.content_audit_events WHERE employee_id = ANY(v_employee_ids);$shared_events$);
+END;
+$retain_shared_notification_evidence$;
+
 NOTIFY pgrst, 'reload schema';
