@@ -2357,6 +2357,7 @@ export interface Database {
           deleted_accounts: number;
           deleted_notifications: number;
           deleted_audit_events?: number;
+          retained_shared_images: number;
           paths_to_remove: Array<{ bucket: string; path: string }>;
         };
       };

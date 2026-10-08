@@ -73,6 +73,30 @@ async function clearStaleCopies() {
   }
 }
 
+type PublicMedia = { bucket: string; path: string };
+
+async function clearPublicMedia(token: string, jobId: string, jobKind: 'content' | 'employee', paths: PublicMedia[]) {
+  const originals = paths.filter(item => buckets.has(item.bucket));
+  let retained = 0;
+  for (let index = 0; index < originals.length; index += 5) {
+    const batch = originals.slice(index, index + 5);
+    const { data: checked, error: checkError } = await db.rpc('recheck_content_audit_public_media', {
+      p_admin_session_token: token, p_job_id: jobId, p_job_kind: jobKind, p_paths: batch,
+    });
+    if (checkError) throw checkError;
+    retained = checked.retained_shared_images;
+    const pending = (checked.paths_to_remove as PublicMedia[]).filter(item =>
+      batch.some(candidate => candidate.bucket === item.bucket && candidate.path === item.path));
+    for (const bucket of buckets) {
+      const names = pending.filter(item => item.bucket === bucket).map(item => item.path);
+      if (!names.length) continue;
+      const { error: removeError } = await db.storage.from(bucket).remove(names);
+      if (removeError) throw new Error('Records were deleted, but original media cleanup is incomplete. Retry this confirmation.');
+    }
+  }
+  return retained;
+}
+
 async function mutate(body: Change) {
   const startedAt = performance.now();
   const { data: prepared, error: prepareError } = await db.rpc('prepare_content_audit_change', {
@@ -192,7 +216,7 @@ Deno.serve(async (request) => {
       });
       if (deleteError) throw deleteError;
       const paths = deleted.paths_to_remove as Array<{ bucket: string; path: string }>;
-      const removableBuckets = [evidenceBucket, 'verification-documents', 'chat-images'];
+      const removableBuckets = [evidenceBucket, 'verification-documents', ...buckets];
       if (paths.some(item => !removableBuckets.includes(item.bucket))) throw new Error('An unsupported employee media bucket was returned.');
       for (const bucket of [evidenceBucket, 'verification-documents']) {
         const pending = paths.filter(item => item.bucket === bucket).map(item => item.path);
@@ -201,22 +225,9 @@ Deno.serve(async (request) => {
           if (removeError) throw new Error('Employee data was deleted, but media cleanup is incomplete. Retry this confirmation.');
         }
       }
-      let retainedSharedImages = Number(deleted.retained_shared_images) || 0;
-      const originals = paths.filter(item => item.bucket === 'chat-images').map(item => item.path);
-      for (let index = 0; index < originals.length; index += 5) {
-        const batch = originals.slice(index, index + 5);
-        const { data: checked, error: checkError } = await db.rpc('recheck_deleted_employee_archive_media', {
-          p_admin_session_token: token, p_job_id: body.jobId, p_paths: batch,
-        });
-        if (checkError) throw checkError;
-        retainedSharedImages = checked.retained_shared_images;
-        const pending = checked.paths_to_remove
-          .filter((item: { bucket: string; path: string }) => item.bucket === 'chat-images' && batch.includes(item.path))
-          .map((item: { bucket: string; path: string }) => item.path);
-        if (!pending.length) continue;
-        const { error: removeError } = await db.storage.from('chat-images').remove(pending);
-        if (removeError) throw new Error('Employee data was deleted, but original image cleanup is incomplete. Retry this confirmation.');
-      }
+      const retainedSharedImages = paths.some(item => buckets.has(item.bucket))
+        ? await clearPublicMedia(token, body.jobId, 'employee', paths)
+        : Number(deleted.retained_shared_images) || 0;
       const { error: completeError } = await db.rpc('complete_deleted_employee_archive_delete', {
         p_admin_session_token: token, p_job_id: body.jobId,
       });
@@ -268,11 +279,16 @@ Deno.serve(async (request) => {
         const { error: removeError } = await db.storage.from(evidenceBucket).remove(paths.slice(index, index + 100));
         if (removeError) throw new Error('Audit records were deleted, but private media cleanup is incomplete. Retry this confirmation.');
       }
+      const originals = deleted.public_media_to_remove as PublicMedia[];
+      if (originals.some(item => !buckets.has(item.bucket))) throw new Error('An unsupported audit media bucket was returned.');
+      const retainedSharedImages = originals.length
+        ? await clearPublicMedia(token, body.jobId, 'content', originals)
+        : Number(deleted.retained_shared_images) || 0;
       const { error: completeError } = await db.rpc('complete_content_audit_delete', {
         p_admin_session_token: token, p_job_id: body.jobId,
       });
       if (completeError) throw completeError;
-      return response(deleted);
+      return response({ ...deleted, retained_shared_images: retainedSharedImages });
     }
     if (!Array.isArray(body.targetIds) || !body.targetIds.length || !body.targetIds.every((id: unknown) => typeof id === 'string' && /^[\da-f-]{36}$/i.test(id))) {
       return response({ error: 'Invalid record IDs.' }, 400);

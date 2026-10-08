@@ -860,10 +860,12 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setDeleting(true);
     setError(null);
     try {
-      await executeAuditedDeletion(deletePreview.job_id);
-      setDeleteFeedback({ type: 'success', message: deletePreview.finished_at
-        ? '私有附件清理已完成。'
-        : `已永久清除 ${deletePreview.event_count} 筆內容稽核證據。` });
+      const result = await executeAuditedDeletion(deletePreview.job_id);
+      const completion = deletePreview.finished_at
+        ? '附件及原圖清理已完成。'
+        : `已永久清除 ${deletePreview.event_count} 筆內容稽核證據及不再使用的附件。`;
+      setDeleteFeedback({ type: 'success', message: completion + (result.retained_shared_images > 0
+        ? ` 有 ${result.retained_shared_images} 個素材仍被範本或其他內容引用，已保留。` : '') });
       setPendingDeletes(previous => previous.filter(job => job.job_id !== deletePreview.job_id));
       setDeletePreview(null);
       setSelectedId(null);

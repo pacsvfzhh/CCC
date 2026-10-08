@@ -743,7 +743,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
             <p className="mt-1 text-[10px] text-slate-400">確認後直接永久清除，不另存歸檔或清理憑證</p>
             {deleteError && !selectedId && <p role="alert" className="mt-2 text-xs text-rose-300">{deleteError}</p>}
             {pendingCleanup.map(job => <button key={job.job_id} type="button" disabled={deleting} onClick={() => void retryPendingCleanup(job.job_id)} className={`mt-2 block text-left text-xs text-amber-200 underline disabled:opacity-50 ${focusClass}`}>上次刪除的附件或原圖尚有 {job.file_count} 個待核對，點此重試清理</button>)}
-            {retainedSharedImages !== null && retainedSharedImages > 0 && <p role="status" className="mt-2 text-xs text-amber-200">有 {retainedSharedImages} 張原圖仍被其他內容引用，為避免影響共用內容已保留。</p>}
+            {retainedSharedImages !== null && retainedSharedImages > 0 && <p role="status" className="mt-2 text-xs text-amber-200">有 {retainedSharedImages} 個素材仍被範本或其他內容引用，為避免影響共用內容已保留。</p>}
             <div className="-mx-3 mt-2 grid grid-cols-[28px_minmax(0,1fr)_auto] gap-2 border-t border-cyan-300/20 bg-sky-900/40 px-3 py-1.5 text-[10px] font-bold"><span className="text-slate-300">序號</span><span className="text-cyan-200">員工帳戶</span><span className="text-rose-200">操作</span></div>
           </div>
           <ol className="min-w-0 divide-y divide-slate-700/50">

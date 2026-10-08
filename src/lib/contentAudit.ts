@@ -64,11 +64,15 @@ export async function listPendingAuditedDeletions(): Promise<Array<{ job_id: str
   return data;
 }
 
-export async function executeAuditedDeletion(jobId: string): Promise<{ success: boolean; deleted_events: number }> {
+export async function executeAuditedDeletion(jobId: string): Promise<{ success: boolean; deleted_events: number; retained_shared_images: number }> {
   const { data, error } = await supabase.functions.invoke('content-audit', {
     body: { action: 'execute_delete', jobId, sessionToken: getAdminFinancialSessionToken() },
   });
-  if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
+  if (error && typeof error === 'object' && 'context' in error && error.context instanceof Response) {
+    const details = await error.context.clone().json().catch(() => null);
+    throw new Error(typeof details?.error === 'string' ? details.error : formatSupabaseError(error));
+  }
+  if (error || data?.error || !data?.success) throw new Error(data?.error || formatSupabaseError(error || new Error('Audit deletion was not confirmed.')));
   return data;
 }
 

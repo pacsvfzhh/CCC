@@ -50,14 +50,26 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
     JOIN storage.objects object ON object.bucket_id = parsed.bucket AND object.name = parsed.path) candidate;
 $$;
 
+CREATE FUNCTION private.content_audit_document_uses_media(p_document jsonb, p_bucket text, p_path text)
+RETURNS boolean LANGUAGE sql IMMUTABLE
+SET search_path = pg_catalog, private, pg_temp AS $$
+  SELECT strpos(p_document::text, '/storage/v1/object/public/' || p_bucket || '/' || p_path) > 0
+    OR EXISTS (
+      SELECT 1 FROM jsonb_path_query(p_document, '$.** ? (@.type() == "string")') leaf(value)
+      CROSS JOIN LATERAL regexp_matches(leaf.value #>> '{}',
+        '/storage/v1/object/public/([^/"[:space:]]+)/([^"<>[:space:]?#]+)', 'g') url(parts)
+      WHERE url.parts[1] = p_bucket
+        AND private.content_audit_decode_uri_path(replace(url.parts[2], '&amp;', '&')) = p_path
+    );
+$$;
+
 CREATE FUNCTION private.content_audit_public_media_in_use(p_bucket text, p_path text)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
-DECLARE v_source record; v_found boolean; v_needle text;
+DECLARE v_source record; v_found boolean;
 BEGIN
   IF p_bucket NOT IN ('chat-images', 'template-images', 'announcement-images', 'super-customer-avatars')
     OR p_path IS NULL OR p_path = '' THEN RETURN true; END IF;
-  v_needle := '/storage/v1/object/public/' || p_bucket || '/' || p_path;
   FOR v_source IN SELECT * FROM (VALUES
     ('public', 'cs_message_templates'), ('public', 'customer_employee_conversations'),
     ('public', 'messages'), ('public', 'broadcast_messages'), ('public', 'announcements'),
@@ -67,11 +79,9 @@ BEGIN
     ('public', 'financial_operations'), ('public', 'rich_card_contents'),
     ('private', 'content_audit_events'), ('private', 'deleted_employee_notifications')
   ) sources(schema_name, table_name) LOOP
-    EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I.%I source WHERE strpos(to_jsonb(source)::text, $1) > 0
-      OR EXISTS (SELECT 1 FROM regexp_matches(to_jsonb(source)::text,
-        ''/storage/v1/object/public/([^/""[:space:]]+)/([^""<>[:space:]?#]+)'', ''g'') url(parts)
-        WHERE url.parts[1] = $2 AND private.content_audit_decode_uri_path(replace(url.parts[2], ''&amp;'', ''&'')) = $3))',
-      v_source.schema_name, v_source.table_name) INTO v_found USING v_needle, p_bucket, p_path;
+    EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I.%I source
+      WHERE private.content_audit_document_uses_media(to_jsonb(source), $1, $2))',
+      v_source.schema_name, v_source.table_name) INTO v_found USING p_bucket, p_path;
     IF v_found THEN RETURN true; END IF;
   END LOOP;
   RETURN false;
@@ -81,17 +91,13 @@ $$;
 CREATE FUNCTION private.guard_content_audit_public_media_reference()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
-DECLARE v_row text;
+DECLARE v_row jsonb;
 BEGIN
   PERFORM pg_advisory_xact_lock_shared(hashtext('employee-chat-image-references'));
   IF NOT EXISTS (SELECT 1 FROM private.content_audit_public_media_claims) THEN RETURN NEW; END IF;
-  v_row := to_jsonb(NEW)::text;
+  v_row := to_jsonb(NEW);
   IF EXISTS (SELECT 1 FROM private.content_audit_public_media_claims claim
-    WHERE strpos(v_row, '/storage/v1/object/public/' || claim.bucket_id || '/' || claim.path) > 0
-      OR EXISTS (SELECT 1 FROM regexp_matches(v_row,
-        '/storage/v1/object/public/([^/"[:space:]]+)/([^"<>[:space:]?#]+)', 'g') url(parts)
-        WHERE url.parts[1] = claim.bucket_id
-          AND private.content_audit_decode_uri_path(replace(url.parts[2], '&amp;', '&')) = claim.path)) THEN
+    WHERE private.content_audit_document_uses_media(v_row, claim.bucket_id, claim.path)) THEN
     RAISE EXCEPTION 'This media file is reserved for permanent deletion. Upload another file.';
   END IF;
   RETURN NEW;
@@ -202,6 +208,12 @@ BEGIN
   IF strpos(v_definition, v_anchor) = 0 OR strpos(v_definition, 'v_public_paths jsonb;') = 0 THEN
     RAISE EXCEPTION 'Unexpected employee media deletion definition.';
   END IF;
+  v_definition := replace(v_definition, $legacy$
+  IF EXISTS (SELECT 1 FROM unnest(v_original_paths) candidate(path)
+    WHERE strpos(candidate.path, '%') > 0
+      OR regexp_replace(candidate.path, '^.*/', '') !~ '^[A-Za-z0-9_.-]+[.][A-Za-z0-9]{2,8}$') THEN
+    RAISE EXCEPTION 'An archived chat image path must be reviewed before permanent deletion.';
+  END IF;$legacy$, '');
   v_definition := replace(v_definition, 'v_public_paths jsonb;', 'v_public_paths jsonb; v_all_public_paths jsonb; v_notification_ids uuid[]; v_urls text[];');
   v_definition := replace(v_definition, v_anchor, $capture$
   SELECT array_agg(DISTINCT message_id) INTO v_notification_ids FROM (
@@ -327,6 +339,7 @@ $complete_media$;
 
 REVOKE ALL ON FUNCTION private.content_audit_decode_uri_path(text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.content_audit_public_media_candidates(text[]) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.content_audit_document_uses_media(jsonb, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.content_audit_public_media_in_use(text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.guard_content_audit_public_media_reference() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.guard_content_audit_public_media_upload() FROM PUBLIC, anon, authenticated;
