@@ -137,14 +137,23 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.messages message
     WHERE message.id = ANY(v_message_ids) AND message.automation_execution_id IS NULL
       AND NOT EXISTS (SELECT 1 FROM public.message_recipients recipient WHERE recipient.message_id = message.id)
-      AND NOT (COALESCE(NULLIF(current_setting('content_audit.media', true), ''), '{}')::jsonb ? message.id::text)) THEN
-    RAISE EXCEPTION 'Notification evidence must be preserved before employee deletion.';
+      AND NOT (COALESCE(NULLIF(current_setting('content_audit.media', true), ''), '{}')::jsonb ? message.id::text)
+      AND (cardinality(private.content_audit_storage_urls(jsonb_build_object('content', message.content))) > 0
+        OR message.content ~* '<(img|video|source)[[:space:]>]')) THEN
+    RAISE EXCEPTION 'Notification attachment evidence must be preserved before employee deletion.';
   END IF;
   DELETE FROM public.messages message WHERE message.id = ANY(v_message_ids)
     AND NOT EXISTS (SELECT 1 FROM public.message_recipients recipient WHERE recipient.message_id = message.id);
+  UPDATE private.content_audit_events event SET employee_id = p_employee_id
+  WHERE event.operation_id = current_setting('content_audit.operation')::uuid
+    AND event.entity_type = 'notification'
+    AND event.action = current_setting('content_audit.action')
+    AND event.entity_id = ANY(v_message_ids)
+    AND NOT EXISTS (SELECT 1 FROM public.messages message WHERE message.id = event.entity_id);
 END;
 $$;
 REVOKE ALL ON FUNCTION private.remove_deleted_employee_notification_recipients(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE DELETE ON public.message_recipients FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION private.archive_employees_before_admin_delete()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
@@ -235,6 +244,53 @@ BEGIN
     username = 'archived-' || id::text, employee_id = 'archived-' || id::text
   WHERE id = v_user.id;
   RETURN true;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.archive_employee_without_media(
+  p_admin_session_token uuid, p_user_id uuid
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE
+  v_admin uuid;
+  v_role text;
+  v_prepared jsonb;
+  v_messages jsonb;
+  v_media jsonb;
+BEGIN
+  SELECT admin_id, admin_role INTO v_admin, v_role
+  FROM private.get_financial_admin_context(p_admin_session_token);
+  IF p_user_id IS NULL THEN RAISE EXCEPTION 'Employee account is required.'; END IF;
+  PERFORM private.assert_admin_can_manage_user(v_admin, v_role, p_user_id);
+  PERFORM pg_advisory_xact_lock(hashtext('employee_delete' || p_user_id::text));
+  PERFORM 1 FROM public.users WHERE id = p_user_id AND archived_at IS NULL FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Employee account was not found.'; END IF;
+
+  IF EXISTS (SELECT 1 FROM public.customer_employee_conversations
+    WHERE employee_id = p_user_id AND (message_type <> 'text' OR COALESCE(image_url, '') <> '')) THEN
+    RETURN jsonb_build_object('requires_audit_service', true);
+  END IF;
+
+  v_prepared := public.prepare_content_audit_change(
+    p_admin_session_token, 'employee_delete', ARRAY[p_user_id], NULL
+  );
+  v_messages := v_prepared -> 'snapshots' -> 'messages';
+  IF cardinality(private.content_audit_storage_urls(v_prepared -> 'snapshots')) > 0
+    OR (v_prepared -> 'snapshots')::text ~* '<(img|video|source)[[:space:]>]'
+    OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_messages) AS entry(item)
+      WHERE NOT (item ? 'recipients')
+        AND (item -> 'message' ->> 'message_type' IS DISTINCT FROM 'text'
+          OR COALESCE(item -> 'message' ->> 'image_url', '') <> '')) THEN
+    RETURN jsonb_build_object('requires_audit_service', true);
+  END IF;
+
+  SELECT COALESCE(jsonb_object_agg(item -> 'message' ->> 'id', '{}'::jsonb), '{}'::jsonb)
+  INTO v_media FROM jsonb_array_elements(v_messages) AS entry(item);
+
+  RETURN public.commit_content_audit_change(
+    p_admin_session_token, 'employee_delete', ARRAY[p_user_id], NULL,
+    v_prepared ->> 'hash', '{}'::jsonb, gen_random_uuid(), v_media
+  );
 END;
 $$;
 
