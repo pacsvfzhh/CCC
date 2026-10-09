@@ -572,6 +572,7 @@ const en = {
     uploading: 'Uploading...',
     processing: 'Processing...',
     loadFailed: 'Load failed',
+    sendError: 'Failed to send message. Please try again.',
     loading: 'Loading...',
     newMessage: 'New message',
   },

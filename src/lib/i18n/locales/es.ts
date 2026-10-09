@@ -460,6 +460,7 @@ const es = {
     uploading: 'Subiendo...',
     processing: 'Procesando...',
     loadFailed: 'Error al cargar',
+    sendError: 'Error al enviar el mensaje. Intenta de nuevo.',
     loading: 'Cargando...',
     newMessage: 'Nuevo mensaje',
   },

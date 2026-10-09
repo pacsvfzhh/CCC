@@ -1091,7 +1091,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
     try {
       if (!employeeAdminIdRef.current) {
-        const { data: empData } = await supabase.from('users').select('created_by').eq('id', employeeId).maybeSingle();
+        const { data: empData, error: empError } = await supabase.from('users').select('created_by').eq('id', employeeId).maybeSingle();
+        if (empError) throw empError;
         if (empData?.created_by) employeeAdminIdRef.current = empData.created_by;
       }
       const employeeAdminId = employeeAdminIdRef.current;
@@ -1112,6 +1113,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       ]);
 
       if (summaryResult.error) throw summaryResult.error;
+      if (alwaysVisibleResult.error) throw alwaysVisibleResult.error;
 
       const summaryCustomerIds = (summaryResult.data || []).map(row => row.customer_id);
       const sourceTypeByCustomerId = new Map<string, ServiceSourceType>();

@@ -2873,7 +2873,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       sender_type: 'customer',
       message_content: htmlContent,
       message_type: 'text',
-      is_read: true,
+      is_read: false,
       created_at: new Date().toISOString(),
     };
 
@@ -4692,7 +4692,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                       subtitle: tpl.subtitle || null,
                                       source_type: 'ccc_service',
                                       created_at: new Date().toISOString(),
-                                      is_read: true,
+                                      is_read: false,
                                     };
                                     setMessages(prev => [...prev, optimisticMsg]);
                                     try {

@@ -2477,7 +2477,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       sender_type: 'customer',
       message_content: htmlContent,
       message_type: 'text',
-      is_read: true,
+      is_read: false,
       created_at: new Date().toISOString(),
     };
 

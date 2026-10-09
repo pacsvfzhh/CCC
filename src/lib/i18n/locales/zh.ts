@@ -511,6 +511,7 @@ const zh = {
     uploading: '上传中...',
     processing: '处理中...',
     loadFailed: '加载失败',
+    sendError: '消息发送失败，请重试',
     loading: '加载中...',
     newMessage: '新消息',
   },

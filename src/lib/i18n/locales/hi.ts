@@ -566,6 +566,7 @@ const hi = {
     uploading: 'अपलोड हो रहा है...',
     processing: 'प्रोसेसिंग...',
     loadFailed: 'लोड विफल',
+    sendError: 'संदेश भेजने में विफल। कृपया पुनः प्रयास करें।',
     loading: 'लोड हो रहा है...',
     newMessage: 'नया संदेश',
   },
