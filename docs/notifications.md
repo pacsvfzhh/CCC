@@ -3,6 +3,7 @@
 ## 后台发送 `MessageManagement.tsx`（导航「通知」）
 - 收件人面板：二级只看到自己的员工；可按启用/已验证、姓名或员工 ID 筛选；多个标签之间是 **OR** 条件；已勾选的员工排到列表最前面；改变筛选不会取消已勾选。
 - 发送：`send_admin_message_with_delivery`，参数含 `delivery_mode`（`realtime_only` / `login_only` / `realtime_with_login_fallback`）、优先级、可选奖金和 `operation_id`。内容相同的请求复用同一个操作编号，避免重复发奖。
+- 奖金：`send_admin_message_secure` 在同一事务内为每位收件人调用 `private.credit_performance_bonus`：写一笔 `wallet_transactions(type='performance_bonus')`，`wallets.available_balance` 与 `users.total_income` 同步增加，并由触发器记入 `wallet_ledger_entries`、排入钱包对账；任何一步失败整笔回滚。总额 = 金额 × 收件人数。前端金额没有上限、不四舍五入（确认框会显示人均与总额）。永久删除员工时，其奖金流水与自动执行记录一并清除。
 - 范本：`message_templates`（按 `admin_id` 隔离），可载入、套用、新增、修改、删除。
 - 已读显示：汇总 `message_recipients.is_read` / `read_at`。筛选「已讀」= 有收件人且全部已读；「未讀」包含部分已读。
 - 修改/删除：只允许管理员手动发送的通知，经 `mutateAuditedContent('notification_edit' | 'notification_delete')` 留证；系统自动通知在界面上不能编辑或勾选删除。
@@ -28,7 +29,11 @@
 - 方案（plan）状态：active / paused / archived；任务（task）状态：draft / active / paused。二级只能管理自己的；超管可切换管理员组。
 - 触发条件：累计订单、每日订单、工作天数、佣金、连续工作日、年度日期、首次登录；可设一次性达标或循环。编辑任务会重置为草稿并清除进度；方案内任务的收件人是方案成员。
 - RPC：`get_notification_automation_dashboard_v2`、`get_notification_automation_executions_v2`、`save_notification_automation_task_v2`、`set_notification_automation_task_status_v2`、`set_notification_automation_plan_for_employee`、`get_notification_automation_plan_assignments`。
-- 执行：订单状态变化、佣金交易、工作会话结束、员工登录等触发器把员工写入 `notification_automation_queue`；pg_cron 每 5 秒执行 `process_notification_automation_queue_fast(200)`，每分钟执行 `process_notification_automation_queue(200)`（SKIP LOCKED；失败按指数退避，最长 300 秒）。执行时建立 `messages`、`message_recipients` 和执行记录；有奖金的任务同时写入钱包。
+- 执行：订单状态变化、佣金交易、工作会话结束、员工登录等触发器把员工写入 `notification_automation_queue`；pg_cron 每 5 秒执行 `process_notification_automation_queue_fast(200)`，每分钟执行 `process_notification_automation_queue(200)`（后者另安排年度日期任务）。执行时建立执行记录、`messages`（`audit_origin='automation'`）、`message_recipients`；有奖金的任务同时调用 `credit_performance_bonus` 入账，并以 `actor_type='system'` 记入 `financial_operations`。
+- 判定 `private.evaluate_notification_automation_for_user`：员工第一次被某任务评估（或加入方案）时先记录当时进度作为基线，**启用/加入之前已达成的目标不补发**；同一任务版本 + 员工 + 周期 + 阶段只发一次（唯一约束）。「每天」类条件按 UTC 日期计算（北京时间 08:00 换日）。执行记录、通知、收件记录、奖金在同一事务内完成；失败时整笔回滚，员工留在队列，每次失败多等 5 秒、最长 300 秒后重试；错误只记在 `notification_automation_queue.last_error`，后台页面不显示。
+- 工作天数类条件（`work_days`、`consecutive_work_days`）按 `work_sessions` 与订单同日计算，`work_sessions` 受「歷史資料」保留期影响：累计工作天数只算保留期内的天数，目标超过保留期的任务永远不会触发。保留期 2026-10-09 由 90 天改为 400 天（`20261031000001_extend_work_session_history_retention.sql`）；之前已被清理的记录无法恢复，正式库最早的工作记录是 2026-08-27。新建工作天数任务时，目标要小于这个保留期。
+- 自动通知的已读状态在「通知」页（自动筛选）查看；自动化页只显示执行记录。
+- 旧「共享任务」（`is_shared_template=true`）：迁移 `20260920126000_execute_enabled_shared_notification_tasks.sql` 让它们参与执行，但 v2 后台只列出 `is_shared_template=false` 的任务，`set_notification_automation_task_status_v2` 也改不了它们；超管的 `all_managed` 覆盖全站员工。超管名下曾启用的「46」「654」（累计满 100 单）会造成重复祝贺，2026-10-09 已暂停（`20261031000000_pause_hidden_shared_notification_tasks.sql`），目前没有启用中的共享任务。它们在后台不可见，如需恢复只能改数据库。
 - 迁移：`20260918231458_create_notification_automation_system.sql`、`20260922001942_harden_all_notification_automation_triggers.sql`、`20260922185616_accelerate_notification_automation_queue.sql`。
 
 ## 公告 `AnnouncementManagement.tsx` + `TiptapEditor.tsx`

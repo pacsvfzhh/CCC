@@ -84,6 +84,7 @@
 ### 歷史資料 `HistoryDataManagement.tsx`（仅超管）
 - 管理 16 张表、4 类（operational / audit / performance / archive）的保留天数与清理排程：`history_cleanup_summary`、`admin_get_history_cleanup_schedule`、`admin_save_history_cleanup_schedule`（时间为 **UTC** `HH:MM`，保留天数不得少于每张表的下限）；手动清理先 `admin_preview_history_cleanup` 再 `admin_execute_history_cleanup`。
 - 自动执行：pg_cron 每分钟调用 `auto_cleanup_due_history_data()`，每次处理一张到期的表；单表每天最多成功一次，失败最多重试 3 次。
+- 「工作會話記錄」（`work_sessions`）的保留天数决定通知自动化「工作天数」类条件能往回算多少天，必须大于最大的工作天数目标；2026-10-09 起为 400 天（见 `docs/notifications.md`）。
 - 内容稽核与已删员工的资料**不在**这 16 类中，不会被自动清理。
 - 隐藏入口：标题「歷史資料管理」左侧的数据库图示，1.1 秒内连点三次 → 内容稽核面板（见 `docs/content-audit.md`）。
 

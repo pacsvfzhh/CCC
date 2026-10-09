@@ -52,6 +52,7 @@
 - 实时弹出卡片：投递完成时传 `p_mark_read: false`；点击卡片会打开通知中心并选中该条 → 标为已读；关闭或超时则不标记。
 - 登录弹窗 `LoginPopupMessages.tsx`：`has_pending_employee_login_notifications` → claim → 显示时调用 `complete_notification_delivery(p_mark_read: true)`，弹出即算已读。
 - 自动化通知同样适用以上规则。
+- 错过的实时通知不会丢：页面可见且实时连接正常时（每 30 秒、切回页面或恢复联网时），`claim_next_realtime_notification_delivery` 会补弹所有未投递、未过期的实时通知；`realtime_with_login_fallback` 的通知在下次登录时由登录弹窗先显示。
 - `EmployeeNotificationDetailPanel.tsx` 是通知详情的展示组件（后台预览也在用），本身不写已读。
 - 公告：`AnnouncementBoard.tsx` 读 `announcements`，`AnnouncementDetailModal.tsx` 净化后显示；公告没有已读标记。
 
