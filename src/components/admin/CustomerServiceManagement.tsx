@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
-import { getCachedAdminWorkspaceData, getCachedConversationSummaries, invalidateAdminWorkspaceDataCache, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { fetchConversationSummaryRows, getCachedAdminWorkspaceData, getCachedConversationSummaries, invalidateAdminWorkspaceDataCache, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { uniqueRealtimeChannelName } from '../../lib/realtimeChannel';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
@@ -692,50 +693,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
     try {
       const employeeById = new Map(employees.map(employee => [employee.id, employee]));
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('employee_id, sender_type, message_content, message_type, is_read, created_at, simulated_customers!inner(source_type)')
-        .eq('customer_id', customer.id)
-        .in('employee_id', employees.map(employee => employee.id))
-        .eq('simulated_customers.source_type', 'aaa_service')
-        .order('created_at', { ascending: false });
+      const rows = await fetchConversationSummaryRows(customer.admin_id, 'customer', customer.id);
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
-      if (error) throw error;
-
-      const historyMap = new Map<string, ConversationHistory>();
-      for (const msg of data || []) {
-        const employee = employeeById.get(msg.employee_id);
-        if (!employee) continue;
-
-        if (!historyMap.has(msg.employee_id)) {
-          historyMap.set(msg.employee_id, {
-            employee_id: msg.employee_id,
-            employee_username: employee.username,
-            employee_number: employee.employee_id,
-            employee_tags: employee.tags || [],
-            employee_remarks: employee.remarks || '',
-            customer_id: customer.id,
-            customer_name: customer.customer_name,
-            customer_avatar: customer.customer_avatar,
-            custom_avatar_url: customer.custom_avatar_url,
-            message_count: 0,
-            last_message: msg.message_type === 'image' ? '__IMAGE__' : msg.message_content,
-            last_message_time: msg.created_at,
-            unread_count: 0,
-          });
-        }
-
-        const history = historyMap.get(msg.employee_id)!;
-        history.message_count++;
-
-        if (msg.sender_type === 'employee' && !msg.is_read) {
-          history.unread_count++;
-        }
-      }
-
-      if (requestId !== conversationHistoryLoadRequestRef.current) return;
-      const nextHistory = Array.from(historyMap.values());
+      const nextHistory = buildConversationHistory(
+        rows.filter(row => employeeById.has(row.employee_id)),
+        [customer],
+        employees,
+      );
       conversationHistoryRef.current = nextHistory;
       setConversationHistory(nextHistory);
     } catch (error) {
@@ -758,15 +723,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       const data = await prefetchConversationSummaries<ConversationSummaryRow>(
         adminIdToUse,
         'customer',
-        async () => {
-          const { data: summaries, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-            p_admin_id: adminIdToUse,
-            p_source_type: 'aaa_service'
-          });
-
-          if (error) throw error;
-          return summaries || [];
-        },
+        () => fetchConversationSummaryRows(adminIdToUse, 'customer'),
         forceLoad,
       );
 
@@ -1158,7 +1115,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   useEffect(() => {
     if (isSuperAdmin) {
       const channel = supabase
-        .channel('customer_service_admins_realtime')
+        .channel(uniqueRealtimeChannelName('customer_service_admins_realtime'))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1190,7 +1147,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     };
 
     const channel = supabase
-      .channel('customer_service_workspace_summary_realtime')
+      .channel(uniqueRealtimeChannelName('customer_service_workspace_summary_realtime'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'simulated_customers' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_employee_conversations' }, scheduleRefresh)
@@ -1216,7 +1173,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         }, 250);
       };
       const channel = supabase
-        .channel('customer_service_admin_unread_counts_realtime')
+        .channel(uniqueRealtimeChannelName('customer_service_admin_unread_counts_realtime'))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1260,7 +1217,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     };
 
     const channel = supabase
-      .channel(`customer_service_conversations_${selectedCustomer.id}`)
+      .channel(uniqueRealtimeChannelName(`customer_service_conversations_${selectedCustomer.id}`))
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -1284,8 +1241,18 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       }, () => scheduleRefresh(true))
       .subscribe();
 
+    // Realtime can drop silently; this keeps new employee messages and read receipts current.
+    const fallbackTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || !selectedEmployee?.id) return;
+      const container = messagesContainerRef.current;
+      if (container && Math.abs(container.scrollTop) > 150) return;
+      loadMessagesRef.current?.(isActive);
+      loadConversationHistoryRef.current?.();
+    }, 15000);
+
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
+      window.clearInterval(fallbackTimer);
       supabase.removeChannel(channel);
     };
   }, [isActive, selectedAdminId, selectedCustomer?.id, selectedEmployee?.id]);
@@ -1311,7 +1278,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         void loadAllConversationHistory(true);
       }, 15000);
       const channel = supabase
-        .channel(`customer_service_unread_counts_${selectedAdminId}`)
+        .channel(uniqueRealtimeChannelName(`customer_service_unread_counts_${selectedAdminId}`))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1351,7 +1318,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (isActive && selectedAdminId) {
       const targetAdminId = selectedAdminId;
       const channel = supabase
-        .channel(`customer_service_employees_realtime_${selectedAdminId}`)
+        .channel(uniqueRealtimeChannelName(`customer_service_employees_realtime_${selectedAdminId}`))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1431,7 +1398,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   useEffect(() => {
     if (isActive && selectedCustomer?.id && selectedEmployee?.id) {
       const channel = supabase
-        .channel(`rating_requests_${selectedCustomer.id}_${selectedEmployee.id}`)
+        .channel(uniqueRealtimeChannelName(`rating_requests_${selectedCustomer.id}_${selectedEmployee.id}`))
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -1496,7 +1463,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (!container) return;
     const handleScroll = () => {
       const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll > 0 && maxScroll - container.scrollTop < 100 && hasMoreMessages && !loadingOlderMessages) {
+      // Column-reverse containers report 0 at the newest message and negative values above it.
+      if (maxScroll > 0 && maxScroll - Math.abs(container.scrollTop) < 100 && hasMoreMessages && !loadingOlderMessages) {
         loadOlderMessagesRef.current?.();
       }
     };
@@ -1805,14 +1773,9 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   const prefetchAdminGroupData = useCallback((group: AdminGroup) => {
     void prefetchAdminWorkspaceData(group.admin_id, 'customer').catch(() => undefined);
-    void prefetchConversationSummaries(group.admin_id, 'customer', async () => {
-      const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-        p_admin_id: group.admin_id,
-        p_source_type: 'aaa_service',
-      });
-      if (error) throw error;
-      return data || [];
-    }).catch(() => undefined);
+    void prefetchConversationSummaries(group.admin_id, 'customer', () => (
+      fetchConversationSummaryRows(group.admin_id, 'customer')
+    )).catch(() => undefined);
   }, []);
 
   const handleAdminGroupSelect = (group: AdminGroup) => {

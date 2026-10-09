@@ -1,5 +1,6 @@
 import { isSupabaseTransientError, supabase } from './supabase';
 import type { AdminGroup } from '../components/admin/AdminGroupPicker';
+import type { Database } from '../types/database';
 
 export type ServiceWorkspace = 'customer' | 'manager';
 
@@ -19,6 +20,9 @@ const pendingConversationRequests = new Map<string, Promise<unknown[]>>();
 const cachedConversationSummaries = new Map<string, unknown[]>();
 const CACHE_RETRY_LIMIT = 2;
 const CACHE_RETRY_DELAY_MS = 350;
+const SUMMARY_PAGE_SIZE = 1000;
+
+export type ConversationSummaryRow = Database['public']['Functions']['get_ccc_conversation_summaries']['Returns'][number];
 
 const waitForCacheRetry = () => new Promise<void>(resolve => {
   globalThis.setTimeout(resolve, CACHE_RETRY_DELAY_MS);
@@ -197,6 +201,30 @@ export function prefetchAdminWorkspaceData<TCustomer = Record<string, unknown>, 
     }),
     data => cachedWorkspaceData.set(cacheKey, data as ServiceWorkspaceData),
   );
+}
+
+// PostgREST caps each response at 1000 rows, so large workspaces are read page by page.
+export async function fetchConversationSummaryRows(
+  adminId: string,
+  service: ServiceWorkspace,
+  customerId?: string,
+): Promise<ConversationSummaryRow[]> {
+  const rows: ConversationSummaryRow[] = [];
+  for (let from = 0; ; from += SUMMARY_PAGE_SIZE) {
+    let query = supabase.rpc('get_ccc_conversation_summaries', {
+      p_admin_id: adminId,
+      p_source_type: getSourceType(service),
+    });
+    if (customerId) query = query.eq('customer_id', customerId);
+    const { data, error } = await query
+      .order('customer_id')
+      .order('employee_id')
+      .range(from, from + SUMMARY_PAGE_SIZE - 1);
+
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < SUMMARY_PAGE_SIZE) return rows;
+  }
 }
 
 export function invalidateAdminGroupsCache(

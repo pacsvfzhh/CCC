@@ -6,7 +6,8 @@ import CustomerAutoMessages, { type AutoMessageDraft } from './CustomerAutoMessa
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
-import { getCachedAdminWorkspaceData, getCachedConversationSummaries, invalidateAdminWorkspaceDataCache, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { fetchConversationSummaryRows, getCachedAdminWorkspaceData, getCachedConversationSummaries, invalidateAdminWorkspaceDataCache, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { uniqueRealtimeChannelName } from '../../lib/realtimeChannel';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
@@ -936,50 +937,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     try {
       const employeeById = new Map(employees.map(employee => [employee.id, employee]));
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('employee_id, sender_type, message_content, message_type, is_read, created_at, simulated_customers!inner(source_type)')
-        .eq('customer_id', customer.id)
-        .in('employee_id', employees.map(employee => employee.id))
-        .eq('simulated_customers.source_type', 'ccc_service')
-        .order('created_at', { ascending: false });
+      const rows = await fetchConversationSummaryRows(customer.admin_id, 'manager', customer.id);
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
-      if (error) throw error;
-
-      const historyMap = new Map<string, ConversationHistory>();
-      for (const msg of data || []) {
-        const employee = employeeById.get(msg.employee_id);
-        if (!employee) continue;
-
-        if (!historyMap.has(msg.employee_id)) {
-          historyMap.set(msg.employee_id, {
-            employee_id: msg.employee_id,
-            employee_username: employee.username,
-            employee_number: employee.employee_id,
-            employee_tags: employee.tags || [],
-            employee_remarks: employee.remarks || '',
-            customer_id: customer.id,
-            customer_name: customer.customer_name,
-            customer_avatar: customer.customer_avatar,
-            custom_avatar_url: customer.custom_avatar_url,
-            message_count: 0,
-            last_message: msg.message_type === 'image' ? '__IMAGE__' : msg.message_content,
-            last_message_time: msg.created_at,
-            unread_count: 0,
-          });
-        }
-
-        const history = historyMap.get(msg.employee_id)!;
-        history.message_count++;
-
-        if (msg.sender_type === 'employee' && !msg.is_read) {
-          history.unread_count++;
-        }
-      }
-
-      if (requestId !== conversationHistoryLoadRequestRef.current) return;
-      const nextHistory = Array.from(historyMap.values());
+      const nextHistory = buildConversationHistory(
+        rows.filter(row => employeeById.has(row.employee_id)),
+        [customer],
+        employees,
+      );
       conversationHistoryRef.current = nextHistory;
       setConversationHistory(nextHistory);
     } catch (error) {
@@ -1002,15 +967,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const data = await prefetchConversationSummaries<ConversationSummaryRow>(
         adminIdToUse,
         'manager',
-        async () => {
-          const { data: summaries, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-            p_admin_id: adminIdToUse,
-            p_source_type: 'ccc_service'
-          });
-
-          if (error) throw error;
-          return summaries || [];
-        },
+        () => fetchConversationSummaryRows(adminIdToUse, 'manager'),
         forceLoad,
       );
 
@@ -1401,7 +1358,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   useEffect(() => {
     if (isSuperAdmin) {
       const channel = supabase
-        .channel('manager_service_admins_realtime')
+        .channel(uniqueRealtimeChannelName('manager_service_admins_realtime'))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1433,7 +1390,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     };
 
     const channel = supabase
-      .channel('manager_workspace_summary_realtime')
+      .channel(uniqueRealtimeChannelName('manager_workspace_summary_realtime'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'simulated_customers' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_employee_conversations' }, scheduleRefresh)
@@ -1459,7 +1416,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         }, 250);
       };
       const channel = supabase
-        .channel('manager_service_admin_unread_counts_realtime')
+        .channel(uniqueRealtimeChannelName('manager_service_admin_unread_counts_realtime'))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1503,7 +1460,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     };
 
     const channel = supabase
-      .channel(`ccc_service_conversations_${selectedCustomer.id}`)
+      .channel(uniqueRealtimeChannelName(`ccc_service_conversations_${selectedCustomer.id}`))
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -1527,8 +1484,18 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       }, () => scheduleRefresh(true))
       .subscribe();
 
+    // Realtime can drop silently; this keeps new employee messages and read receipts current.
+    const fallbackTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || !selectedEmployee?.id) return;
+      const container = messagesContainerRef.current;
+      if (container && Math.abs(container.scrollTop) > 150) return;
+      loadMessagesRef.current?.(isActive);
+      loadConversationHistoryRef.current?.();
+    }, 15000);
+
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
+      window.clearInterval(fallbackTimer);
       supabase.removeChannel(channel);
     };
   }, [isActive, selectedAdminId, selectedCustomer?.id, selectedEmployee?.id]);
@@ -1554,7 +1521,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         void loadAllConversationHistory(undefined, true);
       }, 15000);
       const channel = supabase
-        .channel(`ccc_service_unread_counts_${selectedAdminId}`)
+        .channel(uniqueRealtimeChannelName(`ccc_service_unread_counts_${selectedAdminId}`))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1594,7 +1561,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (isActive && selectedAdminId) {
       const targetAdminId = selectedAdminId;
       const channel = supabase
-        .channel(`ccc_service_employees_realtime_${selectedAdminId}`)
+        .channel(uniqueRealtimeChannelName(`ccc_service_employees_realtime_${selectedAdminId}`))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1676,7 +1643,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   useEffect(() => {
     if (isActive && selectedCustomer?.id && selectedEmployee?.id) {
       const channel = supabase
-        .channel(`rating_requests_${selectedCustomer.id}_${selectedEmployee.id}`)
+        .channel(uniqueRealtimeChannelName(`rating_requests_${selectedCustomer.id}_${selectedEmployee.id}`))
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -1753,7 +1720,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (!container) return;
     const handleScroll = () => {
       const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll > 0 && maxScroll - container.scrollTop < 100 && hasMoreMessages && !loadingOlderMessages) {
+      // Column-reverse containers report 0 at the newest message and negative values above it.
+      if (maxScroll > 0 && maxScroll - Math.abs(container.scrollTop) < 100 && hasMoreMessages && !loadingOlderMessages) {
         loadOlderMessagesRef.current?.();
       }
     };
@@ -2112,14 +2080,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   const prefetchAdminGroupData = useCallback((group: AdminGroup) => {
     void prefetchAdminWorkspaceData(group.admin_id, 'manager').catch(() => undefined);
-    void prefetchConversationSummaries(group.admin_id, 'manager', async () => {
-      const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-        p_admin_id: group.admin_id,
-        p_source_type: 'ccc_service',
-      });
-      if (error) throw error;
-      return data || [];
-    }).catch(() => undefined);
+    void prefetchConversationSummaries(group.admin_id, 'manager', () => (
+      fetchConversationSummaryRows(group.admin_id, 'manager')
+    )).catch(() => undefined);
   }, []);
 
   const handleAdminGroupSelect = (group: AdminGroup) => {

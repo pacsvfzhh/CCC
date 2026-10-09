@@ -8,7 +8,8 @@ import { getAdminFinancialSessionToken, logout, updateStoredUsername } from '../
 import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
-import { invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { fetchConversationSummaryRows, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { uniqueRealtimeChannelName } from '../../lib/realtimeChannel';
 import AdminPageLoading from './AdminPageLoading';
 
 const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
@@ -417,24 +418,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         void prefetchAdminWorkspaceData(admin.id, 'manager').catch(error => {
           console.warn('Unable to prefetch manager service data:', error);
         });
-        void prefetchConversationSummaries(admin.id, 'customer', async () => {
-          const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-            p_admin_id: admin.id,
-            p_source_type: 'aaa_service'
-          });
-          if (error) throw error;
-          return data || [];
-        }).catch(error => {
+        void prefetchConversationSummaries(admin.id, 'customer', () => (
+          fetchConversationSummaryRows(admin.id, 'customer')
+        )).catch(error => {
           console.warn('Unable to prefetch customer service sessions:', error);
         });
-        void prefetchConversationSummaries(admin.id, 'manager', async () => {
-          const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-            p_admin_id: admin.id,
-            p_source_type: 'ccc_service'
-          });
-          if (error) throw error;
-          return data || [];
-        }).catch(error => {
+        void prefetchConversationSummaries(admin.id, 'manager', () => (
+          fetchConversationSummaryRows(admin.id, 'manager')
+        )).catch(error => {
           console.warn('Unable to prefetch manager service sessions:', error);
         });
       }
@@ -1039,7 +1030,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
     // Set up real-time subscriptions for customer service conversations
     const customerServiceChannel = supabase
-      .channel('admin-customer-service')
+      .channel(uniqueRealtimeChannelName('admin-customer-service'))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'customer_employee_conversations' },

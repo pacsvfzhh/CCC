@@ -7,6 +7,7 @@ import { useLanguage } from '../../lib/i18n/context';
 import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
 import { preloadCustomerAvatar } from '../admin/customerAvatarUtils';
 import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
+import { uniqueRealtimeChannelName } from '../../lib/realtimeChannel';
 
 function extractImageOnlyUrl(content: string): string | null {
   const container = document.createElement('div');
@@ -178,6 +179,9 @@ function preloadConversationAvatars(conversations: CustomerConversation[]) {
 const employeeConversationCache = new Map<string, EmployeeConversationSnapshot>();
 const employeeMessageCaches = new Map<string, Map<string, Message[]>>();
 const preloadedChatImages = new Set<string>();
+const MESSAGE_PAGE_SIZE = 50;
+const SOURCE_LOOKUP_CHUNK_SIZE = 100;
+const CHAT_REFRESH_INTERVAL_MS = 60000;
 
 function getEmployeeMessageCache(employeeId: string) {
   const existing = employeeMessageCaches.get(employeeId);
@@ -208,6 +212,46 @@ function preloadChatImages(messages: Message[]) {
   });
 }
 
+function isSameMessage(previous: Message, next: Message) {
+  return previous.id === next.id
+    && previous.message_content === next.message_content
+    && previous.message_type === next.message_type
+    && previous.image_url === next.image_url
+    && previous.title === next.title
+    && previous.subtitle === next.subtitle
+    && previous.is_read === next.is_read
+    && previous.rich_card_content_id === next.rich_card_content_id
+    && previous.source_template_id === next.source_template_id
+    && previous.source_auto_message_id === next.source_auto_message_id
+    && JSON.stringify(previous.rating_data) === JSON.stringify(next.rating_data);
+}
+
+// The newest page replaces what is on screen; older pages the employee scrolled to and messages
+// still being sent stay visible.
+function mergeLatestMessages(previous: Message[], latest: Message[], customerId: string) {
+  const current = previous.filter(message => message.customer_id === customerId);
+  const latestIds = new Set(latest.map(message => message.id));
+  const oldestLatestTime = latest[0]?.created_at || '';
+  const olderHistory = latest.length >= MESSAGE_PAGE_SIZE
+    ? current.filter(message => !message.id.startsWith('temp-')
+      && !latestIds.has(message.id)
+      && (message.created_at || '') < oldestLatestTime)
+    : [];
+  const sending = current.filter(message => message.id.startsWith('temp-'));
+  const next = [...olderHistory, ...latest, ...sending];
+  const unchanged = next.length === previous.length
+    && next.every((message, index) => isSameMessage(previous[index], message));
+  return unchanged ? previous : next;
+}
+
+// A refresh can bring in the saved row before the send call returns; never show it twice.
+function replaceSentMessage(messages: Message[], tempId: string, saved: Message) {
+  if (messages.some(message => message.id === saved.id)) {
+    return messages.filter(message => message.id !== tempId);
+  }
+  return messages.map(message => (message.id === tempId ? saved : message));
+}
+
 interface CustomerServiceChatProps {
   employeeId: string;
 }
@@ -227,7 +271,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
-  const MESSAGE_PAGE_SIZE = 50;
   const [messageInput, setMessageInput] = useState('');
   const [unreadCount, setUnreadCount] = useState(
     () => initialConversationSnapshot?.unreadCount || 0,
@@ -241,6 +284,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [conversationsError, setConversationsError] = useState(false);
+  const [messagesError, setMessagesError] = useState(false);
+  const [realtimeRetryKey, setRealtimeRetryKey] = useState(0);
   const messagesCache = useRef<Map<string, Message[]>>(getEmployeeMessageCache(employeeId));
   const messagePrefetchRequestsRef = useRef<Map<string, Promise<void>>>(new Map());
   const conversationLoadRequestRef = useRef(0);
@@ -421,6 +467,14 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const showMessagePopupRef = useRef<((customer: Customer, message: string) => void) | null>(null);
   const updateOnlineStatusRef = useRef<(() => void) | null>(null);
   const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadMessagesFromDBRef = useRef<((shouldMarkRead?: boolean) => Promise<void>) | null>(null);
+  const refreshChatDataRef = useRef<(() => void) | null>(null);
+  const conversationRefreshQueuedRef = useRef(false);
+  const messagesRefreshQueuedRef = useRef(false);
+  const realtimeConnectedOnceRef = useRef(false);
+  const realtimeRetryCountRef = useRef(0);
+  const newMessageLabelRef = useRef(t.customerService.newMessage);
+  newMessageLabelRef.current = t.customerService.newMessage;
   prefetchRichCardRef.current = prefetchRichCard;
 
   // Lock body scroll when chat is open (mobile only - full-screen overlay)
@@ -457,8 +511,38 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   useEffect(() => {
     void loadConversationsRef.current?.();
 
+    onlineCheckIntervalRef.current = setInterval(() => {
+      updateOnlineStatusRef.current?.();
+    }, 30000);
+
+    return () => {
+      if (onlineCheckIntervalRef.current) {
+        clearInterval(onlineCheckIntervalRef.current);
+      }
+      if (conversationRefreshTimerRef.current) {
+        clearTimeout(conversationRefreshTimerRef.current);
+        conversationRefreshTimerRef.current = null;
+      }
+      conversationRefreshCustomerIdsRef.current.clear();
+    };
+  }, [employeeId]);
+
+  useEffect(() => {
+    let disposed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleResubscribe = () => {
+      if (disposed || retryTimer) return;
+      const delay = Math.min(30000, 2000 * 2 ** Math.min(realtimeRetryCountRef.current, 4));
+      realtimeRetryCountRef.current += 1;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        if (!disposed) setRealtimeRetryKey(key => key + 1);
+      }, delay);
+    };
+
     const channel = supabase
-      .channel(`customer_employee_messages_${employeeId}`)
+      .channel(uniqueRealtimeChannelName(`customer_employee_messages_${employeeId}`))
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -503,7 +587,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             .maybeSingle();
 
           if (customerData) {
-            const rawContent = message.message_content || t.customerService.newMessage;
+            const newMessageLabel = newMessageLabelRef.current;
+            const rawContent = message.message_content || newMessageLabel;
             const hasEmbeddedImg = /<img\s/i.test(rawContent);
             const messageText = message.message_type === 'image'
               ? '\ud83d\udcf7 Photo'
@@ -516,7 +601,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     .replace(/<[^>]*>/g, '')
                     .replace(/\n{3,}/g, '\n\n')
                     .trim();
-                  return text || (hasEmbeddedImg ? '\ud83d\udcf7 Photo' : t.customerService.newMessage);
+                  return text || (hasEmbeddedImg ? '\ud83d\udcf7 Photo' : newMessageLabel);
                 })();
             showMessagePopupRef.current?.(customerData as Customer, messageText);
           }
@@ -541,28 +626,49 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         const newMessage = payload.new as Partial<Message>;
         scheduleConversationRefreshRef.current?.(oldMessage.customer_id || newMessage.customer_id);
       })
-      .subscribe();
-
-    onlineCheckIntervalRef.current = setInterval(() => {
-      updateOnlineStatusRef.current?.();
-    }, 30000);
+      .subscribe((status) => {
+        if (disposed) return;
+        if (status === 'SUBSCRIBED') {
+          if (retryTimer) {
+            clearTimeout(retryTimer);
+            retryTimer = null;
+          }
+          realtimeRetryCountRef.current = 0;
+          // Events sent while the channel was down are not replayed, so reload after every reconnect.
+          if (realtimeConnectedOnceRef.current) refreshChatDataRef.current?.();
+          realtimeConnectedOnceRef.current = true;
+          return;
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          scheduleResubscribe();
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
-      if (onlineCheckIntervalRef.current) {
-        clearInterval(onlineCheckIntervalRef.current);
-      }
-      if (conversationRefreshTimerRef.current) {
-        clearTimeout(conversationRefreshTimerRef.current);
-        conversationRefreshTimerRef.current = null;
-      }
-      conversationRefreshCustomerIdsRef.current.clear();
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      void supabase.removeChannel(channel);
     };
-  }, [employeeId, t.customerService.newMessage]);
+  }, [employeeId, realtimeRetryKey]);
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshChatDataRef.current?.();
+    };
+    const refreshTimer = window.setInterval(refreshWhenVisible, CHAT_REFRESH_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('online', refreshWhenVisible);
+    return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('online', refreshWhenVisible);
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedCustomer) {
       isInitialLoadRef.current = true;
+      messagesRefreshQueuedRef.current = false;
       shouldAutoScrollRef.current = true;
       conversationOpenedAtRef.current = new Date().toISOString();
       void loadMessagesRef.current?.();
@@ -577,9 +683,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     if (!container || messages.length === 0) return;
 
     const handleScroll = () => {
-      shouldAutoScrollRef.current = container.scrollTop < 150;
+      // Column-reverse containers report 0 at the newest message and negative values above it.
+      const distanceFromNewest = Math.abs(container.scrollTop);
+      shouldAutoScrollRef.current = distanceFromNewest < 150;
       const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll > 0 && maxScroll - container.scrollTop < 100) {
+      if (maxScroll > 0 && maxScroll - distanceFromNewest < 100) {
         loadOlderMessagesRef.current?.();
       }
     };
@@ -963,7 +1071,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
   const loadConversations = (force = false) => {
     const pending = conversationLoadPromiseRef.current;
-    if (pending) return pending;
+    if (pending) {
+      // A forced refresh asked for during a load must still run, or the newest change is lost.
+      if (force) conversationRefreshQueuedRef.current = true;
+      return pending;
+    }
 
     const requestId = ++conversationLoadRequestRef.current;
     const request = (async () => {
@@ -982,30 +1094,32 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         const { data: empData } = await supabase.from('users').select('created_by').eq('id', employeeId).maybeSingle();
         if (empData?.created_by) employeeAdminIdRef.current = empData.created_by;
       }
+      const employeeAdminId = employeeAdminIdRef.current;
 
-      let alwaysVisibleQuery = supabase
-        .from('simulated_customers')
-        .select('id, customer_name, customer_id, customer_avatar, is_super, super_customer_title, badge_type, custom_avatar_url, vip_label, employee_pin_top, employee_always_visible, target_employee_id, target_employee_ids, source_type')
-        .eq('employee_always_visible', true)
-        .eq('is_active', true);
-      if (employeeAdminIdRef.current) {
-        alwaysVisibleQuery = alwaysVisibleQuery.eq('admin_id', employeeAdminIdRef.current);
-      }
+      // Without the employee's admin the always-visible query would include other groups' customers.
+      const alwaysVisibleRequest = employeeAdminId
+        ? supabase
+          .from('simulated_customers')
+          .select('id, customer_name, customer_id, customer_avatar, is_super, super_customer_title, badge_type, custom_avatar_url, vip_label, employee_pin_top, employee_always_visible, target_employee_id, target_employee_ids, source_type')
+          .eq('employee_always_visible', true)
+          .eq('is_active', true)
+          .eq('admin_id', employeeAdminId)
+        : Promise.resolve({ data: [] as never[], error: null });
 
       const [summaryResult, alwaysVisibleResult] = await Promise.all([
         supabase.rpc('get_employee_conversation_summaries', { p_employee_id: employeeId }),
-        alwaysVisibleQuery
+        alwaysVisibleRequest,
       ]);
 
       if (summaryResult.error) throw summaryResult.error;
 
       const summaryCustomerIds = (summaryResult.data || []).map(row => row.customer_id);
       const sourceTypeByCustomerId = new Map<string, ServiceSourceType>();
-      if (summaryCustomerIds.length > 0) {
+      for (let index = 0; index < summaryCustomerIds.length; index += SOURCE_LOOKUP_CHUNK_SIZE) {
         const { data: sourceRows, error: sourceError } = await supabase
           .from('simulated_customers')
           .select('id, source_type')
-          .in('id', summaryCustomerIds);
+          .in('id', summaryCustomerIds.slice(index, index + SOURCE_LOOKUP_CHUNK_SIZE));
         if (sourceError) throw sourceError;
         sourceRows?.forEach(row => {
           if (row.source_type === 'aaa_service' || row.source_type === 'ccc_service') {
@@ -1101,6 +1215,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       employeeConversationCache.set(employeeId, snapshot);
       if (requestId !== conversationLoadRequestRef.current) return;
 
+      setConversationsError(false);
       preloadConversationAvatars(snapshot.conversations);
       setConversations(snapshot.conversations);
       setUnreadCount(snapshot.unreadCount);
@@ -1121,6 +1236,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     } catch (error) {
       if (requestId === conversationLoadRequestRef.current) {
         console.error('Error loading conversations:', error);
+        setConversationsError(true);
       }
       } finally {
         if (requestId === conversationLoadRequestRef.current) {
@@ -1130,18 +1246,15 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     })();
 
     conversationLoadPromiseRef.current = request;
-    request.then(
-      () => {
-        if (conversationLoadPromiseRef.current === request) {
-          conversationLoadPromiseRef.current = null;
-        }
-      },
-      () => {
-        if (conversationLoadPromiseRef.current === request) {
-          conversationLoadPromiseRef.current = null;
-        }
-      },
-    );
+    const releaseRequest = () => {
+      if (conversationLoadPromiseRef.current !== request) return;
+      conversationLoadPromiseRef.current = null;
+      if (conversationRefreshQueuedRef.current) {
+        conversationRefreshQueuedRef.current = false;
+        void loadConversationsRef.current?.(true);
+      }
+    };
+    request.then(releaseRequest, releaseRequest);
     return request;
   };
   loadConversationsRef.current = loadConversations;
@@ -1211,20 +1324,34 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       const selectedId = selectedCustomerRef.current?.id;
 
       void loadConversationsRef.current?.(true);
-      if (
-        selectedId &&
-        customerIds.has(selectedId) &&
-        !isInitialLoadRef.current
-      ) {
-        void loadMessagesFromDB(isOpenRef.current);
+      if (selectedId && customerIds.has(selectedId)) {
+        requestMessagesRefresh();
       }
     }, 120);
   };
   scheduleConversationRefreshRef.current = scheduleConversationRefresh;
 
+  // A change that lands while a conversation is still opening is replayed once that load ends.
+  const requestMessagesRefresh = () => {
+    if (!selectedCustomerRef.current) return;
+    if (isInitialLoadRef.current) {
+      messagesRefreshQueuedRef.current = true;
+      return;
+    }
+    void loadMessagesFromDBRef.current?.(isOpenRef.current);
+  };
+
+  const refreshChatData = () => {
+    void loadConversationsRef.current?.(true);
+    requestMessagesRefresh();
+  };
+  refreshChatDataRef.current = refreshChatData;
+
   useEffect(() => {
-    if (isOpen) {
-      void loadConversationsRef.current?.();
+    if (!isOpen) return;
+    void loadConversationsRef.current?.();
+    if (selectedCustomerRef.current && !isInitialLoadRef.current) {
+      void loadMessagesFromDBRef.current?.(true);
     }
   }, [isOpen]);
 
@@ -1277,6 +1404,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     if (!currentCustomer) return;
 
     const requestId = ++messagesLoadRequestRef.current;
+    setMessagesError(false);
 
     try {
       const cachedMessages = messagesCache.current.get(currentCustomer.id);
@@ -1312,6 +1440,10 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       if (requestId === messagesLoadRequestRef.current) {
         setLoadingMessages(false);
         isInitialLoadRef.current = false;
+        if (messagesRefreshQueuedRef.current) {
+          messagesRefreshQueuedRef.current = false;
+          void loadMessagesFromDBRef.current?.(isOpenRef.current);
+        }
       }
     }
   };
@@ -1388,48 +1520,22 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         return;
       }
 
-      if (!messagesResult.data || messagesResult.data.length === 0) {
-        messagesCache.current.set(customerId, []);
-        setMessages([]);
-        setHasMoreMessages(false);
-      } else {
-        const sorted = messagesResult.data.reverse();
-        const prevCached = messagesCache.current.get(customerId);
-        messagesCache.current.set(customerId, sorted);
-        preloadChatImages(sorted);
-        setHasMoreMessages(messagesResult.data.length >= MESSAGE_PAGE_SIZE);
+      const latest = (messagesResult.data || []).reverse();
+      messagesCache.current.set(customerId, latest);
+      preloadChatImages(latest);
+      setHasMoreMessages(latest.length >= MESSAGE_PAGE_SIZE);
+      setMessagesError(false);
+      // Compare with what is on screen, not the cache, so a filled cache cannot leave the view empty.
+      setMessages(previous => mergeLatestMessages(previous, latest, customerId));
 
-        const messagesChanged = !prevCached ||
-          prevCached.length !== sorted.length ||
-          prevCached.some((previousMessage, index) => {
-            const nextMessage = sorted[index];
-            if (!nextMessage) return true;
-            return (
-              previousMessage.id !== nextMessage.id ||
-              previousMessage.message_content !== nextMessage.message_content ||
-              previousMessage.message_type !== nextMessage.message_type ||
-              previousMessage.image_url !== nextMessage.image_url ||
-              previousMessage.title !== nextMessage.title ||
-              previousMessage.subtitle !== nextMessage.subtitle ||
-              previousMessage.rich_card_content_id !== nextMessage.rich_card_content_id ||
-              previousMessage.source_template_id !== nextMessage.source_template_id ||
-              previousMessage.source_auto_message_id !== nextMessage.source_auto_message_id ||
-              JSON.stringify(previousMessage.rating_data) !== JSON.stringify(nextMessage.rating_data)
-            );
-          });
-        if (messagesChanged) {
-          setMessages(sorted);
+      for (const m of latest) {
+        if (m.message_type === 'rich_card') {
+          prefetchRichCard(m);
         }
+      }
 
-        for (const m of sorted) {
-          if (m.message_type === 'rich_card') {
-            prefetchRichCard(m);
-          }
-        }
-
-        if (shouldMarkRead) {
-          void markMessagesAsRead();
-        }
+      if (shouldMarkRead && latest.length > 0) {
+        void markMessagesAsRead(customerId, latest[latest.length - 1].created_at);
       }
 
       void sessionRequest.then(({ data: sessionData, error: sessionError }) => {
@@ -1448,25 +1554,36 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       });
     } catch (error) {
       console.error('Error loading messages from DB:', error);
+      if (requestId === messagesLoadRequestRef.current && selectedCustomerRef.current?.id === customerId) {
+        setMessagesError(true);
+      }
     } finally {
       if (requestId === messagesLoadRequestRef.current) {
         setLoadingMessages(false);
       }
     }
   };
+  loadMessagesFromDBRef.current = loadMessagesFromDB;
 
-  const markMessagesAsRead = async () => {
-    const currentCustomer = selectedCustomerRef.current;
-    if (!currentCustomer) return;
+  // Read receipts are shown to admins, so only messages already on screen in a visible page count.
+  const markMessagesAsRead = async (customerId: string, shownUpTo: string | null) => {
+    if (
+      !shownUpTo ||
+      !isOpenRef.current ||
+      selectedCustomerRef.current?.id !== customerId ||
+      document.visibilityState !== 'visible'
+    ) return;
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('customer_employee_conversations')
         .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('customer_id', currentCustomer.id)
+        .eq('customer_id', customerId)
         .eq('employee_id', employeeId)
         .eq('sender_type', 'customer')
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .lte('created_at', shownUpTo);
+      if (error) throw error;
 
       void loadConversationsRef.current?.(true);
     } catch (error) {
@@ -1560,7 +1677,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             setNotification({ type: 'error', text: t.customerService.saveImageError });
           } else if (newMsg) {
             stableKeyMapRef.current.set(newMsg.id, tempId);
-            setMessages(prev => prev.map(m => m.id === tempId ? newMsg : m));
+            setMessages(prev => replaceSentMessage(prev, tempId, newMsg as Message));
           }
         }, (error: unknown) => {
           console.error('Failed to save image message:', error);
@@ -1630,7 +1747,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       if (newMsg) {
         stableKeyMapRef.current.set(newMsg.id, tempMessage.id);
-        setMessages(prev => prev.map(m => m.id === tempMessage.id ? newMsg : m));
+        setMessages(prev => replaceSentMessage(prev, tempMessage.id, newMsg as Message));
         const cached = messagesCache.current.get(selectedCustomer.id);
         if (cached) {
           messagesCache.current.set(selectedCustomer.id, cached.map(m => m.id === tempMessage.id ? newMsg : m));
@@ -1639,6 +1756,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     } catch (error) {
       console.error('Error sending message:', error);
       setMessageInput(messageContent);
+      setNotification({ type: 'error', text: t.customerService.sendError });
     }
   };
 
@@ -1694,7 +1812,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       setNotification({ type: 'success', text: t.customerService.ratingRequestSent });
       if (newMsg) {
         stableKeyMapRef.current.set(newMsg.id, tempMessage.id);
-        setMessages(prev => prev.map(m => m.id === tempMessage.id ? newMsg : m));
+        setMessages(prev => replaceSentMessage(prev, tempMessage.id, newMsg as Message));
         const cached = messagesCache.current.get(selectedCustomer.id);
         if (cached) {
           messagesCache.current.set(selectedCustomer.id, cached.map(m => m.id === tempMessage.id ? newMsg : m));
@@ -1710,6 +1828,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       conversationListScrollRef.current = conversationListRef.current.scrollTop;
     }
     void prefetchMessages(customer.id);
+    setMessagesError(false);
     const cachedMessages = messagesCache.current.get(customer.id);
     if (cachedMessages) {
       setMessages(cachedMessages);
@@ -1728,6 +1847,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     setShowConversationList(true);
     setSelectedCustomer(null);
     setMessages([]);
+    setMessagesError(false);
     setLoadingMessages(false);
     requestAnimationFrame(() => {
       if (conversationListRef.current) {
@@ -2183,9 +2303,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     setIsOpen(true);
                     setMessagePopup(null);
                     stopContinuousSound();
-                    const customer = messagePopup.customer;
-                    setSelectedCustomer(customer);
-                    setShowConversationList(false);
+                    handleSelectConversation(messagePopup.customer);
                   }}
                   className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 shadow-md ${
                     messagePopup.customer.is_super
@@ -2368,6 +2486,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t.customerService.searchPlaceholder}
+                    autoComplete="off"
                     className="customer-service-search w-full pl-9 sm:pl-10 pr-[44px] bg-white/15 border border-white/20 rounded-lg text-white text-xs sm:text-sm placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 focus:bg-white/20 transition-all"
                   />
                   {searchQuery && (
@@ -2407,6 +2526,23 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                         </div>
                       </div>
                     ))}
+                  </div>
+                ) : conversationsError && conversations.length === 0 ? (
+                  <div role="alert" className="flex flex-col items-center justify-center h-full text-center px-6">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-rose-50 flex items-center justify-center mb-4 shadow-inner">
+                      <MessageCircle className="w-10 h-10 text-rose-300" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-500">{t.customerService.loadFailed}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConversationsError(false);
+                        void loadConversations(true);
+                      }}
+                      className="mt-4 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    >
+                      {t.common.retry}
+                    </button>
                   </div>
                 ) : filteredConversations.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-6">
@@ -2687,6 +2823,21 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                       <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
                       <span className="text-sm text-gray-400 font-medium">{t.customerService.loadingMessages}</span>
                     </div>
+                  </div>
+                ) : messagesError && messages.length === 0 ? (
+                  <div role="alert" className="flex flex-col items-center justify-center h-full text-center px-6 py-10">
+                    <p className="text-sm font-medium text-slate-500">{t.customerService.loadFailed}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMessagesError(false);
+                        setLoadingMessages(true);
+                        void loadMessagesFromDB(true);
+                      }}
+                      className="mt-4 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    >
+                      {t.common.retry}
+                    </button>
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center animate-[fadeIn_0.5s_ease-out] px-6">
