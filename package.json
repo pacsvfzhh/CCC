@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "test:audit-cleanup": "node --test supabase/tests/audit-cleanup.test.mjs"
+    "test:audit-cleanup": "node --test supabase/tests/audit-cleanup.test.mjs",
+    "test:service-chat": "node --test supabase/tests/service-chat-scale.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

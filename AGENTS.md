@@ -23,7 +23,7 @@
 | `src/index.css` | 全局样式与可复用滚动条类 |
 | `supabase/migrations/` | 500+ 个按文件名时间戳排序的数据库迁移 |
 | `supabase/functions/content-audit/` | 仓库内唯一的 Edge Function 源码 |
-| `supabase/tests/audit-cleanup.test.mjs` | 用 PGlite 执行真实迁移的回归测试 |
+| `supabase/tests/*.test.mjs` | 用 PGlite 执行真实迁移的回归测试（内容稽核清理、聊天摘要/未读计数） |
 | `docs/` | 详细说明与更新记录 |
 
 ## 3. 硬性规则
@@ -52,6 +52,7 @@
 
 ## 4. 验证
 - 每次改动后：`npm run typecheck`、`npm run lint`；较大改动加 `npm run build`。
+- 改到聊天摘要、分组会话数、后台未读计数 RPC 或聊天表索引：`npm run test:service-chat`。
 - 改到内容稽核/已删员工相关迁移或 Edge Function：`npm run test:audit-cleanup`；Edge Function 语法检查：`npx esbuild supabase/functions/content-audit/index.ts --format=esm --log-level=warning > /dev/null`。
 - 界面改动要在预览中实际操作。本环境的浏览器自动化不可用，且预览需要登录账号；无法实测时要明说，并请用户验证。
 

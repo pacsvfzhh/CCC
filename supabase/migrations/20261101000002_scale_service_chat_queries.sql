@@ -149,7 +149,7 @@ BEGIN
   FROM private.get_financial_admin_context(p_admin_session_token) AS context;
 
   IF v_admin IS NULL THEN
-    RAISE EXCEPTION 'Admin session is invalid or expired.' USING ERRCODE = '42501';
+    RAISE EXCEPTION 'Financial administrator session is invalid or expired.';
   END IF;
 
   -- Same-group conversations only, matching what the chat workspaces can open.
