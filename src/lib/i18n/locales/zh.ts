@@ -21,6 +21,8 @@ const zh = {
     highPriority: '重要',
     normal: '普通',
     view: '查看',
+    newMessagesSummary: '你有 {n} 条新消息',
+    newMessagesSummaryHint: '打开消息中心查看。',
   },
   session: {
     expired: '会话已过期',

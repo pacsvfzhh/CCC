@@ -24,6 +24,8 @@ const en = {
     highPriority: 'Important',
     normal: 'Normal',
     view: 'View',
+    newMessagesSummary: 'You have {n} new messages',
+    newMessagesSummaryHint: 'Open the message center to read them.',
   },
 
   // Session expired

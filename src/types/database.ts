@@ -3552,6 +3552,13 @@ export interface Database {
         };
         Returns: unknown[];
       };
+      get_notification_automation_failures: {
+        Args: {
+          p_admin_session_token: string;
+          p_owner_admin_id?: string | null;
+        };
+        Returns: unknown[];
+      };
       save_notification_automation_plan: {
         Args: {
           p_admin_session_token: string;

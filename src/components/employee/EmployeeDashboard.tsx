@@ -53,7 +53,10 @@ type MessageToast = {
   rewardAmount: number | null;
   rewardCurrency: string | null;
   notification: MessageWithRecipient;
+  summaryCount?: number;
 };
+
+const REALTIME_BACKLOG_SUMMARY_THRESHOLD = 3;
 
 type EmployeeFinancialSession = ReturnType<typeof getEmployeeFinancialSession>;
 
@@ -96,6 +99,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const processRealtimeRecipientRef = useRef<((recipientId: string) => Promise<void>) | null>(null);
   const recoverRealtimeNotificationsRef = useRef<(() => Promise<void>) | null>(null);
   const notificationChannelStatusRef = useRef('CLOSED');
+  const notificationDeliveryActiveRef = useRef(false);
   const financialSessionInvalidRef = useRef(false);
   const deliveredRecipientIdsRef = useRef(new Set<string>());
   const realtimeDeliveryChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -391,6 +395,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     let recoveryRetryAt = 0;
     let transientWarningShown = false;
     let cancelled = false;
+    notificationDeliveryActiveRef.current = true;
 
     const recoverWhileActive = () => {
       if (
@@ -400,14 +405,13 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         || financialSessionInvalidRef.current
         || document.visibilityState !== 'visible'
         || !navigator.onLine
-        || notificationChannelStatusRef.current !== 'SUBSCRIBED'
       ) return;
 
       recoveryQueued = true;
       void loadUnreadCountRef.current?.();
       realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
         .then(async () => {
-          if (cancelled || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+          if (cancelled || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
           await recoverRealtimeNotificationsRef.current?.();
           recoveryFailures = 0;
           recoveryRetryAt = 0;
@@ -439,10 +443,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
       recoveryRetryAt = 0;
       void loadUnreadCountRef.current?.();
-      if (notificationChannelStatusRef.current === 'SUBSCRIBED') {
-        recoverWhileActive();
-        void checkLoginPopupMessagesRef.current?.(true);
-      }
+      recoverWhileActive();
+      void checkLoginPopupMessagesRef.current?.(true);
     };
 
     const handleVisibilityChange = () => {
@@ -495,6 +497,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
     return () => {
       cancelled = true;
+      notificationDeliveryActiveRef.current = false;
       window.removeEventListener('online', recoverAfterInterruption);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(recoveryTimer);
@@ -597,11 +600,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     }
   };
 
-  const deliverClaimedRealtimeNotification = async (
+  const confirmClaimedRealtimeNotification = async (
     result: RealtimeNotificationClaim,
     session: EmployeeFinancialSession,
-  ) => {
-    if (financialSessionInvalidRef.current) return;
+  ): Promise<MessageToast | null> => {
+    if (financialSessionInvalidRef.current) return null;
     const recipientId = result.recipient.id;
     const completionPayload = {
       p_user_id: employee.id,
@@ -614,7 +617,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     let completion = await supabase.rpc('complete_notification_delivery', completionPayload);
     if (completion.error && navigator.onLine && isSupabaseTransientError(completion.error)) {
       await new Promise(resolve => window.setTimeout(resolve, 300));
-      if (financialSessionInvalidRef.current) return;
+      if (financialSessionInvalidRef.current) return null;
       completion = await supabase.rpc('complete_notification_delivery', completionPayload);
     }
     if (completion.error) throw completion.error;
@@ -622,12 +625,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     if (!delivered?.success) {
       throw new Error('Notification delivery could not be confirmed.');
     }
-    if (deliveredRecipientIdsRef.current.has(recipientId)) return;
+    if (deliveredRecipientIdsRef.current.has(recipientId)) return null;
 
     deliveredRecipientIdsRef.current.add(recipientId);
-    playNotificationSound();
-    setHasNewMessage(true);
-    setMessageToastQueue(previous => previous.some(item => item.recipientId === recipientId) ? previous : [...previous, {
+    return {
       recipientId,
       title: result.message.title,
       content: result.message.content,
@@ -643,7 +644,29 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         read_at: delivered.read_at || null,
         messages: result.message,
       },
-    }]);
+    };
+  };
+
+  const presentRealtimeNotifications = (toasts: MessageToast[]) => {
+    if (toasts.length === 0) return;
+    const latest = toasts[toasts.length - 1];
+    const items: MessageToast[] = toasts.length > REALTIME_BACKLOG_SUMMARY_THRESHOLD
+      ? [{
+          ...latest,
+          recipientId: `summary:${latest.recipientId}`,
+          priority: 'normal',
+          notificationCategory: 'standard',
+          rewardAmount: null,
+          rewardCurrency: null,
+          summaryCount: toasts.length,
+        }]
+      : toasts;
+    playNotificationSound();
+    setHasNewMessage(true);
+    setMessageToastQueue(previous => [
+      ...previous,
+      ...items.filter(item => !previous.some(existing => existing.recipientId === item.recipientId)),
+    ]);
     void loadUnreadCountRef.current?.();
   };
 
@@ -662,7 +685,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       if (error) throw error;
 
       const result = data as RealtimeNotificationClaim | null;
-      if (result) await deliverClaimedRealtimeNotification(result, session);
+      if (!result) return;
+      const toast = await confirmClaimedRealtimeNotification(result, session);
+      if (toast) presentRealtimeNotifications([toast]);
     } catch (error) {
       if (isExpiredEmployeeSession(error)) {
         financialSessionInvalidRef.current = true;
@@ -676,20 +701,26 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const recoverRealtimeNotifications = async () => {
     if (financialSessionInvalidRef.current) return;
     const session = getEmployeeFinancialSession();
-    for (let recovered = 0; recovered < 50; recovered += 1) {
-      if (financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+    const recoveredToasts: MessageToast[] = [];
+    try {
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        if (financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || !notificationDeliveryActiveRef.current) return;
 
-      const { data, error } = await supabase.rpc('claim_next_realtime_notification_delivery', {
-        p_user_id: employee.id,
-        p_session_token: session.token,
-        p_tab_id: session.tabId,
-        p_lease_seconds: 120,
-      });
-      if (error) throw error;
+        const { data, error } = await supabase.rpc('claim_next_realtime_notification_delivery', {
+          p_user_id: employee.id,
+          p_session_token: session.token,
+          p_tab_id: session.tabId,
+          p_lease_seconds: 120,
+        });
+        if (error) throw error;
 
-      const result = data as RealtimeNotificationClaim | null;
-      if (!result) return;
-      await deliverClaimedRealtimeNotification(result, session);
+        const result = data as RealtimeNotificationClaim | null;
+        if (!result) return;
+        const toast = await confirmClaimedRealtimeNotification(result, session);
+        if (toast) recoveredToasts.push(toast);
+      }
+    } finally {
+      if (notificationDeliveryActiveRef.current) presentRealtimeNotifications(recoveredToasts);
     }
   };
 
@@ -902,7 +933,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                         {/* Content */}
                         <div
-                          onClick={() => { setMessageToOpen(latestMessage.notification); dismissMessageToast(); setShowMessageCenter(true); setHasNewMessage(false); }}
+                          onClick={() => { setMessageToOpen(latestMessage.summaryCount ? null : latestMessage.notification); dismissMessageToast(); setShowMessageCenter(true); setHasNewMessage(false); }}
                           className="relative px-3 sm:px-4 pt-3 sm:pt-3.5 pb-3 sm:pb-3.5 cursor-pointer touch-manipulation"
                           style={{ WebkitTapHighlightColor: 'transparent' }}
                         >
@@ -912,14 +943,16 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                               <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 border border-white/20 ring-1 ring-white/10 shadow-inner">
                                 {latestMessage.notificationCategory === 'performance_reward' ? <Gift className="h-4.5 w-4.5 text-white" strokeWidth={2.2} /> : <Bell className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />}
                               </div>
-                              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center bg-white shadow-md">
-                                <span className="text-[7px] font-black leading-none text-emerald-600">1</span>
+                              <div className="absolute -top-1 -right-1 min-w-[0.875rem] h-3.5 px-[2px] rounded-full flex items-center justify-center bg-white shadow-md">
+                                <span className="text-[7px] font-black leading-none text-emerald-600">{latestMessage.summaryCount ? (latestMessage.summaryCount > 99 ? '99+' : latestMessage.summaryCount) : 1}</span>
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
                               <span className={`mb-0.5 block text-[9px] font-bold uppercase tracking-[0.12em] ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-50' : 'text-emerald-200'}`}>{latestMessage.notificationCategory === 'performance_reward' ? 'Performance Reward' : t.header.newMessage}</span>
                               <h3 className="font-bold text-[13px] leading-tight truncate text-white">
-                                {latestMessage.title}
+                                {latestMessage.summaryCount
+                                  ? t.header.newMessagesSummary.replace('{n}', String(latestMessage.summaryCount))
+                                  : latestMessage.title}
                               </h3>
                             </div>
                             <button
@@ -941,7 +974,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                           {/* Body */}
                           <div className="ml-[44px] sm:ml-[46px] p-2 sm:p-2.5 rounded-lg bg-white/10 border border-white/10 backdrop-blur-sm mb-2.5 sm:mb-3">
                             <p className="text-[12px] line-clamp-2 leading-[1.5] text-white/85">
-                              {latestMessage.content.replace(/<[^>]*>/g, '').slice(0, 80)}
+                              {latestMessage.summaryCount
+                                ? t.header.newMessagesSummaryHint
+                                : latestMessage.content.replace(/<[^>]*>/g, '').slice(0, 80)}
                             </p>
                           </div>
 

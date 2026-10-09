@@ -21,6 +21,8 @@ const es = {
     highPriority: 'Importante',
     normal: 'Normal',
     view: 'Ver',
+    newMessagesSummary: 'Tienes {n} mensajes nuevos',
+    newMessagesSummaryHint: 'Abre el centro de mensajes para leerlos.',
   },
   session: {
     expired: 'Sesion expirada',

@@ -24,6 +24,8 @@ const hi = {
     highPriority: 'महत्वपूर्ण',
     normal: 'सामान्य',
     view: 'देखें',
+    newMessagesSummary: 'आपके {n} नए संदेश हैं',
+    newMessagesSummaryHint: 'पढ़ने के लिए संदेश केंद्र खोलें।',
   },
 
   // Session expired

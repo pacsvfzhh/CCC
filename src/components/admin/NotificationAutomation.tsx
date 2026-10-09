@@ -124,6 +124,18 @@ interface AutomationExecution {
   error_message: string | null;
 }
 
+interface AutomationFailure {
+  task_id: string;
+  task_name: string;
+  plan_name: string | null;
+  user_id: string;
+  employee_username: string;
+  employee_code: string | null;
+  attempts: number;
+  last_error: string;
+  last_failed_at: string;
+}
+
 interface AutomationAdminGroup {
   id: string;
   username: string;
@@ -634,6 +646,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
   const [executionsLoading, setExecutionsLoading] = useState(false);
   const [executionsInitialized, setExecutionsInitialized] = useState(false);
   const [executionRefreshKey, setExecutionRefreshKey] = useState(0);
+  const [failures, setFailures] = useState<AutomationFailure[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
@@ -662,6 +675,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
   const wasActiveRef = useRef(isActive);
   const dashboardRequestIdRef = useRef(0);
   const executionRequestIdRef = useRef(0);
+  const failureRequestIdRef = useRef(0);
   const editorInitialSnapshotRef = useRef('');
   const planInitialSnapshotRef = useRef('');
   const memberInitialSnapshotRef = useRef('');
@@ -801,6 +815,28 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
 
     void loadExecutions();
   }, [dashboard.selected_owner_id, debouncedExecutionSearch, executionRefreshKey, loading]);
+
+  useEffect(() => {
+    if (loading) return;
+    const requestId = ++failureRequestIdRef.current;
+    const ownerId = dashboard.selected_owner_id;
+
+    const loadFailures = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_notification_automation_failures', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_owner_admin_id: ownerId,
+        });
+        if (requestId !== failureRequestIdRef.current) return;
+        if (error) throw error;
+        setFailures(Array.isArray(data) ? data as unknown as AutomationFailure[] : []);
+      } catch {
+        if (requestId === failureRequestIdRef.current) setFailures([]);
+      }
+    };
+
+    void loadFailures();
+  }, [dashboard.selected_owner_id, executionRefreshKey, loading]);
 
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
   const selectedOwnerName = selectedAdmin?.username || (dashboard.selected_owner_id === admin.id ? admin.username : '管理員分組');
@@ -1645,6 +1681,15 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
             </div>
           </aside>
           <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-slate-900">
+            {failures.length > 0 && <details className="shrink-0 border-b border-rose-400/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-100">
+              <summary className="flex cursor-pointer select-none items-center gap-2 font-black"><AlertCircle className="h-4 w-4 shrink-0 text-rose-300" /><span className="min-w-0 flex-1">有 {failures.length} 筆自動通知發送失敗，系統會自動重試</span><span className="shrink-0 text-[10px] font-semibold text-rose-200/70">點擊查看原因</span></summary>
+              <div className="dark-panel-scroll mt-2 max-h-48 space-y-1.5 overflow-y-auto">
+                {failures.map(failure => <div key={`${failure.task_id}:${failure.user_id}`} className="rounded-lg border border-rose-400/20 bg-slate-950/60 px-2.5 py-2">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5"><span className="font-black text-white">{failure.employee_username}</span>{failure.employee_code && <span className="text-[10px] text-slate-400">{failure.employee_code}</span>}<span className="text-rose-100/80">任務：{failure.task_name}{failure.plan_name ? `（${failure.plan_name}）` : ''}</span><span className="text-rose-200/60">已重試 {failure.attempts} 次 · 最後 {formatDateTime(failure.last_failed_at)}</span></div>
+                  <p className="mt-1 break-words font-mono text-[10px] text-rose-200/80">{failure.last_error}</p>
+                </div>)}
+              </div>
+            </details>}
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/50 px-3 py-2.5">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <div className="flex rounded-xl border border-slate-700 bg-slate-950 p-1">{[{ id: 'tasks' as const, label: '任務', icon: Settings2 }, { id: 'executions' as const, label: '執行記錄', icon: History }].map(tab => <button key={tab.id} type="button" onClick={() => setView(tab.id)} className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-black ${view === tab.id ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white' : 'text-slate-400 hover:bg-slate-800'}`}><tab.icon className="h-3.5 w-3.5" />{tab.label}</button>)}</div>
