@@ -33,7 +33,7 @@
 - 判定 `private.evaluate_notification_automation_for_user`：员工第一次被某任务评估（或加入方案）时先记录当时进度作为基线，**启用/加入之前已达成的目标不补发**；同一任务版本 + 员工 + 周期 + 阶段只发一次（唯一约束）。「每天」类条件按 UTC 日期计算（北京时间 08:00 换日）。执行记录、通知、收件记录、奖金在同一事务内完成；失败时整笔回滚，员工留在队列，每次失败多等 5 秒、最长 300 秒后重试；错误只记在 `notification_automation_queue.last_error`，后台页面不显示。
 - 工作天数类条件（`work_days`、`consecutive_work_days`）按 `work_sessions` 与订单同日计算，`work_sessions` 受「歷史資料」保留期影响：累计工作天数只算保留期内的天数，目标超过保留期的任务永远不会触发。保留期 2026-10-09 由 90 天改为 400 天（`20261031000001_extend_work_session_history_retention.sql`）；之前已被清理的记录无法恢复，正式库最早的工作记录是 2026-08-27。新建工作天数任务时，目标要小于这个保留期。
 - 自动通知的已读状态在「通知」页（自动筛选）查看；自动化页只显示执行记录。
-- 旧「共享任务」（`is_shared_template=true`）：迁移 `20260920126000_execute_enabled_shared_notification_tasks.sql` 让它们参与执行，但 v2 后台只列出 `is_shared_template=false` 的任务，`set_notification_automation_task_status_v2` 也改不了它们；超管的 `all_managed` 覆盖全站员工。超管名下曾启用的「46」「654」（累计满 100 单）会造成重复祝贺，2026-10-09 已暂停（`20261031000000_pause_hidden_shared_notification_tasks.sql`），目前没有启用中的共享任务。它们在后台不可见，如需恢复只能改数据库。
+- 旧「共享任务」（`is_shared_template=true`）：早期给二级管理员复制用的模板。迁移 `20260920126000_execute_enabled_shared_notification_tasks.sql` 让启用中的模板也会执行，但 v2 后台只列出 `is_shared_template=false` 的任务，也不能复制或管理模板。2026-10-09 先暂停了会造成重复祝贺的「46」「654」（`20261031000000_pause_hidden_shared_notification_tasks.sql`），随后按用户要求删除全部 4 个模板及其进度记录（`20261031000002_delete_hidden_shared_notification_tasks.sql`）；正式库已没有共享模板。bb 名下两条「654」是当初从模板复制的独立任务，已保留，只清空了 `source_task_id`。表结构和旧的复制/保存 RPC 仍在，前端不再调用。
 - 迁移：`20260918231458_create_notification_automation_system.sql`、`20260922001942_harden_all_notification_automation_triggers.sql`、`20260922185616_accelerate_notification_automation_queue.sql`。
 
 ## 公告 `AnnouncementManagement.tsx` + `TiptapEditor.tsx`
