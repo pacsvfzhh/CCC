@@ -19,11 +19,11 @@
 
 ## 2026-10-09 · 建立项目说明文档
 - 需求：让以后每次对话都了解网站结构，并且每次修改都有说明。
-- 改动：新增根目录 `AGENTS.md`（每次对话自动读取）、`docs/` 下 7 份模块文档和本更新记录；规定每次修改都要同步更新文档。
+- 改动：新增根目录 `AGENTS.md`（Builder 官方支持的项目说明文件，新对话先读）、`docs/` 下 7 份模块文档和本更新记录；规定每次修改都要同步更新文档。
 - 文件：`AGENTS.md`、`docs/architecture.md`、`docs/admin-backend.md`、`docs/employee-portal.md`、`docs/notifications.md`、`docs/service-chat.md`、`docs/content-audit.md`、`docs/database.md`、`docs/CHANGELOG.md`
 - 数据库/服务端：无（只读核对了正式环境的 Edge Function、定时任务、存储桶、Realtime 与表权限）。
 - 验证：文档内容已按代码与正式环境核对。
-- 备注：核对时发现 5 张表对匿名角色开放增删改、证件存储桶为公开桶，已记录在 `docs/database.md`，待用户决定是否收紧。
+- 备注：核对时发现 5 张表对匿名角色开放增删改、证件存储桶为公开桶，已记录在 `docs/database.md`，待用户决定是否收紧。Builder 官方文档未明确保证每次对话都会自动载入 `AGENTS.md`，已把相关措辞改为不作保证；`AGENTS.md` 93 行，低于官方建议的 500 行上限。
 
 ## 2026-10-09 · 同步远端时处理管理员页面冲突
 - 需求：同步远端更新。
