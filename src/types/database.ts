@@ -3247,6 +3247,14 @@ export interface Database {
         Args: { today_start: string; user_ids: string[] };
         Returns: Array<{ count: number; user_id: string }>;
       };
+      get_admin_chat_unread_counts: {
+        Args: { p_admin_session_token: string };
+        Returns: Array<{
+          admin_id: string;
+          source_type: string;
+          unread_count: number;
+        }>;
+      };
       get_admin_groups_for_customer_service: {
         Args: { p_source_type?: string };
         Returns: Array<{

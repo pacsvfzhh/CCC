@@ -1,6 +1,7 @@
 import { isSupabaseTransientError, supabase } from './supabase';
 import type { AdminGroup } from '../components/admin/AdminGroupPicker';
 import type { Database } from '../types/database';
+import { getAdminFinancialSessionToken } from './auth';
 
 export type ServiceWorkspace = 'customer' | 'manager';
 
@@ -84,49 +85,19 @@ function normalizeAdminGroups(data: unknown): AdminGroup[] {
   return data as AdminGroup[];
 }
 
-type ConversationOwnershipRow = {
-  customer_id: string;
-  employee_id: string;
-  simulated_customers: {
-    admin_id: string;
-    source_type: string;
-  } | Array<{
-    admin_id: string;
-    source_type: string;
-  }> | null;
-  users: {
-    created_by: string | null;
-  } | Array<{
-    created_by: string | null;
-  }> | null;
-};
-
-async function loadConversationCountsByAdmin(sourceType: WorkspaceSource) {
-  const { data, error } = await supabase
-    .from('customer_employee_conversations')
-    .select('customer_id, employee_id, simulated_customers!inner(admin_id, source_type), users!inner(created_by)')
-    .eq('source_type', sourceType)
-    .eq('simulated_customers.source_type', sourceType);
-
-  if (error) throw error;
-
-  const sessionsByAdmin = new Map<string, Set<string>>();
-  const rows = (data || []) as unknown as ConversationOwnershipRow[];
-
-  rows.forEach(row => {
-    const customer = Array.isArray(row.simulated_customers)
-      ? row.simulated_customers[0]
-      : row.simulated_customers;
-    const employee = Array.isArray(row.users) ? row.users[0] : row.users;
-
-    if (!customer || !employee || employee.created_by !== customer.admin_id) return;
-
-    const sessions = sessionsByAdmin.get(customer.admin_id) || new Set<string>();
-    sessions.add(`${row.customer_id}:${row.employee_id}`);
-    sessionsByAdmin.set(customer.admin_id, sessions);
+// Unread employee messages per admin group, counted in the database for the signed-in admin's scope.
+export async function fetchAdminChatUnreadCounts(service?: ServiceWorkspace) {
+  const { data, error } = await supabase.rpc('get_admin_chat_unread_counts', {
+    p_admin_session_token: getAdminFinancialSessionToken(),
   });
-
-  return sessionsByAdmin;
+  if (error) throw error;
+  const sourceType = service ? getSourceType(service) : null;
+  const counts = new Map<string, number>();
+  (data || []).forEach(row => {
+    if (sourceType && row.source_type !== sourceType) return;
+    counts.set(row.admin_id, (counts.get(row.admin_id) || 0) + Number(row.unread_count));
+  });
+  return { rows: data || [], countsByAdmin: counts };
 }
 
 export function prefetchAdminGroups(
@@ -140,21 +111,17 @@ export function prefetchAdminGroups(
     if (cached) return Promise.resolve(cached);
   }
 
-  const sourceType = getSourceType(service);
-  const loadGroups = () => Promise.all([
-    Promise.resolve(
-      supabase.rpc('get_admin_groups_for_customer_service', {
-        p_source_type: sourceType,
-      }),
-    ).then(({ data, error }) => {
-      if (error) throw error;
-      return normalizeAdminGroups(data);
+  const loadGroups = () => Promise.resolve(
+    supabase.rpc('get_admin_groups_for_customer_service', {
+      p_source_type: getSourceType(service),
     }),
-    loadConversationCountsByAdmin(sourceType),
-  ]).then(([groups, conversationCounts]) => groups.map(group => ({
-    ...group,
-    conversation_count: conversationCounts.get(group.admin_id)?.size || 0,
-  })));
+  ).then(({ data, error }) => {
+    if (error) throw error;
+    return normalizeAdminGroups(data).map(group => ({
+      ...group,
+      conversation_count: Number(group.conversation_count) || 0,
+    }));
+  });
 
   return queueRequest(
     pendingRequests,

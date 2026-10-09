@@ -8,7 +8,7 @@ import { getAdminFinancialSessionToken, logout, updateStoredUsername } from '../
 import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
-import { fetchConversationSummaryRows, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { fetchAdminChatUnreadCounts, fetchConversationSummaryRows, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { uniqueRealtimeChannelName } from '../../lib/realtimeChannel';
 import AdminPageLoading from './AdminPageLoading';
 
@@ -262,16 +262,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [productOrderDirty, setProductOrderDirty] = useState(false);
   const pendingCountsRequestRef = useRef(0);
   const lockedCountsRequestRef = useRef(0);
-  const realtimeUnreadMessageIdsRef = useRef(new Set<string>());
-  const conversationScopeRef = useRef<{
-    aaaCustomerIds: Set<string>;
-    cccCustomerIds: Set<string>;
-    employeeIds: Set<string> | null;
-  }>({
-    aaaCustomerIds: new Set(),
-    cccCustomerIds: new Set(),
-    employeeIds: admin.role === 'secondary_admin' ? new Set() : null,
-  });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -732,136 +722,67 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     }
   }, []);
 
+  const chatUnreadRequestRef = useRef(0);
+  const loadChatUnreadCounts = useCallback(async () => {
+    const requestId = ++chatUnreadRequestRef.current;
+    try {
+      const { rows } = await fetchAdminChatUnreadCounts();
+      if (requestId !== chatUnreadRequestRef.current) return;
+      let unreadAaa = 0;
+      let unreadCcc = 0;
+      rows.forEach(row => {
+        if (row.source_type === 'aaa_service') unreadAaa += Number(row.unread_count);
+        if (row.source_type === 'ccc_service') unreadCcc += Number(row.unread_count);
+      });
+      setUnreadCustomerServiceCount(unreadAaa);
+      setUnreadCccServiceCount(unreadCcc);
+    } catch (error) {
+      console.warn('Chat unread counts are temporarily unavailable:', formatRequestError(error));
+    }
+  }, []);
+
   const loadPendingCounts = useCallback(async () => {
     const requestId = ++pendingCountsRequestRef.current;
+    void loadChatUnreadCounts();
     try {
-      const pendingWithdrawalCountRequest = supabase.rpc(
-        'get_pending_withdrawal_count_for_admin',
-        { p_admin_session_token: getAdminFinancialSessionToken() },
-      );
-
-      // For secondary admins, fetch their employee IDs once for scoping
-      let scopedEmployeeIds: string[] | null = null;
-      if (admin.role === 'secondary_admin') {
-        const { data: myEmployees, error: employeesError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('created_by', admin.id);
-        if (employeesError) throw employeesError;
-        scopedEmployeeIds = myEmployees?.map(e => e.id) || [];
-      }
-
-      const { data: pendingWithdrawalCount, error: withdrawalCountError } = await pendingWithdrawalCountRequest;
-      if (withdrawalCountError) throw withdrawalCountError;
-      if (requestId !== pendingCountsRequestRef.current) return;
-      setPendingWithdrawalsCount(Number(pendingWithdrawalCount || 0));
-
-      // Load pending verifications count (scoped by admin)
-      let verificationsCount = 0;
-      if (scopedEmployeeIds !== null) {
-        if (scopedEmployeeIds.length > 0) {
-          const { count, error: vErr } = await supabase
-            .from('verification_requests')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'pending')
-            .in('user_id', scopedEmployeeIds);
-          if (vErr) throw vErr;
-          verificationsCount = count || 0;
-        }
-      } else {
-        const { count, error: vErr } = await supabase
+      // Scoped in the database: a large group's employee IDs would not fit in the request URL.
+      const verificationsQuery = admin.role === 'secondary_admin'
+        ? supabase
+          .from('verification_requests')
+          .select('id, users!inner(created_by)', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .eq('users.created_by', admin.id)
+        : supabase
           .from('verification_requests')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending');
-        if (vErr) throw vErr;
-        verificationsCount = count || 0;
-      }
+
+      const [withdrawalResult, verificationResult] = await Promise.allSettled([
+        supabase.rpc('get_pending_withdrawal_count_for_admin', { p_admin_session_token: getAdminFinancialSessionToken() }),
+        verificationsQuery,
+      ]);
       if (requestId !== pendingCountsRequestRef.current) return;
-      setPendingVerificationsCount(verificationsCount);
 
-      // Load unread customer service messages count (AAA)
-      let unreadCount = 0;
-      let unreadCccCount = 0;
-      let aaaCustomerIds: string[] = [];
-      let cccCustomerIds: string[] = [];
-      const countUnreadCustomerMessages = (customerIds: string[], sourceType: 'aaa_service' | 'ccc_service') => {
-        if (customerIds.length === 0 || (scopedEmployeeIds !== null && scopedEmployeeIds.length === 0)) {
-          return Promise.resolve({ count: 0, error: null });
-        }
-
-        let query = supabase
-          .from('customer_employee_conversations')
-          .select('*', { count: 'exact', head: true })
-          .in('customer_id', customerIds)
-          .eq('source_type', sourceType)
-          .eq('sender_type', 'employee')
-          .eq('is_read', false);
-        if (scopedEmployeeIds !== null) {
-          query = query.in('employee_id', scopedEmployeeIds);
-        }
-        return query;
-      };
-
-      if (admin.role === 'super_admin') {
-        const [aaaCustomersRes, cccCustomersRes] = await Promise.all([
-          supabase.from('simulated_customers').select('id').eq('source_type', 'aaa_service'),
-          supabase.from('simulated_customers').select('id').eq('source_type', 'ccc_service'),
-        ]);
-
-        if (aaaCustomersRes.error) throw aaaCustomersRes.error;
-        if (cccCustomersRes.error) throw cccCustomersRes.error;
-
-        aaaCustomerIds = (aaaCustomersRes.data || []).map(c => c.id);
-        cccCustomerIds = (cccCustomersRes.data || []).map(c => c.id);
-
-        const [aaaUnread, cccUnread] = await Promise.all([
-          countUnreadCustomerMessages(aaaCustomerIds, 'aaa_service'),
-          countUnreadCustomerMessages(cccCustomerIds, 'ccc_service'),
-        ]);
-
-        if (aaaUnread.error) throw aaaUnread.error;
-        if (cccUnread.error) throw cccUnread.error;
-        unreadCount = aaaUnread.count || 0;
-        unreadCccCount = cccUnread.count || 0;
+      if (withdrawalResult.status === 'fulfilled' && !withdrawalResult.value.error) {
+        setPendingWithdrawalsCount(Number(withdrawalResult.value.data || 0));
       } else {
-        const [aaaCustomersRes, cccCustomersRes] = await Promise.all([
-          supabase.from('simulated_customers').select('id').eq('admin_id', admin.id).eq('source_type', 'aaa_service'),
-          supabase.from('simulated_customers').select('id').eq('admin_id', admin.id).eq('source_type', 'ccc_service'),
-        ]);
-
-        if (aaaCustomersRes.error) throw aaaCustomersRes.error;
-        if (cccCustomersRes.error) throw cccCustomersRes.error;
-
-        aaaCustomerIds = (aaaCustomersRes.data || []).map(c => c.id);
-        cccCustomerIds = (cccCustomersRes.data || []).map(c => c.id);
-
-        const [aaaUnread, cccUnread] = await Promise.all([
-          countUnreadCustomerMessages(aaaCustomerIds, 'aaa_service'),
-          countUnreadCustomerMessages(cccCustomerIds, 'ccc_service'),
-        ]);
-
-        if (aaaUnread.error) throw aaaUnread.error;
-        if (cccUnread.error) throw cccUnread.error;
-        unreadCount = aaaUnread.count || 0;
-        unreadCccCount = cccUnread.count || 0;
+        console.warn('Pending withdrawal count is temporarily unavailable:', formatRequestError(
+          withdrawalResult.status === 'fulfilled' ? withdrawalResult.value.error : withdrawalResult.reason,
+        ));
       }
 
-      if (requestId !== pendingCountsRequestRef.current) return;
-
-      conversationScopeRef.current = {
-        aaaCustomerIds: new Set(aaaCustomerIds),
-        cccCustomerIds: new Set(cccCustomerIds),
-        employeeIds: scopedEmployeeIds ? new Set(scopedEmployeeIds) : null,
-      };
-      realtimeUnreadMessageIdsRef.current.clear();
-
-      setUnreadCustomerServiceCount(unreadCount);
-      setUnreadCccServiceCount(unreadCccCount);
+      if (verificationResult.status === 'fulfilled' && !verificationResult.value.error) {
+        setPendingVerificationsCount(verificationResult.value.count || 0);
+      } else {
+        console.warn('Pending verification count is temporarily unavailable:', formatRequestError(
+          verificationResult.status === 'fulfilled' ? verificationResult.value.error : verificationResult.reason,
+        ));
+      }
 
     } catch (error) {
       console.warn('Pending counts are temporarily unavailable:', formatRequestError(error));
     }
-  }, [admin.id, admin.role]);
+  }, [admin.id, admin.role, loadChatUnreadCounts]);
 
   const handleCustomerServiceUnreadChange = useCallback((delta: number) => {
     setUnreadCustomerServiceCount(prev => Math.max(0, prev + delta));
@@ -961,71 +882,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       )
       .subscribe();
 
-    let pendingCountsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
-    const schedulePendingCountsRefresh = () => {
-      if (pendingCountsRefreshTimer) clearTimeout(pendingCountsRefreshTimer);
-      pendingCountsRefreshTimer = setTimeout(() => {
-        pendingCountsRefreshTimer = null;
-        void loadPendingCounts();
-      }, 250);
+    let chatUnreadRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    // Throttled, not debounced: a steady stream of messages must not keep postponing the refresh.
+    const scheduleChatUnreadRefresh = () => {
+      if (chatUnreadRefreshTimer) return;
+      chatUnreadRefreshTimer = setTimeout(() => {
+        chatUnreadRefreshTimer = null;
+        void loadChatUnreadCounts();
+      }, 1000);
     };
-    const handleConversationRealtime = (payload: {
-      eventType?: string;
-      new?: Record<string, unknown>;
-      old?: Record<string, unknown>;
-    }) => {
-      const message = payload.new && Object.keys(payload.new).length > 0
-        ? payload.new
-        : payload.old;
-      if (!message) return;
-      const sourceType = message.source_type;
-      if (sourceType !== 'aaa_service' && sourceType !== 'ccc_service') return;
-
-      const customerId = typeof message.customer_id === 'string' ? message.customer_id : null;
-      const employeeId = typeof message.employee_id === 'string' ? message.employee_id : null;
-      const messageId = typeof message.id === 'string' ? message.id : null;
-      const scope = conversationScopeRef.current;
-      const customerIds = sourceType === 'aaa_service'
-        ? scope.aaaCustomerIds
-        : scope.cccCustomerIds;
-      const isInScope = Boolean(
-        customerId
-        && employeeId
-        && customerIds.has(customerId)
-        && (scope.employeeIds === null || scope.employeeIds.has(employeeId)),
-      );
-      if (!isInScope) return;
-
-      pendingCountsRequestRef.current += 1;
-      invalidateConversationSummariesCache(
-        admin.id,
-        sourceType === 'aaa_service' ? 'customer' : 'manager',
-      );
-
-      const isUnreadEmployeeMessage = message.sender_type === 'employee' && message.is_read === false;
-      if (messageId) {
-        const tracked = realtimeUnreadMessageIdsRef.current.has(messageId);
-        const adjustCount = (delta: number) => {
-          if (sourceType === 'aaa_service') {
-            setUnreadCustomerServiceCount(prev => Math.max(0, prev + delta));
-          } else {
-            setUnreadCccServiceCount(prev => Math.max(0, prev + delta));
-          }
-        };
-
-        if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && isUnreadEmployeeMessage && !tracked) {
-          realtimeUnreadMessageIdsRef.current.add(messageId);
-          adjustCount(1);
-        } else if (payload.eventType === 'UPDATE' && !isUnreadEmployeeMessage && tracked) {
-          realtimeUnreadMessageIdsRef.current.delete(messageId);
-          adjustCount(-1);
-        } else if (payload.eventType === 'DELETE' && tracked) {
-          realtimeUnreadMessageIdsRef.current.delete(messageId);
-          adjustCount(-1);
-        }
-      }
-
-      schedulePendingCountsRefresh();
+    const handleConversationRealtime = () => {
+      invalidateConversationSummariesCache(admin.id, 'customer');
+      invalidateConversationSummariesCache(admin.id, 'manager');
+      scheduleChatUnreadRefresh();
     };
 
     // Set up real-time subscriptions for customer service conversations
@@ -1039,7 +908,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       .subscribe((status, error) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.warn('Customer service notifications are temporarily unavailable.', error);
-          schedulePendingCountsRefresh();
+          scheduleChatUnreadRefresh();
         }
       });
 
@@ -1067,7 +936,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     return () => {
       window.clearTimeout(pendingCountsTimer);
       window.clearInterval(pendingCountsFallbackTimer);
-      if (pendingCountsRefreshTimer) clearTimeout(pendingCountsRefreshTimer);
+      if (chatUnreadRefreshTimer) clearTimeout(chatUnreadRefreshTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(withdrawalChannel);
       supabase.removeChannel(verificationChannel);
@@ -1075,7 +944,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       supabase.removeChannel(accountLocksChannel);
 
     };
-  }, [loadPendingCounts, loadLockedAccountsCount, admin.id, admin.role]);
+  }, [loadPendingCounts, loadChatUnreadCounts, loadLockedAccountsCount, admin.id, admin.role]);
 
   const handleChangePassword = async () => {
     setPasswordError(null);
