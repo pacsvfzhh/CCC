@@ -27,6 +27,7 @@
 
 ## 通知自动化 `NotificationAutomation.tsx`
 - 方案（plan）状态：active / paused / archived；任务（task）状态：draft / active / paused。二级只能管理自己的；超管可切换管理员组。
+- 管理员之间的隔离（服务端强制）：员工只能加入建立他的管理员（`users.created_by`）的方案，且同时只能在一个方案（`notification_automation_plan_members` 的 `UNIQUE(user_id)`）；方案任务只发给任务所属管理员名下的方案成员，超管的任务也一样；新任务必须属于方案。`resolve_notification_automation_owner` 让二级只能操作自己的分组，超管可以操作任何分组，但改动仍归属该分组。
 - 触发条件：累计订单、每日订单、工作天数、佣金、连续工作日、年度日期、首次登录；可设一次性达标或循环。编辑任务会重置为草稿并清除进度；方案内任务的收件人是方案成员。
 - RPC：`get_notification_automation_dashboard_v2`、`get_notification_automation_executions_v2`、`save_notification_automation_task_v2`、`set_notification_automation_task_status_v2`、`set_notification_automation_plan_for_employee`、`get_notification_automation_plan_assignments`。
 - 执行：订单状态变化、佣金交易、工作会话结束、员工登录等触发器把员工写入 `notification_automation_queue`；pg_cron 每 5 秒执行 `process_notification_automation_queue_fast(200)`，每分钟执行 `process_notification_automation_queue(200)`（后者另安排年度日期任务）。执行时建立执行记录、`messages`（`audit_origin='automation'`）、`message_recipients`；有奖金的任务同时调用 `credit_performance_bonus` 入账，并以 `actor_type='system'` 记入 `financial_operations`。
