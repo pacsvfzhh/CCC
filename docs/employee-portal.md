@@ -55,7 +55,7 @@
 - 错过的实时通知不会丢：页面可见且在线时（每 30 秒、切回页面或恢复联网时；实时连接断开也照常执行，失败按 30 秒起倍增、最长 5 分钟重试），`claim_next_realtime_notification_delivery` 会补弹所有未投递、未过期的实时通知；`realtime_with_login_fallback` 的通知在下次登录时由登录弹窗先显示。
 - 一次补弹超过 3 条时只显示一张「你有 N 条新消息」提示（只响一次提示音），点击打开通知中心但不选中任何一条，因此不会标为已读；3 条以内仍逐条弹出。实时到达的新通知照旧逐条弹出。
 - `EmployeeNotificationDetailPanel.tsx` 是通知详情的展示组件（后台预览也在用），本身不写已读。
-- 公告：`AnnouncementBoard.tsx` 读 `announcements`，`AnnouncementDetailModal.tsx` 净化后显示；公告没有已读标记。
+- 公告：`AnnouncementBoard.tsx` 读 `announcements`，`AnnouncementDetailModal.tsx` 净化后显示；公告没有已读标记。首次加载且没有缓存时，内容区正中显示「加载中...」；加载完成仍无公告才显示居中的「暂无公告」卡片。之后的实时刷新在后台进行，不再显示加载状态。
 
 ## 聊天
 - 见 `docs/service-chat.md`（员工端组件 `CustomerServiceChat.tsx`）。

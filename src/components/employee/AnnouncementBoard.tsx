@@ -82,6 +82,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     return [];
   });
   const [loading, setLoading] = useState(false);
+  const [announcementsPending, setAnnouncementsPending] = useState(true);
   const loadUserAdminRef = useRef<(() => Promise<string | null>) | null>(null);
   const loadCategoriesRef = useRef<(() => Promise<void>) | null>(null);
   const loadInitialAnnouncementsRef = useRef<(() => Promise<void>) | null>(null);
@@ -546,6 +547,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           // Use cached data immediately - already loaded in state initializer
           // No need to call setAnnouncements again
           setLoading(false);
+          setAnnouncementsPending(false);
 
           // Clear any pending background refresh
           if (backgroundRefreshTimeoutRef.current) {
@@ -568,6 +570,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     } catch (error) {
       console.error('Error loading initial announcements:', error);
       setLoading(false);
+      setAnnouncementsPending(false);
       isLoadingRef.current = false;
     }
   };
@@ -635,6 +638,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     } catch (error) {
       console.error('Error loading announcements from server:', error);
       setLoading(false);
+    } finally {
+      setAnnouncementsPending(false);
     }
   };
 
@@ -929,8 +934,13 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
             </div>
           </div>
 
-          {announcements.length === 0 ? (
-            <div className="px-6 py-16 min-[1025px]:px-8">
+          {announcements.length === 0 && announcementsPending ? (
+            <div role="status" className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 min-[1025px]:px-8">
+              <div className="h-10 w-10 rounded-full border-[3px] border-blue-100 border-t-blue-500 animate-spin keep-animation" />
+              <span className="text-sm font-medium text-blue-600">{t.common.loading}</span>
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center px-6 py-16 min-[1025px]:px-8">
               <div className="relative inline-flex flex-col items-center gap-4 p-12 rounded-2xl bg-blue-50/50 border border-blue-100">
                 <div className="relative">
                   <div className="absolute inset-0 bg-blue-200/50 rounded-full blur-xl animate-pulse"></div>
