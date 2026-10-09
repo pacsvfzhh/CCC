@@ -2847,6 +2847,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         setConfirmDeleting(true);
         try {
           await mutateAuditedContent('chat_delete', [messageId]);
+          pendingImageMessagesRef.current.delete(messageId);
+          pendingConfirmAfterRef.current.delete(messageId);
           if (selectedCustomer && selectedEmployee) {
             const cacheKey = `${selectedCustomer.id}:${selectedEmployee.id}`;
             conversationMessagesCacheRef.current.set(cacheKey,
