@@ -34,7 +34,7 @@
 
 ## 各页面
 ### 員工詳情數據 `EmployeeManagement.tsx`
-- 加载：`get_employee_management_snapshot`（排除已归档员工）、`get_notification_automation_plan_assignments`、`get_withdrawals_for_admin`。
+- 加载：`get_employee_management_snapshot`（排除已归档员工）、`get_notification_automation_plan_assignments`、`get_withdrawals_for_admin`。加载途中若有实时变动或页面重新初始化，这次结果会作废并排队重载；首次加载作废时继续显示载入状态，不会先闪出「找不到員工」。
 - 建立：`admin_create_employee_account_with_automation_plan`（用户名、密码 ≥6 位、员工 ID、派单组、可选自动化方案）。二级建立的员工 `created_by` 是自己，超管可选目标管理员。
 - 编辑：`admin_update_employee_account`（用户名、员工 ID、备注、标签、启停、验证、置顶、注册时间）；自动化方案用 `set_notification_automation_plan_for_employee`；重设密码 `admin_reset_employee_password`（旧会话随即失效）。
 - 删除：先走 `archive_employee_without_media` 快速路径；需要留证或返回 evidence changed 时，改走 `mutateAuditedContent('employee_delete', [id])`。删除后员工进入「已刪員工紀錄」（见 `docs/content-audit.md`）。

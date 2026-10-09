@@ -304,6 +304,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const [uploadProgress, setUploadProgress] = useState(0);
   const uploadingTempIdRef = useRef<string | null>(null);
   const pendingImageMessagesRef = useRef(new Map<string, Message>());
+  // Sent message id -> last load request issued before its insert returned; only later loads may settle it.
+  const pendingConfirmAfterRef = useRef(new Map<string, number>());
   const conversationMessagesCacheRef = useRef(new Map<string, Message[]>());
   const pendingConversationMessageRequestsRef = useRef(new Map<string, Promise<void>>());
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -1000,7 +1002,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     const pendingMessages = Array.from(pendingImageMessagesRef.current.values()).filter(message =>
       message.customer_id === customerId &&
       message.employee_id === employeeId &&
-      !cachedMessages.some(cached => cached.image_url && cached.image_url === message.image_url)
+      !cachedMessages.some(cached => cached.id === message.id || (cached.image_url && cached.image_url === message.image_url))
     );
     const visibleMessages = [...cachedMessages, ...pendingMessages]
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -1070,13 +1072,20 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const pendingMessages = Array.from(pendingImageMessagesRef.current.values()).filter(message =>
         message.customer_id === selectedCustomer.id && message.employee_id === selectedEmployee.id
       );
-      const confirmedPendingIds = new Set(
+      const settledPendingIds = new Set(
         pendingMessages
-          .filter(pending => sorted.some(message => message.image_url === pending.image_url))
+          .filter(pending => {
+            const confirmAfter = pendingConfirmAfterRef.current.get(pending.id);
+            return (confirmAfter !== undefined && requestId > confirmAfter)
+              || sorted.some(message => message.id === pending.id || (pending.image_url && message.image_url === pending.image_url));
+          })
           .map(message => message.id)
       );
-      confirmedPendingIds.forEach(messageId => pendingImageMessagesRef.current.delete(messageId));
-      const visibleMessages = [...sorted, ...pendingMessages.filter(message => !confirmedPendingIds.has(message.id))]
+      settledPendingIds.forEach(messageId => {
+        pendingImageMessagesRef.current.delete(messageId);
+        pendingConfirmAfterRef.current.delete(messageId);
+      });
+      const visibleMessages = [...sorted, ...pendingMessages.filter(message => !settledPendingIds.has(message.id))]
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       conversationMessagesCacheRef.current.set(cacheKey, sorted);
       setMessages(visibleMessages);
@@ -2768,8 +2777,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     const htmlContent = getEditorContent();
     if (isEditorEmpty()) return;
 
+    // Client-generated id: reloads that land before the insert returns can recognise this message.
     const tempMessage: Message = {
-      id: `temp-${Date.now()}`,
+      id: crypto.randomUUID(),
       customer_id: selectedCustomer.id,
       employee_id: selectedEmployee.id,
       sender_type: 'customer',
@@ -2779,6 +2789,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       created_at: new Date().toISOString(),
     };
 
+    pendingImageMessagesRef.current.set(tempMessage.id, tempMessage);
     setMessages(prev => [...prev, tempMessage]);
     if (editorRef.current) editorRef.current.innerHTML = '';
     setMessageInput('');
@@ -2789,6 +2800,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const { data: newMsg, error } = await supabase
         .from('customer_employee_conversations')
         .insert({
+          id: tempMessage.id,
           customer_id: selectedCustomer.id,
           employee_id: selectedEmployee.id,
           sender_type: 'customer',
@@ -2801,18 +2813,23 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         .single();
 
       if (error) {
+        pendingImageMessagesRef.current.delete(tempMessage.id);
         setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
         throw error;
       }
 
       if (newMsg) {
+        pendingImageMessagesRef.current.set(newMsg.id, newMsg);
+        pendingConfirmAfterRef.current.set(newMsg.id, messagesLoadRequestRef.current);
         const cacheKey = `${selectedCustomer.id}:${selectedEmployee.id}`;
         const cachedMessages = conversationMessagesCacheRef.current.get(cacheKey) || [];
         conversationMessagesCacheRef.current.set(cacheKey, [
-          ...cachedMessages.filter(message => message.id !== tempMessage.id && message.id !== newMsg.id),
+          ...cachedMessages.filter(message => message.id !== newMsg.id),
           newMsg,
         ]);
-        setMessages(prev => prev.map(m => m.id === tempMessage.id ? newMsg : m));
+        setMessages(prev => prev.some(m => m.id === newMsg.id)
+          ? prev.map(m => m.id === newMsg.id ? newMsg : m)
+          : [...prev, newMsg]);
       }
       loadConversationHistory();
     } catch (error: unknown) {

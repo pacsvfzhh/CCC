@@ -1092,6 +1092,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const hasExistingGroups = employeeGroupsRef.current.length > 0;
     const showInitialLoading = !silent && !hasExistingGroups;
     let committed = false;
+    let superseded = false;
 
     if (showInitialLoading) {
       setLoadError(null);
@@ -1205,9 +1206,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         && nextEmployeeCount === 0
         && snapshot.employees.length > 0;
       if (hasIncompleteSilentResult || !isMountedRef.current) return false;
-      if (requestScopeGeneration !== employeeScopeGenerationRef.current) return false;
+      if (requestScopeGeneration !== employeeScopeGenerationRef.current) {
+        superseded = true;
+        return false;
+      }
       if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
         pendingReloadRef.current = true;
+        superseded = true;
         return false;
       }
 
@@ -1248,7 +1253,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       }
     } finally {
       if (isMountedRef.current) {
-        setLoading(false);
+        // A superseded first load is always followed by a reload; showing "找不到員工" meanwhile would be wrong.
+        if (!superseded || hasExistingGroups) setLoading(false);
         setStatsLoading(false);
         setIsRefreshing(false);
       }
