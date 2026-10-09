@@ -17,13 +17,20 @@
 
 ---
 
-## 2026-10-09 · 自动通知扩容与稳定性优化（数据库待部署）
+## 2026-10-09 · 部署自动通知扩容迁移，删除旧测试分支
+- 需求：用户同意把上一条的两项数据库更新上线，并删除 9 月建立、没有使用的旧测试分支。
+- 改动：自动通知的新处理方式与错误记录已在正式库生效；浏览器不能再直接改写通知已读/显示状态。删除 Supabase 测试分支 `admin-business-api-isolation`、`combined-notifications`，现在只剩正式库本身。
+- 文件：`docs/notifications.md`、`docs/database.md`
+- 数据库/服务端：已部署正式库：`20261101000000_scale_notification_automation_processing.sql`（版本 `20261009104010`）、`20261101000001_lock_notification_recipient_status.sql`（版本 `20261009104257`）。前端改动仍待用户部署。
+- 验证：部署前查最近 24 小时接口日志，没有任何对被关闭旧接口的调用；按提交历史，线上网站不早于 9 月 21 日版本，员工端 9 月 20 日起已改用带会话验证的已读接口。部署后：线上 14 个函数与项目文件逐字一致（md5 比对）；新排程 35 次以上全部成功、空闲时约 4 毫秒；队列为空、无失败记录；网站使用的通知与自动化接口仍可调用、实时推送设定不变；对 33 名启用方案成员试运行评估（事务回滚、不保存）全部成功，0 条会补发。Supabase 安全检查只新增两条预期提示：错误记录表开启 RLS 但无策略（故意不让浏览器直接读写），以及排程 procedure 未固定 search_path（含提交的 procedure 不能设置，只有排程能执行，函数调用全部写明 schema）。
+
+## 2026-10-09 · 自动通知扩容与稳定性优化
 - 需求：员工增多后，确保各管理员的自动化任务只发给自己名下员工、不错发漏发，且不影响现有通知与自动化功能。
 - 改动：自动通知改为逐个员工处理并立即提交；员工登录不再等待设定变更的锁；同一员工某个任务失败不再拖累其他任务，失败原因显示在自动化页任务列表上方，并自动重试；跨 UTC 日处理时先补判前一天的每日/年度条件；启用任务、恢复方案、批量加成员不再当场逐个员工计算基线。员工端在实时连接断开时也会每 30 秒补弹通知，一次补弹超过 3 条时合并成一张「你有 N 条新消息」提示。浏览器不能再直接改写通知已读/显示状态。
 - 文件：`supabase/migrations/20261101000000_scale_notification_automation_processing.sql`、`supabase/migrations/20261101000001_lock_notification_recipient_status.sql`、`src/components/employee/EmployeeDashboard.tsx`、`src/components/admin/NotificationAutomation.tsx`、`src/lib/i18n/locales/*.ts`、`src/types/database.ts`、`docs/notifications.md`、`docs/employee-portal.md`、`docs/database.md`
-- 数据库/服务端：两个迁移**尚未部署正式库**，需用户另行确认。内容：新表 `notification_automation_failures`、`notification_automation_plans.activated_at`、约束 `notification_automation_active_tasks_require_plan`、订单索引、procedure `private.run_notification_automation_queue`、RPC `get_notification_automation_failures`；改写自动化评估/队列/登录触发器/启用与成员 RPC；两个 pg_cron 任务改为 `CALL private.run_notification_automation_queue(...)`；撤销旧自动化 RPC 与 `mark_message_as_read`、`mark_login_popup_as_shown` 的浏览器权限，以及 `message_recipients` 已读/显示字段的直接更新权限和宽松更新策略。前端改动待用户部署；前端可以先于数据库部署（错误面板在数据库更新前不显示）。
+- 数据库/服务端：两个迁移已于同日部署正式库（见上一条）。内容：新表 `notification_automation_failures`、`notification_automation_plans.activated_at`、约束 `notification_automation_active_tasks_require_plan`、订单索引、procedure `private.run_notification_automation_queue`、RPC `get_notification_automation_failures`；改写自动化评估/队列/登录触发器/启用与成员 RPC；两个 pg_cron 任务改为 `CALL private.run_notification_automation_queue(...)`；撤销旧自动化 RPC 与 `mark_message_as_read`、`mark_login_popup_as_shown` 的浏览器权限，以及 `message_recipients` 已读/显示字段的直接更新权限和宽松更新策略。前端改动待用户部署。
 - 验证：`npm run typecheck`、`npm run lint`、`npm run build` 通过。在临时 Supabase 测试分支（手工建立通知自动化相关的 20 张表和函数，不是完整迁移回放，已删除）用 4,500 名合成员工、3 个管理员组测试：3,445 个预期发送逐一比对无漏发、无多发、无跨组、奖金与钱包余额一致；登录在设定锁被占用时约 0.4–2.1 毫秒完成；单任务失败隔离与恢复后重试；UTC 跨日补判；暂停期间不发送、恢复后不补发暂停期间成绩（519 人逐一吻合）；中途加入 200 名成员只计加入后的订单；未来开始时间的任务只计开始后的订单；二级管理员不能读取别组失败记录；直接改写已读被拒绝、员工经 RPC 标记已读正常。测试结束全库 4,520 次发送无重复、无跨组、钱包全部吻合，1,273 次新排程全部成功。最终版迁移另用 PGlite 完整执行两次确认可重复执行。正式库只读核对：现有 4 个启用任务都符合新约束，没有未分组任务，没有缺少进度的成员。
-- 备注：未在浏览器中用真实账号实测员工端补弹/合并提示和自动化页错误面板（需要登录账号，且正式库不能造测试通知），部署后请实际看一下。正式库另有两个 9 月建立的旧测试分支（`admin-business-api-isolation`、`combined-notifications`）仍在，未处理。
+- 备注：未在浏览器中用真实账号实测员工端补弹/合并提示和自动化页错误面板（需要登录账号，且正式库不能造测试通知），部署后请实际看一下。
 
 ## 2026-10-09 · 删除 bb 名下看不到的旧「654」任务
 - 需求：用户在 bb 的后台看不到任何自动化任务；查明后选择删除这两条旧任务。
