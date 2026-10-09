@@ -181,7 +181,11 @@ const employeeMessageCaches = new Map<string, Map<string, Message[]>>();
 const preloadedChatImages = new Set<string>();
 const MESSAGE_PAGE_SIZE = 50;
 const SOURCE_LOOKUP_CHUNK_SIZE = 100;
-const CHAT_REFRESH_INTERVAL_MS = 60000;
+const OPEN_CHAT_REFRESH_MS = 30000;
+const CLOSED_CHAT_REFRESH_MS = 300000;
+const CATCH_UP_MIN_GAP_MS = 10000;
+// A customer's source_type never changes, so it is looked up once per page load.
+const customerSourceTypes = new Map<string, string>();
 
 function getEmployeeMessageCache(employeeId: string) {
   const existing = employeeMessageCaches.get(employeeId);
@@ -473,6 +477,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const messagesRefreshQueuedRef = useRef(false);
   const realtimeConnectedOnceRef = useRef(false);
   const realtimeRetryCountRef = useRef(0);
+  const lastChatRefreshAtRef = useRef(0);
+  const ticketNumbersRef = useRef(new Map<string, string>());
   const newMessageLabelRef = useRef(t.customerService.newMessage);
   newMessageLabelRef.current = t.customerService.newMessage;
   prefetchRichCardRef.current = prefetchRichCard;
@@ -652,16 +658,22 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, [employeeId, realtimeRetryKey]);
 
   useEffect(() => {
-    const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') refreshChatDataRef.current?.();
+    // Realtime does the work normally; this only catches changes missed while it was down.
+    const refreshIfStale = (maxAge: number) => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastChatRefreshAtRef.current < maxAge) return;
+      refreshChatDataRef.current?.();
     };
-    const refreshTimer = window.setInterval(refreshWhenVisible, CHAT_REFRESH_INTERVAL_MS);
-    document.addEventListener('visibilitychange', refreshWhenVisible);
-    window.addEventListener('online', refreshWhenVisible);
+    const refreshTimer = window.setInterval(() => {
+      refreshIfStale(isOpenRef.current ? OPEN_CHAT_REFRESH_MS : CLOSED_CHAT_REFRESH_MS);
+    }, OPEN_CHAT_REFRESH_MS);
+    const catchUp = () => refreshIfStale(CATCH_UP_MIN_GAP_MS);
+    document.addEventListener('visibilitychange', catchUp);
+    window.addEventListener('online', catchUp);
     return () => {
       window.clearInterval(refreshTimer);
-      document.removeEventListener('visibilitychange', refreshWhenVisible);
-      window.removeEventListener('online', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', catchUp);
+      window.removeEventListener('online', catchUp);
     };
   }, []);
 
@@ -1115,27 +1127,24 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       if (summaryResult.error) throw summaryResult.error;
       if (alwaysVisibleResult.error) throw alwaysVisibleResult.error;
 
-      const summaryCustomerIds = (summaryResult.data || []).map(row => row.customer_id);
-      const sourceTypeByCustomerId = new Map<string, ServiceSourceType>();
-      for (let index = 0; index < summaryCustomerIds.length; index += SOURCE_LOOKUP_CHUNK_SIZE) {
+      const unknownCustomerIds = (summaryResult.data || [])
+        .map(row => row.customer_id)
+        .filter(id => !customerSourceTypes.has(id));
+      for (let index = 0; index < unknownCustomerIds.length; index += SOURCE_LOOKUP_CHUNK_SIZE) {
         const { data: sourceRows, error: sourceError } = await supabase
           .from('simulated_customers')
           .select('id, source_type')
-          .in('id', summaryCustomerIds.slice(index, index + SOURCE_LOOKUP_CHUNK_SIZE));
+          .in('id', unknownCustomerIds.slice(index, index + SOURCE_LOOKUP_CHUNK_SIZE));
         if (sourceError) throw sourceError;
-        sourceRows?.forEach(row => {
-          if (row.source_type === 'aaa_service' || row.source_type === 'ccc_service') {
-            sourceTypeByCustomerId.set(row.id, row.source_type);
-          }
-        });
+        sourceRows?.forEach(row => customerSourceTypes.set(row.id, row.source_type));
       }
 
       const grouped = new Map<string, CustomerConversation>();
       let totalUnread = 0;
 
       for (const row of summaryResult.data || []) {
-        const sourceType = sourceTypeByCustomerId.get(row.customer_id);
-        if (!sourceType) continue;
+        const sourceType = customerSourceTypes.get(row.customer_id);
+        if (sourceType !== 'aaa_service' && sourceType !== 'ccc_service') continue;
         const unread = Number(row.unread_count) || 0;
         totalUnread += unread;
         grouped.set(row.customer_id, {
@@ -1215,6 +1224,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         unreadCount: totalUnread,
       };
       employeeConversationCache.set(employeeId, snapshot);
+      lastChatRefreshAtRef.current = Date.now();
       if (requestId !== conversationLoadRequestRef.current) return;
 
       setConversationsError(false);
@@ -1335,7 +1345,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
   // A change that lands while a conversation is still opening is replayed once that load ends.
   const requestMessagesRefresh = () => {
-    if (!selectedCustomerRef.current) return;
+    // A closed panel reloads the open conversation when it is shown again.
+    if (!selectedCustomerRef.current || !isOpenRef.current) return;
     if (isInitialLoadRef.current) {
       messagesRefreshQueuedRef.current = true;
       return;
@@ -1502,10 +1513,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     const customerId = currentCustomer.id;
 
     try {
-      const sessionRequest = supabase.rpc('get_or_create_service_session', {
-        p_customer_id: currentCustomer.id,
-        p_employee_id: employeeId,
-      });
+      const cachedTicket = ticketNumbersRef.current.get(customerId);
+      const sessionRequest = cachedTicket
+        ? null
+        : supabase.rpc('get_or_create_service_session', {
+          p_customer_id: currentCustomer.id,
+          p_employee_id: employeeId,
+        });
       const messagesResult = await supabase
         .from('customer_employee_conversations')
         .select('*')
@@ -1536,11 +1550,17 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
       }
 
-      if (shouldMarkRead && latest.length > 0) {
+      const listedUnread = conversations.find(c => c.customer.id === customerId)?.unread_count || 0;
+      const hasUnread = listedUnread > 0 || latest.some(m => m.sender_type === 'customer' && !m.is_read);
+      if (shouldMarkRead && hasUnread && latest.length > 0) {
         void markMessagesAsRead(customerId, latest[latest.length - 1].created_at);
       }
 
-      void sessionRequest.then(({ data: sessionData, error: sessionError }) => {
+      if (cachedTicket) {
+        setServiceTicketNumber(cachedTicket);
+        return;
+      }
+      void sessionRequest?.then(({ data: sessionData, error: sessionError }) => {
         if (
           sessionError ||
           !sessionData ||
@@ -1550,6 +1570,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         ) {
           return;
         }
+        ticketNumbersRef.current.set(customerId, sessionData[0].service_ticket_number);
         setServiceTicketNumber(sessionData[0].service_ticket_number);
       }, () => {
         // The ticket number is secondary to displaying the chat messages.
@@ -1831,6 +1852,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }
     void prefetchMessages(customer.id);
     setMessagesError(false);
+    setServiceTicketNumber(ticketNumbersRef.current.get(customer.id) || '');
     const cachedMessages = messagesCache.current.get(customer.id);
     if (cachedMessages) {
       setMessages(cachedMessages);
