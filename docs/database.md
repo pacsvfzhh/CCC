@@ -47,7 +47,7 @@ NOTIFY pgrst, 'reload schema';
 
 ## 正式环境安全现状（2026-10-09 核对，未修改）
 - `anon` 不能写入：`users`、`admins`、`wallets`、`wallet_transactions`、`withdrawals`、`messages`、`system_configs`、`dispatch_assignments`。
-- `message_recipients`：`anon` 只有列级更新权限（供标记已读）。
+- `message_recipients`：`anon` 有 `is_read`、`is_shown`、`read_at`、`shown_at` 的列级更新权限，且 RLS 策略「Allow updating message recipients」条件为 `true`，即可直接改任何人的已读状态（前端并未使用，已读与投递都走 RPC）。迁移 `20261101000001_lock_notification_recipient_status.sql`（**待部署**）会撤销这些权限和旧 RPC `mark_message_as_read`、`mark_login_popup_as_shown`，之后只能经 `mark_employee_notification_read`、`complete_notification_delivery` 等验证会话的 RPC 更新。
 - `customer_employee_conversations`：`anon` 可 INSERT，只能更新 `is_read`、`read_at`；`simulated_customers`：`anon` 只能 INSERT。
 - **仍对 `anon` 开放增删改**（RLS 策略条件为 `true`）：`orders`、`announcements`、`product_types`、`verification_requests`、`admin_configs`。因为不用 Supabase Auth，理论上任何拿到公开 anon key 的人都能改这些表。要收紧，需要把相关写入改成验证会话的 RPC 并同步修改前端——尚待用户决定。
 - `verification-documents` 存储桶为公开桶（身份证件可凭 URL 访问）。
@@ -61,7 +61,7 @@ NOTIFY pgrst, 'reload schema';
   - 2025-11：通知 `20251101000000_create_messages_system.sql`；派单 `20251101185326_create_order_dispatch_system.sql`、`20251102171543_create_dispatch_groups_system.sql`；工时 `20251101202559_create_work_sessions_tracking.sql`；聊天 `20251103221511_recreate_customer_simulation_system.sql`；历史资料 `20251113191637_create_history_data_management_system.sql`；函数 search_path 修复 `20251129073341_fix_all_function_search_paths.sql`。
   - 2026-05：订单处理改为 RPC `20260502173156_create_process_pending_orders_rpc.sql`、`20260502183725_add_process_pending_orders_cron_job.sql`。
   - 2026-09：财务系统 `20260914220000_add_atomic_wallet_financial_system.sql` 与权限收紧 `20260914221000_harden_financial_permissions.sql`；全局员工搜索 `20260918021342_add_global_employee_search_rpc.sql`；派单生命周期 `20260918215530_server_authoritative_dispatch_lifecycle.sql`；通知自动化 `20260918231458`、`20260922001942`、`20260922185616`。
-  - 2026-10：历史清理排程 `20261001043534_unify_history_cleanup_schedule.sql`；内容稽核与已删员工 `20261002000000` 至 `20261030000000`（见 `docs/content-audit.md`）。
+  - 2026-10：历史清理排程 `20261001043534_unify_history_cleanup_schedule.sql`；内容稽核与已删员工 `20261002000000` 至 `20261030000000`（见 `docs/content-audit.md`）；通知自动化扩容与通知状态权限 `20261101000000`、`20261101000001`（**待部署**，见 `docs/notifications.md`）。
 
 ## pg_cron 定时任务（时间为 UTC；2026-10-09 最近一次运行均成功）
 | 正式任务名 | 频率 | 调用 | 用途 | 定义迁移 |
@@ -70,8 +70,8 @@ NOTIFY pgrst, 'reload schema';
 | `collect-audit-deletion-confirmations` | 每分钟 | `private.collect_audit_deletion_confirmations()` | 回收失效的删除确认 | `20261030000000` |
 | `enqueue-daily-wallet-reconciliation` | 每天 03:17 | `enqueue_all_wallets_for_reconciliation()` | 钱包对账入队 | `20260914220000` |
 | `process-wallet-reconciliation-queue` | 每分钟 | `process_wallet_reconciliation_queue(100)` | 执行钱包对账 | `20260914220000` |
-| `process_notification_automation_queue_every_five_seconds` | 每 5 秒 | `process_notification_automation_queue_fast(200)` | 自动通知快队列 | `20260922185616` |
-| `process_notification_automation_queue_every_minute` | 每分钟 | `process_notification_automation_queue(200)` | 自动通知 | `20260918231458` |
+| `process_notification_automation_queue_every_five_seconds` | 每 5 秒 | `process_notification_automation_queue_fast(200)`；部署 `20261101000000` 后改为 `CALL private.run_notification_automation_queue(200, false)` | 自动通知快队列 | `20260922185616` |
+| `process_notification_automation_queue_every_minute` | 每分钟 | `process_notification_automation_queue(200)`；部署 `20261101000000` 后改为 `CALL private.run_notification_automation_queue(200, true)` | 自动通知（另安排年度日期任务） | `20260918231458` |
 | `process_pending_orders_every_minute` | 每分钟 | `process_pending_orders()` | 处理 processing 满 3 分钟的订单 | `20260502173156` |
 | `reconcile_dispatch_lifecycle_every_minute` | 每分钟 | `auto_cleanup_dispatch_system()` | 派单生命周期协调与清理 | `20260918215530` |
 | `weekly_cleanup_practice_data` | 每周日 02:00 | `cleanup_all_practice_data()` | 清理练习数据（函数存在于正式库，仓库没有定义，含义待确认） | `20260502201643` |

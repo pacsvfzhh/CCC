@@ -68,7 +68,7 @@ CREATE OR REPLACE FUNCTION private.acquire_notification_automation_evaluation_lo
  RETURNS boolean
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
+ SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
 BEGIN
   -- Evaluations share this lock with each other; configuration changes take it exclusively.
@@ -91,7 +91,7 @@ CREATE OR REPLACE FUNCTION private.evaluate_notification_automation_tasks(
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'private', 'pg_temp'
+ SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
 AS $function$
 DECLARE
   v_task public.notification_automation_tasks%ROWTYPE;
@@ -414,7 +414,7 @@ CREATE OR REPLACE FUNCTION private.process_notification_automation_user(p_user_i
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'private', 'pg_temp'
+ SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
 AS $function$
 DECLARE
   v_queue public.notification_automation_queue%ROWTYPE;
@@ -490,7 +490,7 @@ CREATE OR REPLACE FUNCTION private.process_next_notification_automation_user()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'private', 'pg_temp'
+ SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
 AS $function$
 DECLARE
   v_user_id uuid;
@@ -862,7 +862,7 @@ CREATE OR REPLACE FUNCTION public.get_notification_automation_failures(
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'private', 'pg_temp'
+ SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
 AS $function$
 DECLARE
   v_admin_id uuid;
@@ -905,7 +905,7 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.get_notification_automation_failures(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_notification_automation_failures(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_notification_automation_failures(uuid, uuid) TO anon, authenticated;
 
 DO $block$
