@@ -520,7 +520,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   // Tablet layout
   if (isTablet) {
     return (
-      <div className="min-h-screen flex relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #1e40af 0%, #2563eb 20%, #3b82f6 35%, #60a5fa 45%, #93c5fd 52%, #dbeafe 60%, #f0f9ff 70%, #ffffff 85%)' }}>
+      <div className="min-h-screen flex flex-col justify-center min-[800px]:flex-row relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #1e40af 0%, #2563eb 20%, #3b82f6 35%, #60a5fa 45%, #93c5fd 52%, #dbeafe 60%, #f0f9ff 70%, #ffffff 85%)' }}>
         {/* Decorative background elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Large layered gradient blocks */}
@@ -574,8 +574,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <div className="absolute top-[75%] left-[10%] w-12 h-12 bg-white/[0.015] rotate-45 rounded-sm" />
         </div>
 
-        {/* Left panel - Branding & info */}
-        <div className="w-[52%] flex flex-col justify-between relative z-10 p-10 pl-8">
+        {/* Left panel - Branding & info; stacked above the card below 800px, where two columns cannot fit in every language */}
+        <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-[464px] flex-col gap-8 px-8 pt-10 [@media(max-width:799px)_and_(max-height:500px)]:pt-6 min-[800px]:mx-0 min-[800px]:w-[52%] min-[800px]:max-w-none min-[800px]:justify-between min-[800px]:gap-0 min-[800px]:p-10 min-[800px]:pl-8">
           {/* Brand - top left */}
           <div className={`transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'}`}>
             <div className="flex items-center gap-2.5">
@@ -583,15 +583,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 <Globe className="w-4.5 h-4.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[13px] font-bold text-white block whitespace-nowrap">{loginTitle || companyName}</span>
-                {loginSubtitle && <p className="text-[10px] text-white/50 mt-0.5 whitespace-nowrap">{loginSubtitle}</p>}
+                <span className="text-[13px] font-bold text-white block break-words">{loginTitle || companyName}</span>
+                {loginSubtitle && <p className="text-[10px] text-white/50 mt-0.5 break-words">{loginSubtitle}</p>}
               </div>
             </div>
           </div>
 
           {/* Center content */}
-          <div className={`transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <h1 className="text-[32px] font-bold text-white leading-tight mb-4">
+          {/* Short landscape phones keep only the brand row so the form stays near the top */}
+          <div className={`transition-all duration-1000 delay-300 [@media(max-width:799px)_and_(max-height:500px)]:hidden ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <h1 className="text-[32px] min-[800px]:text-[length:clamp(28px,3.75vw,32px)] font-bold text-white leading-tight mb-4 break-words">
               {t.login.employeeWorkPlatform}
             </h1>
             <p className="text-sm text-white/60 leading-relaxed max-w-[340px]">
@@ -600,8 +601,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </div>
 
           {/* Status - bottom left */}
-          <div className={`transition-all duration-1000 delay-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="flex items-center gap-2 text-xs text-white/40">
+          <div className={`transition-all duration-1000 delay-500 max-[799px]:hidden ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/40">
               <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
               <span>{t.login.systemsOnline}</span>
               <span className="mx-2 text-white/20">|</span>
@@ -612,8 +613,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
 
         {/* Right panel - Login form */}
-        <div className="flex-1 flex items-center justify-center p-8 relative z-10">
-          <div className={`w-full max-w-[400px] transition-all duration-700 delay-200 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+        <div className="relative z-10 flex justify-center px-8 pb-10 pt-8 [@media(max-width:799px)_and_(max-height:500px)]:pt-5 min-[800px]:flex-1 min-[800px]:items-center min-[800px]:p-8">
+          <div className={`w-full max-w-[400px] min-[800px]:min-w-[350px] transition-all duration-700 delay-200 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl shadow-blue-900/10 border border-white/80 overflow-hidden">
               {/* Top accent */}
               <div className="h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-blue-500"></div>
