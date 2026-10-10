@@ -139,6 +139,12 @@ const ko = {
     crossBorderOrder: '국경 간 주문 관리',
   },
   loginPopup: { notification: '알림', prev: '이전', next: '다음', done: '완료', gotIt: '확인', of: '/', newMessages: '개의 새 메시지' },
+  orientation: {
+    title: '휴대폰을 세로로 돌려 주세요',
+    message: '이 페이지는 세로 화면에서만 사용할 수 있습니다. 휴대폰을 다시 세로로 돌리면 이어서 사용할 수 있으며, 작업 중이던 내용은 그대로 유지됩니다.',
+    newOrder: '새 주문이 대기 중입니다. 휴대폰을 세로로 돌려 주문을 수락하세요.',
+    orderAttention: '진행 중인 주문의 제한 시간이 곧 끝납니다. 휴대폰을 세로로 돌려 처리하세요.',
+  },
 } as const;
 
 export default ko;

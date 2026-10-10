@@ -236,7 +236,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
               <BarChart3 className="w-5 h-5 lg:w-5.5 lg:h-5.5 text-blue-600" />
               <h2 className="text-base lg:text-lg font-bold text-blue-600">{t.statistics.overview}</h2>
             </div>
-            <div className="grid gap-2.5 sm:gap-3 lg:gap-4 grid-cols-2 md:grid-cols-3">
+            <div className="grid gap-2.5 sm:gap-3 lg:gap-4 grid-cols-2 min-[720px]:grid-cols-3">
               {/* Total Revenue Card (Commission + Tips) */}
               <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-amber-50 to-white border border-amber-200 hover:border-amber-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">

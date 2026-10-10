@@ -706,6 +706,12 @@ const zh = {
     of: '/',
     newMessages: '条新消息',
   },
+  orientation: {
+    title: '请将手机竖屏使用',
+    message: '本页面仅支持竖屏。把手机转回竖向即可继续，刚才的内容都会保留。',
+    newOrder: '您有新订单待接收，请把手机转回竖屏后接单。',
+    orderAttention: '当前订单即将超时，请把手机转回竖屏后处理。',
+  },
 } as const;
 
 export default zh;

@@ -145,6 +145,12 @@ const it = {
     crossBorderOrder: 'Gestione Ordini Transfrontalieri',
   },
   loginPopup: { notification: 'Notifica', prev: 'Prec.', next: 'Succ.', done: 'Fatto', gotIt: 'Capito', of: 'di', newMessages: 'nuovi messaggi' },
+  orientation: {
+    title: 'Ruota il telefono in verticale',
+    message: 'Questa pagina funziona solo in verticale. Riporta il telefono in verticale per continuare: non perderai nulla di quello che stavi facendo.',
+    newOrder: 'Hai un nuovo ordine in attesa. Ruota il telefono in verticale per accettarlo.',
+    orderAttention: 'Il tuo ordine attuale sta per scadere. Ruota il telefono in verticale per gestirlo.',
+  },
 } as const;
 
 export default it;

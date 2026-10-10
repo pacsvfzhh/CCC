@@ -12,6 +12,7 @@ import { useLanguage } from '../../lib/i18n/context';
 import type { Language } from '../../lib/i18n/types';
 import type { Database } from '../../types/database';
 import LanguageSwitcher, { LanguageModal } from '../LanguageSwitcher';
+import PhoneLandscapeGuard from '../PhoneLandscapeGuard';
 import SessionExpiredModal from './SessionExpiredModal';
 import MessageCenter from './MessageCenter';
 import LoginPopupMessages from './LoginPopupMessages';
@@ -1204,7 +1205,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           <div className="space-y-3 sm:space-y-6">
-            <div style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>
+            <div className="sm:max-lg:pb-[88px]" style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>
               {loadedTabs.has('announcements') ? (
                 <AnnouncementBoard userId={employee.id} />
               ) : isTransitioning ? (
@@ -1213,7 +1214,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="pb-8">
+            <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="pb-[88px] lg:pb-24">
               {loadedTabs.has('dispatch') ? (
                 <OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onSessionExpired={() => {
                   financialSessionInvalidRef.current = true;
@@ -1228,7 +1229,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div className="space-y-4 sm:space-y-6 pb-8" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
+            <div className="space-y-4 sm:space-y-6 pb-[88px] lg:pb-24" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
               {loadedTabs.has('orders') ? (
                 <>
                   <OrderSubmission employeeId={employee.id} isActive={activeTab === 'orders'} adminId={employee.created_by} onNavigateToDispatch={() => {
@@ -1243,7 +1244,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div className="pb-8" style={{ display: activeTab === 'wallet' ? 'block' : 'none' }}>
+            <div className="pb-[88px] lg:pb-24" style={{ display: activeTab === 'wallet' ? 'block' : 'none' }}>
               {loadedTabs.has('wallet') ? (
                 <WalletOverview
                   employeeId={employee.id}
@@ -1256,7 +1257,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div className="pb-8" style={{ display: activeTab === 'statistics' ? 'block' : 'none' }}>
+            <div className="pb-[88px] lg:pb-24" style={{ display: activeTab === 'statistics' ? 'block' : 'none' }}>
               {loadedTabs.has('statistics') ? (
                 <DailyStatistics employeeId={employee.id} />
               ) : isTransitioning ? (
@@ -1374,7 +1375,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         /* CRITICAL: Navigation visibility - raw CSS, no Tailwind dependency */
         .nav-desktop { display: none; }
         .nav-mobile { display: block; }
-        .nav-root-padding { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+        .nav-root-padding { padding-bottom: var(--employee-bottom-nav-height, calc(72px + env(safe-area-inset-bottom, 0px))); }
         .nav-content-pt { padding-top: 0; }
 
         .employee-header {
@@ -1391,6 +1392,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         }
         body:has(.employee-modal-backdrop, .employee-modal-surface) .employee-header {
           z-index: 9000 !important;
+        }
+        body:has(.employee-modal-backdrop, .employee-modal-surface) .customer-service-fab {
+          visibility: hidden;
         }
         .employee-nav {
           position: fixed !important;
@@ -1604,6 +1608,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       <SessionExpiredModal
         isOpen={showSessionExpired}
         onClose={handleSessionExpiredClose}
+      />
+
+      <PhoneLandscapeGuard
+        notice={hasNewOrder ? t.orientation.newOrder : hasOrderTimeout ? t.orientation.orderAttention : null}
       />
     </div>
   );

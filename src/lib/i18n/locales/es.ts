@@ -655,6 +655,12 @@ const es = {
     of: 'de',
     newMessages: 'mensajes nuevos',
   },
+  orientation: {
+    title: 'Gira tu teléfono a vertical',
+    message: 'Esta página solo funciona en vertical. Vuelve a girar el teléfono para continuar; no se perderá nada de lo que estabas haciendo.',
+    newOrder: 'Tienes un pedido nuevo esperando. Gira el teléfono a vertical para aceptarlo.',
+    orderAttention: 'Tu pedido actual está por agotar su tiempo. Gira el teléfono a vertical para atenderlo.',
+  },
 } as const;
 
 export default es;

@@ -1872,6 +1872,22 @@ button .animate-bell-ring.keep-animation,
   min-height: 100dvh;
 }
 
+@keyframes phone-rotate-to-portrait {
+  0%, 15% { transform: rotate(-90deg); }
+  45%, 85% { transform: rotate(0deg); }
+  100% { transform: rotate(-90deg); }
+}
+
+.phone-landscape-icon {
+  animation: phone-rotate-to-portrait 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-landscape-icon {
+    animation: none;
+  }
+}
+
 html:has(.login-page),
 body:has(.login-page) {
   scrollbar-width: none;

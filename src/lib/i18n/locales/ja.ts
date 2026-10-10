@@ -139,6 +139,12 @@ const ja = {
     crossBorderOrder: '越境注文管理',
   },
   loginPopup: { notification: '通知', prev: '前', next: '次', done: '完了', gotIt: '了解', of: '/', newMessages: '件の新着メッセージ' },
+  orientation: {
+    title: 'スマートフォンを縦向きにしてください',
+    message: 'このページは縦向きでのみ利用できます。縦向きに戻すと続きから操作でき、入力中の内容も保持されます。',
+    newOrder: '新しい注文が届いています。縦向きに戻して受け付けてください。',
+    orderAttention: '処理中の注文がまもなく制限時間になります。縦向きに戻して対応してください。',
+  },
 } as const;
 
 export default ja;

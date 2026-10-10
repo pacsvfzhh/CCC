@@ -139,6 +139,12 @@ const de = {
     crossBorderOrder: 'Grenzuberschreitende Auftragsverwaltung',
   },
   loginPopup: { notification: 'Benachrichtigung', prev: 'Zur.', next: 'Weit.', done: 'Fertig', gotIt: 'Verstanden', of: 'von', newMessages: 'neue Nachrichten' },
+  orientation: {
+    title: 'Bitte Handy hochkant halten',
+    message: 'Diese Seite funktioniert nur im Hochformat. Drehen Sie Ihr Handy zurück, um fortzufahren. Ihre Eingaben bleiben erhalten.',
+    newOrder: 'Ein neuer Auftrag wartet. Drehen Sie Ihr Handy ins Hochformat, um ihn anzunehmen.',
+    orderAttention: 'Ihr aktueller Auftrag läuft bald ab. Drehen Sie Ihr Handy ins Hochformat, um ihn zu bearbeiten.',
+  },
 } as const;
 
 export default de;

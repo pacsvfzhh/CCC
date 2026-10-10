@@ -2347,7 +2347,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       {!isOpen && createPortal(
         <div
-          className="fixed z-[10000]"
+          className="customer-service-fab fixed z-[9999]"
           style={{ right: '16px', bottom: 'calc(var(--employee-bottom-nav-height, 72px) + 16px)' }}
         >
           <button
@@ -2455,7 +2455,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       {isOpen && createPortal(
         <div
-          className="employee-modal-surface fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh-2rem)] bg-white lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          className="employee-modal-surface fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh_-_var(--employee-header-height,_76px)_-_2rem)] bg-white lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           style={{
             WebkitOverflowScrolling: 'touch',
           }}

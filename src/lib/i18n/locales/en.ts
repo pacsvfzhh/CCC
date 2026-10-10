@@ -782,6 +782,12 @@ const en = {
     of: 'of',
     newMessages: 'new messages',
   },
+  orientation: {
+    title: 'Please turn your phone upright',
+    message: 'This page works in portrait mode only. Rotate your phone back to continue. Everything you were doing is kept.',
+    newOrder: 'You have a new order waiting. Turn your phone upright to accept it.',
+    orderAttention: 'Your current order is close to its time limit. Turn your phone upright to handle it.',
+  },
 } as const;
 
 export default en;

@@ -98,6 +98,12 @@ const fr = {
     crossBorderOrder: 'Gestion des Commandes Transfrontalieres',
   },
   loginPopup: { notification: 'Notification', prev: 'Prec.', next: 'Suiv.', done: 'Termine', gotIt: 'Compris', of: 'sur', newMessages: 'nouveaux messages' },
+  orientation: {
+    title: 'Tournez votre téléphone à la verticale',
+    message: 'Cette page fonctionne uniquement en mode portrait. Remettez votre téléphone à la verticale pour continuer ; rien de ce que vous faisiez ne sera perdu.',
+    newOrder: 'Une nouvelle commande vous attend. Remettez votre téléphone à la verticale pour l\'accepter.',
+    orderAttention: 'Votre commande en cours arrive bientôt à expiration. Remettez votre téléphone à la verticale pour la traiter.',
+  },
 } as const;
 
 export default fr;

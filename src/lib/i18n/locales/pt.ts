@@ -98,6 +98,12 @@ const pt = {
     crossBorderOrder: 'Gerenciamento de Pedidos Transfronteiricos',
   },
   loginPopup: { notification: 'Notificacao', prev: 'Ant.', next: 'Prox.', done: 'Concluido', gotIt: 'Entendi', of: 'de', newMessages: 'novas mensagens' },
+  orientation: {
+    title: 'Coloque o celular na vertical',
+    message: 'Esta página funciona apenas na vertical. Gire o celular de volta para continuar; nada do que você estava fazendo será perdido.',
+    newOrder: 'Você tem um novo pedido aguardando. Coloque o celular na vertical para aceitá-lo.',
+    orderAttention: 'Seu pedido atual está perto do tempo limite. Coloque o celular na vertical para concluí-lo.',
+  },
 } as const;
 
 export default pt;

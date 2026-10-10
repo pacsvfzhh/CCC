@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import Login from './pages/Login';
 import BlockchainBackground from './components/BlockchainBackground';
 import ErrorBoundary from './components/ErrorBoundary';
+import PhoneLandscapeGuard from './components/PhoneLandscapeGuard';
 import { LanguageProvider } from './lib/i18n';
 import {
   AUTH_HANDOVER_EVENT,
@@ -154,6 +155,7 @@ function App() {
       <LanguageProvider>
         <BlockchainBackground />
         <Login onLoginSuccess={handleLoginSuccess} />
+        <PhoneLandscapeGuard />
       </LanguageProvider>
     );
   }
