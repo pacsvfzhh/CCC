@@ -3,20 +3,24 @@
 ## 启动与页面切换
 - `src/main.tsx`：先启用 `logger` 的生产环境日志保护，再以 StrictMode 挂载 `App`。
 - `src/App.tsx`：持有 `AuthState`。没有路由器，按登录状态渲染登录页、员工端或管理员后台；两个 Dashboard 都包在 `ErrorBoundary` 内。登录页与员工端包在 `LanguageProvider` 内，管理员后台没有。
-- 监听 `AUTH_LOGOUT_EVENT`（`work_platform_logout`），收到后切回登录页。
+- 监听 `AUTH_LOGOUT_EVENT`（`work_platform_logout`），收到后切回登录页；监听 `AUTH_HANDOVER_EVENT`（`work_platform_handover`），用 `flushSync` 同步卸载员工页，避免旧页面的派单监听器在交接后继续动作。
+- 启动时若本分页没有会话、但有未过期的「记住我」员工会话，先显示转圈，再调 `resumeRememberedSession()`（见下）决定进入员工页或登录页。
 
 ## 登录与会话（自建，不用 Supabase Auth）
 `src/lib/auth.ts`
 - `login()`：按用户名同时查 `admins` 与 `users`，管理员优先。管理员调 `create_admin_financial_session`，员工调 `create_employee_financial_session`。
 - 会话存于 `sessionStorage['work_platform_auth']`（每个浏览器分页独立）：
   - 管理员：`{ user, userType: 'admin', adminSessionToken }`
-  - 员工：`{ user, userType: 'employee', sessionToken, financialSessionToken, tabId }`
+  - 员工：`{ user, userType: 'employee', sessionToken, financialSessionToken, tabId, expiresAt }`（`expiresAt` 为登录请求时间 + 24 小时，前端估计值，以服务器为准；旧会话可能没有）
+- 「记住我」（2026-10-10）：登录时勾选才写入 localStorage。`work_platform_remembered_username` 记账号（管理员与员工都有，登出后仍保留，下次登录预填并预设勾选）；`work_platform_remembered_auth` 记员工会话副本（仅员工）。新分页启动时：副本过期即删除；否则同时调 `validate_employee_session` 与按 `id` 重读 `users` 资料（5 秒超时），服务器明确回「无效」（被别处登录取代、停用、过期）就删副本回登录页，网络错误/超时则照常进入、交给员工页自身的恢复逻辑。`logout()` 只在副本的 `sessionToken` 与本分页相同时删除副本；不勾选登录会删除旧副本与记住的账号。`storeAuth()` 会同步更新同一会话的副本。
 - 常用导出：`getAdminFinancialSessionToken()`（没有有效 token 会抛错）、`getEmployeeFinancialSession()`、`createFinancialOperationId()`（UUID）、`logout()`（撤销 financial session；员工另停止派单会话；最后派发登出事件）。
 - 数据库端验证：
   - 管理员：`private.get_financial_admin_context(token)` → `admin_id`、`admin_role`（检查 hash、过期/撤销、管理员是否启用）。
   - 员工：`private.get_financial_employee_id(user_id, token, tab_id)`；另有可调用的 `validate_employee_session` RPC。
   - 部分旧 RPC 的参数名叫 `p_admin_id`，实际传的是会话 token。
-- `src/lib/TabSessionManager.ts`：用 BroadcastChannel 广播 `NEW_LOGIN` / `LOGOUT`，同账号其他分页随之失效；浏览器不支持时每 30 秒向服务器核对。前端时限：员工 24 小时、管理员 7 天。
+- `src/lib/TabSessionManager.ts`：用 BroadcastChannel 广播 `NEW_LOGIN` / `LOGOUT`（附带 `sessionMarker`）；浏览器不支持时每 30 秒向服务器核对（用登录时的 `auth.tabId`，不是本次页面载入的 tabId）。前端时限：有 `expiresAt` 时按它计算，否则员工 24 小时、管理员 7 天。
+  - 不同登录标记的 `NEW_LOGIN`：沿用原逻辑，本分页弹「Session Expired」后登出。
+  - 同一登录标记（「记住我」或复制分页带来的同一会话）：最后启动的分页写入 `localStorage['work_platform_session_owner'] = { marker, tabId }` 成为拥有者；其他分页收到广播、`storage` 事件或回到前台时发现拥有者不是自己，就调用 `leaveSessionForAnotherTab()` 安静让出：只清本分页 sessionStorage，不撤销服务器会话、不停派单会话、不写登出纪录，登录页显示「账号已在另一个页面中打开」。回到前台的检查专门处理手机后台冻结、错过广播的页面。
 - 员工登录失效（2026-10-10 真实浏览器实测）：服务器端员工会话 24 小时到期；`create_employee_financial_session` 每次登录都撤销该员工所有旧会话，并把 `users.current_session_token` 换成新标记。旧页面靠 `EmployeeDashboard` 订阅自己 `users` 行的 Realtime UPDATE 发现标记改变（`anon` 可读该列），约 0.4 秒弹出「Session Expired」，5 秒倒数后登出回登录页；断网/后台时错过推送，重新连线后约 0.1 秒补到同一事件。其他发现途径：带员工会话的通知 RPC 返回 `Employee session is invalid or expired.`（每 30 秒或回到前台时检查）、`TabSessionManager` 前端 24 小时计时。旧页面登出时 `revoke_financial_session` 只清除仍等于自己标记的 `current_session_token`，不会把新设备踢下线；此时 `stop_employee_dispatch_session_secure` 因会话已失效返回 400，属预期。客服聊天的读取与发送不使用员工会话，所以登录失效不会让聊天变空白；重新登录后列表与会话 1 秒内正常显示。
 - 登录限流：`src/lib/rateLimitService.ts`（检查 RPC 出错时放行）；管理员解锁用会话 token。
 - 登录纪录：`src/lib/loginHistoryService.ts` 记录 IP、UA、设备（IP 查询走 ipify，会被 CSP 拦截而记为 Unknown）；`src/lib/deviceInfo.ts` 解析设备信息。
