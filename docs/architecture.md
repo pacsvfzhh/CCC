@@ -60,6 +60,7 @@
 - Tailwind 自定义断点：`xs` 360、`sm` 480、`md` 600、`lg` 1025、`xl` 1280、`2xl` 1536（与 Tailwind 默认值不同）。
 - `src/index.css` 全局可复用类：`scrollbar-dark`、`audit-detail-scroll`、`audit-detail-scroll-light`、`dark-panel-scroll`、`dispatch-orders-scroll`、`login-history-*`、`message-content-dark`。
 - 后台为深色 slate/cyan 风格，组件里大量内联 Tailwind。
+- `src/index.css` 会按屏宽和触控改按钮尺寸：宽 ≤320/321–375/376–414 时所有 `button`、`input` 被 `!important` 撑到最小高 40/44/48px，根字号也变为 12/13/14px（415–480 为 15px，所以 rem 尺寸随设备变化）；触控设备（`pointer: coarse`）上 class 不含 `w-[`/`h-[` 的按钮另加最小 44×44 和 `12px 16px` 内边距。小按钮要在各设备同尺寸：用像素尺寸（如 `h-[30px]`，同时避开触控规则）再加 `!min-h-0`（压过按屏宽的规则），可参考 `src/pages/Login.tsx` 的眼睛与语言按钮。
 - 有多个超大单文件组件：`CccServiceManagement.tsx`（6000+ 行）、`EmployeeManagement.tsx`（约 5900 行）、`CustomerServiceManagement.tsx`（约 5100 行）、`OrderDispatch.tsx`（约 4800 行）。修改前先用搜索定位，尽量小范围改动。
 - 命名：组件 PascalCase，函数与变量 camelCase，Hook `use*`，数据库字段 snake_case。
 

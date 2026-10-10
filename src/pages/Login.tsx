@@ -236,7 +236,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     </label>
   );
 
-  // Explicit w-[]/h-[] sizes opt out of the global 44px touch-target rule; mousedown is cancelled to keep the keyboard open.
+  // Global per-width CSS forces button min-heights with !important, so only the fixed inner box is visible and it never reaches the input border; mousedown is cancelled to keep the keyboard open.
   const passwordToggle = (
     <button
       type="button"
@@ -245,9 +245,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
       aria-pressed={showPassword}
       title={showPassword ? t.login.hidePassword : t.login.showPassword}
-      className="absolute right-1.5 top-1/2 flex h-[40px] w-[40px] -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+      className="group absolute inset-y-[2px] right-[2px] flex w-[44px] !min-h-0 items-center justify-center text-slate-400 focus:outline-none"
     >
-      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+      <span className="flex h-[32px] w-[32px] items-center justify-center rounded-lg transition-colors group-hover:bg-slate-100 group-hover:text-slate-700 group-focus-visible:ring-2 group-focus-visible:ring-blue-500/40">
+        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+      </span>
+    </button>
+  );
+
+  const currentLanguageName = LANGUAGES.find(l => l.code === language)?.nativeName;
+
+  // Pixel sizes plus !min-h-0 stop the global per-width and touch button rules from resizing this on each device.
+  const languageToggle = (
+    <button
+      type="button"
+      onClick={() => setShowLanguageModal(true)}
+      className="group relative flex h-[30px] !min-h-0 flex-shrink-0 items-center gap-[6px] rounded-full border border-slate-200/80 bg-gradient-to-r from-slate-50 to-slate-100 px-[12px] text-slate-600 shadow-sm transition-all duration-300 before:absolute before:-inset-[7px] hover:border-blue-200 hover:from-blue-50 hover:to-blue-100 hover:text-blue-700"
+    >
+      <Globe className="h-[13px] w-[13px] transition-transform duration-300 group-hover:rotate-[20deg]" strokeWidth={2} />
+      <span className="text-[11px] font-semibold uppercase leading-none tracking-wide">{currentLanguageName}</span>
     </button>
   );
 
@@ -343,18 +359,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
         {/* Login form */}
         <div className="relative z-10 px-5">
-          <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden" style={{ boxShadow: '0 -4px 32px rgba(37, 99, 235, 0.06), 0 8px 24px rgba(0,0,0,0.06)' }}>
-            {/* Language switcher - absolute top right */}
-            <button
-              onClick={() => setShowLanguageModal(true)}
-              className="absolute top-3.5 right-3.5 z-10 group px-1.5 py-0.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 text-slate-600 hover:text-blue-700 transition-all duration-300 flex items-center gap-1 border border-slate-200/80 hover:border-blue-200 shadow-sm"
-            >
-              <Globe className="w-2.5 h-2.5" strokeWidth={2} />
-              <span className="text-[11px] font-semibold tracking-wide uppercase">{LANGUAGES.find(l => l.code === language)?.nativeName}</span>
-            </button>
+          {/* The panel sits ~16px from the screen edges, so the shadow is pulled in with negative spread to avoid a clipped gray band at the edges. */}
+          <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden" style={{ boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.04), 0 16px 28px -20px rgba(30, 64, 175, 0.26)' }}>
             {/* Panel header */}
-            <div className="px-6 pt-5 pb-3">
-              <h3 className="text-[15px] font-bold text-slate-800">{t.login.employeeSignIn}</h3>
+            <div className="flex items-center justify-between gap-3 pb-[10px] pl-6 pr-[14px] pt-[14px]">
+              <h3 className="min-w-0 text-[15px] font-bold text-slate-800">{t.login.employeeSignIn}</h3>
+              {languageToggle}
             </div>
 
             <div className="px-6 pb-6">
@@ -393,7 +403,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     required
-                    className="w-full pl-11 pr-12 py-3.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full pl-11 pr-[48px] py-3.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                     placeholder={t.login.passwordPlaceholder}
                   />
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300">
@@ -611,14 +621,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <div className="p-8">
                 {/* Language switcher - top right, static flow to avoid overlap */}
                 <div className="flex justify-end mb-4">
-                  <button
-                    onClick={() => setShowLanguageModal(true)}
-                    className="group px-3 py-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 text-slate-600 hover:text-blue-700 transition-all duration-300 flex items-center gap-2 border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md hover:shadow-blue-100/50"
-                  >
-                    <Globe className="w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-[20deg]" strokeWidth={2} />
-                    <span className="text-[11px] font-semibold tracking-wide uppercase">{LANGUAGES.find(l => l.code === language)?.nativeName}</span>
-                    <div className="w-1 h-1 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </button>
+                  {languageToggle}
                 </div>
                 {/* Header */}
                 <div className="mb-6">
@@ -656,7 +659,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="current-password"
                         required
-                        className="w-full px-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
+                        className="w-full px-4 pr-[48px] py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
                         placeholder={t.login.passwordPlaceholder}
                       />
                       {passwordToggle}
@@ -892,11 +895,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <div className="p-8 xl:p-10">
                 {/* Language switcher - absolute top right */}
                 <button
+                  type="button"
                   onClick={() => setShowLanguageModal(true)}
-                  className="absolute top-5 right-5 xl:top-6 xl:right-6 z-10 group px-3.5 py-2 rounded-full bg-gradient-to-r from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 text-slate-600 hover:text-blue-700 transition-all duration-300 flex items-center gap-2 border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md hover:shadow-blue-100/50"
+                  className="absolute top-5 right-5 xl:top-6 xl:right-6 z-10 group h-[34px] !min-h-0 px-3.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 text-slate-600 hover:text-blue-700 transition-all duration-300 flex items-center gap-2 border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md hover:shadow-blue-100/50"
                 >
                   <Globe className="w-4 h-4 transition-transform duration-300 group-hover:rotate-[20deg]" strokeWidth={2} />
-                  <span className="text-xs font-semibold tracking-wide">{LANGUAGES.find(l => l.code === language)?.nativeName}</span>
+                  <span className="text-xs font-semibold tracking-wide">{currentLanguageName}</span>
                   <div className="w-1 h-1 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </button>
                 {/* Header */}
@@ -935,7 +939,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="current-password"
                         required
-                        className="w-full px-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
+                        className="w-full px-4 pr-[48px] py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
                         placeholder={t.login.passwordPlaceholder}
                       />
                       {passwordToggle}

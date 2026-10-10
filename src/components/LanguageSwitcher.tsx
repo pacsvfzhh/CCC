@@ -141,10 +141,12 @@ export function LanguageModal({ currentLanguage, onConfirm, onClose, t }: Langua
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95"
+              aria-label="Close"
+              className="flex h-[36px] w-[36px] !min-h-0 flex-shrink-0 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95"
             >
-              <X className="w-4 h-4" strokeWidth={2.5} />
+              <X className="h-[16px] w-[16px]" strokeWidth={2.5} />
             </button>
           </div>
         </div>
