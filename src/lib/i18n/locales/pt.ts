@@ -99,6 +99,7 @@ const pt = {
   },
   loginPopup: { notification: 'Notificacao', prev: 'Ant.', next: 'Prox.', done: 'Concluido', gotIt: 'Entendi', of: 'de', newMessages: 'novas mensagens' },
   orientation: {
+    badge: 'Modo vertical',
     title: 'Coloque o celular na vertical',
     message: 'Esta página funciona apenas na vertical. Gire o celular de volta para continuar; nada do que você estava fazendo será perdido.',
     newOrder: 'Você tem um novo pedido aguardando. Coloque o celular na vertical para aceitá-lo.',

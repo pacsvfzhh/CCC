@@ -1611,7 +1611,13 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       />
 
       <PhoneLandscapeGuard
-        notice={hasNewOrder ? t.orientation.newOrder : hasOrderTimeout ? t.orientation.orderAttention : null}
+        notice={
+          hasNewOrder
+            ? { message: t.orientation.newOrder, tone: 'order' }
+            : hasOrderTimeout
+              ? { message: t.orientation.orderAttention, tone: 'urgent' }
+              : null
+        }
       />
     </div>
   );

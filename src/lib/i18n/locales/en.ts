@@ -783,6 +783,7 @@ const en = {
     newMessages: 'new messages',
   },
   orientation: {
+    badge: 'Portrait mode',
     title: 'Please turn your phone upright',
     message: 'This page works in portrait mode only. Rotate your phone back to continue. Everything you were doing is kept.',
     newOrder: 'You have a new order waiting. Turn your phone upright to accept it.',
