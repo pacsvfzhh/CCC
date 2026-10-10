@@ -1867,6 +1867,21 @@ button .animate-bell-ring.keep-animation,
   }
 }
 
+.login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(.login-page),
+body:has(.login-page) {
+  scrollbar-width: none;
+}
+
+html:has(.login-page)::-webkit-scrollbar,
+body:has(.login-page)::-webkit-scrollbar {
+  display: none;
+}
+
 html:has(.employee-shell),
 body:has(.employee-shell),
 body:has(.employee-shell) * {

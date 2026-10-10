@@ -41,7 +41,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   } | null>(null);
   const [mounted, setMounted] = useState(false);
   const { companyName } = useCompanyName();
-  const { isMobile, isTablet } = useResponsive();
+  const { isMobile, isTablet, width: viewportWidth, height: viewportHeight } = useResponsive();
+  // The two-column tablet layout needs at least 660px, unless the screen is a short landscape one.
+  const phoneLayout = isMobile || (isTablet && viewportWidth < 660 && viewportHeight > 520);
   const { t, language, setLanguage } = useLanguage();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [loginTitle, setLoginTitle] = useState('');
@@ -247,7 +249,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       title={showPassword ? t.login.hidePassword : t.login.showPassword}
       className="group absolute inset-y-[2px] right-[2px] flex w-[44px] !min-h-0 items-center justify-center text-slate-400 focus:outline-none"
     >
-      <span className="flex h-[32px] w-[32px] items-center justify-center rounded-lg transition-colors group-hover:bg-slate-100 group-hover:text-slate-700 group-focus-visible:ring-2 group-focus-visible:ring-blue-500/40">
+      <span className="flex h-[32px] w-[32px] short:h-[28px] short:w-[28px] items-center justify-center rounded-lg transition-colors group-hover:bg-slate-100 group-hover:text-slate-700 group-focus-visible:ring-2 group-focus-visible:ring-blue-500/40">
         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
       </span>
     </button>
@@ -274,10 +276,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     </div>
   );
 
-  // Mobile layout
-  if (isMobile) {
+  // Phone layout (phones and narrow portrait tablets)
+  if (phoneLayout) {
+    const phoneColumn = 'w-full max-w-[520px] self-center';
     return (
-      <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: 'linear-gradient(170deg, #1e40af 0%, #2563eb 25%, #3b82f6 40%, #93c5fd 52%, #dbeafe 58%, #f0f5ff 65%, #f8fafc 80%, #ffffff 100%)' }}>
+      <div className="login-page flex flex-col relative overflow-hidden" style={{ background: 'linear-gradient(170deg, #1e40af 0%, #2563eb 25%, #3b82f6 40%, #93c5fd 52%, #dbeafe 58%, #f0f5ff 65%, #f8fafc 80%, #ffffff 100%)' }}>
         {/* Decorative elements - layered geometric shapes with trade/logistics theme */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Large overlapping soft-edge color blocks creating depth */}
@@ -334,44 +337,44 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <div className="absolute top-[40%] left-[8%] w-[8vw] h-[8vw] bg-white/[0.025] rotate-45 rounded-sm" />
         </div>
 
-        {/* Top brand area */}
-        <div className="relative z-10 px-6 pt-14">
+        {/* Vertical spacing grows with screen height and shrinks to small minimums, so short phones fit without scrolling */}
+        <div className={`${phoneColumn} relative z-10 px-6 pt-[max(calc(env(safe-area-inset-top)_+_8px),clamp(16px,6vh,56px))]`}>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center border border-white/20">
+            <div className="w-10 h-10 flex-shrink-0 bg-white/15 rounded-xl flex items-center justify-center border border-white/20">
               <Globe className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <span className="text-[15px] font-bold text-white block">{loginTitle || companyName}</span>
-              {loginSubtitle && <span className="text-[11px] text-white/50">{loginSubtitle}</span>}
+            <div className="min-w-0">
+              <span className="line-clamp-2 text-[15px] font-bold leading-snug text-white">{loginTitle || companyName}</span>
+              {loginSubtitle && <span className="line-clamp-2 text-[11px] leading-snug text-white/50 low:hidden">{loginSubtitle}</span>}
             </div>
           </div>
         </div>
 
-        {/* Title - pushed down more */}
-        <div className="relative z-10 px-6 pt-24 pb-6">
-          <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight">
+        <div aria-hidden="true" className="min-h-[14px] max-h-[96px] flex-[3_1_0%] low:min-h-[8px]" />
+
+        <div className={`${phoneColumn} relative z-10 px-6`}>
+          <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight short:text-[22px] low:text-[20px]">
             {t.login.employeeWorkPlatform}
           </h1>
         </div>
 
-        {/* Spacer to push form toward center */}
-        <div className="flex-1" />
+        <div aria-hidden="true" className="min-h-[16px] flex-[2_1_0%] low:min-h-[10px]" />
 
         {/* Login form */}
-        <div className="relative z-10 px-5">
+        <div className={`${phoneColumn} relative z-10 px-5`}>
           {/* The panel sits ~16px from the screen edges, so the shadow is pulled in with negative spread to avoid a clipped gray band at the edges. */}
           <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden" style={{ boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.04), 0 16px 28px -20px rgba(30, 64, 175, 0.26)' }}>
             {/* Panel header */}
-            <div className="flex items-center justify-between gap-3 pb-[10px] pl-6 pr-[14px] pt-[14px]">
+            <div className="flex items-center justify-between gap-3 pb-[10px] pl-6 pr-[14px] pt-[14px] short:pb-[6px] short:pt-[10px]">
               <h3 className="min-w-0 text-[15px] font-bold text-slate-800">{t.login.employeeSignIn}</h3>
               {languageToggle}
             </div>
 
-            <div className="px-6 pb-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="px-6 pb-6 short:pb-4">
+            <form onSubmit={handleSubmit} className="space-y-5 short:space-y-3">
               {openedElsewhereNotice}
               <div>
-                <label htmlFor="username" className="block text-[12px] font-semibold text-slate-600 mb-2">
+                <label htmlFor="username" className="block text-[12px] font-semibold text-slate-600 mb-2 short:mb-1">
                   {t.login.username}
                 </label>
                 <div className="relative">
@@ -382,7 +385,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
                     required
-                    className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full pl-11 pr-4 py-3.5 short:py-2.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                     placeholder={t.login.usernamePlaceholder}
                   />
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300">
@@ -392,7 +395,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-[12px] font-semibold text-slate-600 mb-2">
+                <label htmlFor="password" className="block text-[12px] font-semibold text-slate-600 mb-2 short:mb-1">
                   {t.login.password}
                 </label>
                 <div className="relative">
@@ -403,7 +406,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     required
-                    className="w-full pl-11 pr-[48px] py-3.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full pl-11 pr-[48px] py-3.5 short:py-2.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                     placeholder={t.login.passwordPlaceholder}
                   />
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300">
@@ -472,7 +475,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className={`keep-animation w-full flex items-center justify-center gap-2 text-white py-4 rounded-xl font-semibold text-[15px] transition-all duration-200 border-0 outline-none appearance-none ${
+                className={`keep-animation w-full flex items-center justify-center gap-2 text-white py-4 short:py-3 rounded-xl font-semibold text-[15px] transition-all duration-200 border-0 outline-none appearance-none ${
                   loading
                     ? 'bg-blue-500 cursor-wait'
                     : 'bg-gradient-to-r from-blue-600 to-blue-700 active:from-blue-700 active:to-blue-800 shadow-lg shadow-blue-600/25 active:shadow-md active:scale-[0.98]'
@@ -495,10 +498,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
           </div>
         </div>
-        <div className="flex-1" />
+        <div aria-hidden="true" className="min-h-[12px] flex-[2_1_0%] low:min-h-[8px]" />
 
         {/* Minimal footer */}
-        <div className="relative z-10 pb-8 pt-4 flex items-center justify-center">
+        <div className="relative z-10 flex items-center justify-center pt-[clamp(6px,1.5vh,16px)] pb-[max(env(safe-area-inset-bottom),clamp(12px,3.5vh,32px))] low:hidden">
           <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
             <Lock className="w-3 h-3" />
             <span>{t.login.securedConnection}</span>
@@ -520,7 +523,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   // Tablet layout
   if (isTablet) {
     return (
-      <div className="min-h-screen flex flex-col justify-center min-[800px]:flex-row relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #1e40af 0%, #2563eb 20%, #3b82f6 35%, #60a5fa 45%, #93c5fd 52%, #dbeafe 60%, #f0f9ff 70%, #ffffff 85%)' }}>
+      <div className="login-page flex relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #1e40af 0%, #2563eb 20%, #3b82f6 35%, #60a5fa 45%, #93c5fd 52%, #dbeafe 60%, #f0f9ff 70%, #ffffff 85%)' }}>
         {/* Decorative background elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Large layered gradient blocks */}
@@ -574,8 +577,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <div className="absolute top-[75%] left-[10%] w-12 h-12 bg-white/[0.015] rotate-45 rounded-sm" />
         </div>
 
-        {/* Left panel - Branding & info; stacked above the card below 800px, where two columns cannot fit in every language */}
-        <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-[464px] flex-col gap-8 px-8 pt-10 [@media(max-width:799px)_and_(max-height:500px)]:pt-6 min-[800px]:mx-0 min-[800px]:w-[52%] min-[800px]:max-w-none min-[800px]:justify-between min-[800px]:gap-0 min-[800px]:p-10 min-[800px]:pl-8">
+        {/* Left panel - Branding & info. It may shrink (min-w-0) so the card column always keeps its minimum width; `low:` is the compact landscape-phone version. */}
+        <div className="relative z-10 flex w-[52%] min-w-0 flex-col justify-between py-10 pl-[clamp(24px,4vw,32px)] pr-[clamp(20px,4vw,40px)] short:py-7 low:w-[42%] low:justify-center low:gap-4 low:py-5 low:pl-[max(24px,env(safe-area-inset-left))] low:pr-4">
           {/* Brand - top left */}
           <div className={`transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'}`}>
             <div className="flex items-center gap-2.5">
@@ -590,22 +593,22 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </div>
 
           {/* Center content */}
-          {/* Short landscape phones keep only the brand row so the form stays near the top */}
-          <div className={`transition-all duration-1000 delay-300 [@media(max-width:799px)_and_(max-height:500px)]:hidden ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <h1 className="text-[32px] min-[800px]:text-[length:clamp(28px,3.75vw,32px)] font-bold text-white leading-tight mb-4 break-words">
+          <div className={`transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <h1 className="text-[length:clamp(22px,3.4vw,32px)] min-[800px]:text-[length:clamp(28px,3.75vw,32px)] font-bold text-white leading-tight mb-4 break-words low:mb-2">
               {t.login.employeeWorkPlatform}
             </h1>
-            <p className="text-sm text-white/60 leading-relaxed max-w-[340px]">
+            <p className="text-sm text-white/60 leading-relaxed max-w-[340px] max-[699px]:low:hidden">
               {t.login.description}
             </p>
           </div>
 
           {/* Status - bottom left */}
-          <div className={`transition-all duration-1000 delay-500 max-[799px]:hidden ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/40">
+          <div className={`transition-all duration-1000 delay-500 low:hidden ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            {/* The bottom of the left column sits on the light part of the gradient, so the text is slate rather than translucent white */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
               <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
               <span>{t.login.systemsOnline}</span>
-              <span className="mx-2 text-white/20">|</span>
+              <span className="mx-2 text-slate-300">|</span>
               <Lock className="w-3 h-3" />
               <span>{t.login.sslSecured}</span>
             </div>
@@ -613,27 +616,27 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
 
         {/* Right panel - Login form */}
-        <div className="relative z-10 flex justify-center px-8 pb-10 pt-8 [@media(max-width:799px)_and_(max-height:500px)]:pt-5 min-[800px]:flex-1 min-[800px]:items-center min-[800px]:p-8">
-          <div className={`w-full max-w-[400px] min-[800px]:min-w-[350px] transition-all duration-700 delay-200 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+        <div className="relative z-10 flex flex-1 items-center justify-center px-[clamp(20px,4vw,32px)] py-8 short:py-5 low:py-2 low:pl-2 low:pr-[max(16px,env(safe-area-inset-right))]">
+          <div className={`w-full max-w-[400px] min-w-[340px] low:min-w-[296px] transition-all duration-700 delay-200 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl shadow-blue-900/10 border border-white/80 overflow-hidden">
               {/* Top accent */}
               <div className="h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-blue-500"></div>
 
-              <div className="p-8">
-                {/* Language switcher - top right, static flow to avoid overlap */}
-                <div className="flex justify-end mb-4">
+              <div className="p-[clamp(24px,3.6vw,32px)] short:py-6 low:p-4">
+                {/* Language switcher - own row; on landscape phones it moves into the heading row */}
+                <div className="flex justify-end mb-4 short:mb-2 low:float-right low:mb-0 low:ml-2">
                   {languageToggle}
                 </div>
                 {/* Header */}
-                <div className="mb-6">
-                  <h3 className="text-[22px] font-bold text-slate-800 mb-1">{t.login.welcomeBack}</h3>
-                  <p className="text-sm text-slate-500">{t.login.signInToAccess}</p>
+                <div className="mb-6 short:mb-4 low:mb-3">
+                  <h3 className="text-[22px] font-bold text-slate-800 mb-1 low:mb-0 low:text-[18px]">{t.login.welcomeBack}</h3>
+                  <p className="text-sm text-slate-500 low:hidden">{t.login.signInToAccess}</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5 short:space-y-3.5 low:space-y-2.5 low:clear-both">
                   {openedElsewhereNotice}
                   <div>
-                    <label htmlFor="username" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    <label htmlFor="username" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 short:mb-1.5 low:sr-only">
                       {t.login.username}
                     </label>
                     <input
@@ -643,13 +646,13 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                       onChange={(e) => setUsername(e.target.value)}
                       autoComplete="username"
                       required
-                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
+                      className="w-full px-4 py-3.5 short:py-3 low:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
                       placeholder={t.login.usernamePlaceholder}
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="password" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    <label htmlFor="password" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 short:mb-1.5 low:sr-only">
                       {t.login.password}
                     </label>
                     <div className="relative">
@@ -660,7 +663,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="current-password"
                         required
-                        className="w-full px-4 pr-[48px] py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
+                        className="w-full px-4 pr-[48px] py-3.5 short:py-3 low:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
                         placeholder={t.login.passwordPlaceholder}
                       />
                       {passwordToggle}
@@ -726,7 +729,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   <button
                     type="submit"
                     disabled={loading}
-                    className={`keep-animation w-full flex items-center justify-center gap-2.5 text-white py-4 px-5 rounded-xl font-semibold text-[15px] transition-all duration-200 border-0 outline-none appearance-none ${
+                    className={`keep-animation w-full flex items-center justify-center gap-2.5 text-white py-4 short:py-3.5 low:py-2.5 px-5 rounded-xl font-semibold text-[15px] transition-all duration-200 border-0 outline-none appearance-none ${
                       loading
                         ? 'bg-blue-500 cursor-wait'
                         : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 active:scale-[0.98]'
@@ -747,8 +750,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </form>
 
                 {/* Footer */}
-                <div className="mt-8 pt-5 border-t border-slate-100">
-                  <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
+                <div className="mt-8 pt-5 border-t border-slate-100 short:mt-5 short:pt-4 low:hidden">
+                  <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-400">
                     <div className="flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5" />
                       <span>{t.login.encrypted}</span>
@@ -784,7 +787,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   // Desktop layout
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="login-page relative overflow-hidden">
       {/* Background: white with soft light-blue gradient edges */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-white" />
@@ -813,7 +816,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <div className="w-[54%] xl:w-[56%] flex flex-col justify-center pl-16 xl:pl-24 pr-12">
           <div className={`transition-all duration-1000 delay-200 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}>
             {/* Brand */}
-            <div className="flex items-center gap-3.5 mb-12">
+            <div className="flex items-center gap-3.5 mb-12 [@media(max-height:800px)]:mb-8">
               <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/15">
                 <Globe className="w-5.5 h-5.5 text-white" />
               </div>
@@ -828,7 +831,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               {t.login.employeeWorkPlatform}
             </h1>
 
-            <p className="text-base text-slate-500 leading-relaxed mb-10 max-w-md">
+            <p className="text-base text-slate-500 leading-relaxed mb-10 max-w-md [@media(max-height:800px)]:mb-7">
               {t.login.descriptionDesktop}
             </p>
 
@@ -866,7 +869,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
 
             {/* Status bar */}
-            <div className="mt-12 pt-6 border-t border-slate-100">
+            <div className="mt-12 pt-6 border-t border-slate-100 [@media(max-height:800px)]:mt-8">
               <div className="flex items-center gap-6 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
