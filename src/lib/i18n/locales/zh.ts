@@ -669,6 +669,8 @@ const zh = {
     password: '密码',
     usernamePlaceholder: '请输入用户名',
     passwordPlaceholder: '请输入密码',
+    rememberMe: '记住我',
+    openedInAnotherTab: '你的账号已在另一个页面中打开，可以关闭此页面。',
     signIn: '登录',
     signingIn: '登录中...',
     securityWarning: '安全警告',

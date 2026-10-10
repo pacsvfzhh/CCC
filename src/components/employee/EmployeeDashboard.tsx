@@ -2,7 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 're
 import { createPortal } from 'react-dom';
 import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
 import { Employee, MessageWithRecipient } from '../../types';
-import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, logout } from '../../lib/auth';
+import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, getStoredAuth, leaveSessionForAnotherTab, logout } from '../../lib/auth';
 import { logEmployeeLogin } from '../../lib/loginHistoryService';
 import { formatSupabaseError, isSupabaseTransientError, supabase } from '../../lib/supabase';
 import { useCompanyName } from '../../lib/useCompanyName';
@@ -274,8 +274,15 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       setShowSessionExpired(true);
     };
 
+    const auth = getStoredAuth();
+    const employeeAuth = auth?.userType === 'employee' ? auth : null;
+
     // Start tracking this tab's session
-    tabSessionManager.startSession(employee.id, 'employee', handleSessionExpired);
+    tabSessionManager.startSession(employee.id, 'employee', handleSessionExpired, undefined, {
+      sessionMarker: employeeAuth?.sessionToken,
+      expiresAt: employeeAuth?.expiresAt,
+      onHandover: leaveSessionForAnotherTab,
+    });
 
     // Cleanup on unmount
     return () => {

@@ -110,6 +110,8 @@ const ko = {
     password: '비밀번호',
     usernamePlaceholder: '사용자명 입력',
     passwordPlaceholder: '비밀번호 입력',
+    rememberMe: '로그인 상태 유지',
+    openedInAnotherTab: '계정이 다른 탭 또는 창에서 열려 있습니다. 이 페이지는 닫아도 됩니다.',
     signIn: '로그인',
     signingIn: '로그인 중...',
     securityWarning: '보안 경고',

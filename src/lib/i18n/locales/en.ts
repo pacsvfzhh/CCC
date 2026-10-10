@@ -743,6 +743,8 @@ const en = {
     password: 'Password',
     usernamePlaceholder: 'Enter your username',
     passwordPlaceholder: 'Enter your password',
+    rememberMe: 'Remember me',
+    openedInAnotherTab: 'Your account is now open in another tab or window. You can close this page.',
     signIn: 'Sign In',
     signingIn: 'Signing in...',
     securityWarning: 'Security Warning',

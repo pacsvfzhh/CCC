@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Shield, Lock, Globe, Package, ClipboardCheck, ArrowRight, AlertTriangle, ShieldAlert, Clock } from 'lucide-react';
-import { AccountLockedError, login, storeAuth } from '../lib/auth';
+import { Shield, Lock, Globe, Package, ClipboardCheck, ArrowRight, AlertTriangle, ShieldAlert, Clock, Info, Check } from 'lucide-react';
+import {
+  AccountLockedError,
+  clearOpenedElsewhereNotice,
+  getRememberedUsername,
+  hasOpenedElsewhereNotice,
+  login,
+  saveRememberMe,
+  storeAuth,
+} from '../lib/auth';
 import { useCompanyName } from '../lib/useCompanyName';
 import { useResponsive } from '../lib/useResponsive';
 import { checkLoginRateLimit, recordLoginAttempt, formatLockDuration } from '../lib/rateLimitService';
@@ -17,8 +25,10 @@ interface LoginProps {
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(getRememberedUsername);
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => getRememberedUsername() !== '');
+  const [openedElsewhere, setOpenedElsewhere] = useState(hasOpenedElsewhereNotice);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [warning, setWarning] = useState('');
@@ -39,6 +49,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   useEffect(() => {
     setMounted(true);
     loadLoginPageSettings();
+    clearOpenedElsewhereNotice();
   }, []);
 
   const loadLoginPageSettings = async () => {
@@ -105,6 +116,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setOpenedElsewhere(false);
     const normalizedUsername = username.trim();
 
     if (supabaseConfigurationError) {
@@ -145,6 +157,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       );
 
       storeAuth(result);
+      saveRememberMe(result, rememberMe);
       onLoginSuccess();
     } catch (err) {
       if (isSupabaseAbortError(err)) return;
@@ -200,6 +213,34 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       setLoading(false);
     }
   };
+
+  // Global CSS strips native checkbox appearance, so the box is drawn here.
+  const rememberMeField = (
+    <label className="relative flex w-fit cursor-pointer select-none items-center gap-2.5 py-1 text-[13px] font-medium text-slate-600">
+      <input
+        type="checkbox"
+        checked={rememberMe}
+        onChange={(e) => setRememberMe(e.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-2 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500/40 ${
+          rememberMe ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'
+        }`}
+      >
+        {rememberMe && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+      </span>
+      <span>{t.login.rememberMe}</span>
+    </label>
+  );
+
+  const openedElsewhereNotice = openedElsewhere && (
+    <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 p-3">
+      <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
+      <p className="text-[12px] leading-snug text-blue-800">{t.login.openedInAnotherTab}</p>
+    </div>
+  );
 
   // Mobile layout
   if (isMobile) {
@@ -302,6 +343,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
             <div className="px-6 pb-6">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {openedElsewhereNotice}
               <div>
                 <label htmlFor="username" className="block text-[12px] font-semibold text-slate-600 mb-2">
                   {t.login.username}
@@ -343,6 +385,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </div>
                 </div>
               </div>
+
+              {rememberMeField}
 
               {warning && (
                 <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 animate-[fadeIn_0.3s_ease-out]">
@@ -566,6 +610,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {openedElsewhereNotice}
                   <div>
                     <label htmlFor="username" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                       {t.login.username}
@@ -597,6 +642,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                       placeholder={t.login.passwordPlaceholder}
                     />
                   </div>
+
+                  {rememberMeField}
 
                   {warning && (
                     <div className="bg-amber-50 border border-amber-300 rounded-xl p-3.5 animate-[fadeIn_0.3s_ease-out]">
@@ -839,6 +886,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {openedElsewhereNotice}
                   <div>
                     <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-2">
                       {t.login.username}
@@ -870,6 +918,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                       placeholder={t.login.passwordPlaceholder}
                     />
                   </div>
+
+                  {rememberMeField}
 
                   {warning && (
                     <div className="bg-amber-50 border border-amber-300 rounded-xl p-3.5 animate-[fadeIn_0.3s_ease-out]">

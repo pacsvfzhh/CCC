@@ -737,6 +737,8 @@ const hi = {
     password: 'पासवर्ड',
     usernamePlaceholder: 'अपना उपयोगकर्ता नाम दर्ज करें',
     passwordPlaceholder: 'अपना पासवर्ड दर्ज करें',
+    rememberMe: 'मुझे याद रखें',
+    openedInAnotherTab: 'आपका खाता अब किसी दूसरे टैब या विंडो में खुला है। आप यह पेज बंद कर सकते हैं।',
     signIn: 'साइन इन',
     signingIn: 'साइन इन हो रहा है...',
     securityWarning: 'सुरक्षा चेतावनी',

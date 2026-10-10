@@ -5,13 +5,32 @@ import type { Admin, Employee } from '../types';
 
 export const AUTH_STORAGE_KEY = 'work_platform_auth';
 export const AUTH_LOGOUT_EVENT = 'work_platform_logout';
+export const AUTH_HANDOVER_EVENT = 'work_platform_handover';
 export const PROFILE_UPDATED_EVENT = 'work_platform_profile_updated';
 const LEGACY_AUTH_STORAGE_KEY = ['quantum', 'trader', 'auth'].join('_');
+const REMEMBERED_AUTH_KEY = 'work_platform_remembered_auth';
+const REMEMBERED_USERNAME_KEY = 'work_platform_remembered_username';
+const OPENED_ELSEWHERE_NOTICE_KEY = 'work_platform_opened_elsewhere';
+// Matches the server-side lifetime set by create_employee_financial_session.
+const EMPLOYEE_SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
+const RESUME_CHECK_TIMEOUT_MS = 5000;
+const EMPLOYEE_PROFILE_COLUMNS = 'id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at';
 
 export interface LoginCredentials {
   username: string;
   password: string;
 }
+
+type EmployeeAuth = {
+  user: Employee;
+  userType: 'employee';
+  sessionToken: string;
+  financialSessionToken: string;
+  tabId: string;
+  expiresAt?: number;
+};
+
+type RememberedAuth = EmployeeAuth & { expiresAt: number };
 
 export type StoredAuth =
   | {
@@ -19,13 +38,7 @@ export type StoredAuth =
       userType: 'admin';
       adminSessionToken: string;
     }
-  | {
-      user: Employee;
-      userType: 'employee';
-      sessionToken: string;
-      financialSessionToken: string;
-      tabId: string;
-    };
+  | EmployeeAuth;
 
 type FinancialLoginResult<T> = {
   success?: boolean;
@@ -96,6 +109,7 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
     }
 
     const tabId = tabSessionManager.getTabId();
+    const requestedAt = Date.now();
     const { data, error } = await supabase.rpc('create_employee_financial_session', {
       p_username: username,
       p_password: credentials.password,
@@ -117,6 +131,7 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
       sessionToken: result.session_marker,
       financialSessionToken: result.session_token,
       tabId,
+      expiresAt: requestedAt + EMPLOYEE_SESSION_DURATION_MS,
     };
     storeAuth(authData);
 
@@ -146,6 +161,7 @@ export async function logout(isUserInitiated: boolean = true) {
     const operations: Array<PromiseLike<unknown>> = [];
 
     if (auth.userType === 'employee') {
+      forgetRememberedSession(auth.sessionToken);
       operations.push(
         (async () => {
           try {
@@ -189,6 +205,11 @@ export async function logout(isUserInitiated: boolean = true) {
     }
   }
 
+  clearTabAuthStorage();
+  window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
+}
+
+function clearTabAuthStorage() {
   sessionStorage.removeItem(AUTH_STORAGE_KEY);
   sessionStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
   sessionStorage.removeItem('tabId');
@@ -199,8 +220,148 @@ export async function logout(isUserInitiated: boolean = true) {
   sessionStorage.removeItem('announcements_cache');
   sessionStorage.removeItem('announcements_cache_time');
   sessionStorage.removeItem('announcements_cache_user_id');
+}
 
-  window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
+// The same login was reopened in another tab: step aside without revoking the shared server session.
+export function leaveSessionForAnotherTab() {
+  clearTabAuthStorage();
+  try {
+    sessionStorage.setItem(OPENED_ELSEWHERE_NOTICE_KEY, '1');
+  } catch { /* ignore */ }
+  tabSessionManager.stopSession(false);
+  window.dispatchEvent(new Event(AUTH_HANDOVER_EVENT));
+}
+
+export function hasOpenedElsewhereNotice(): boolean {
+  try {
+    return sessionStorage.getItem(OPENED_ELSEWHERE_NOTICE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function clearOpenedElsewhereNotice() {
+  try {
+    sessionStorage.removeItem(OPENED_ELSEWHERE_NOTICE_KEY);
+  } catch { /* ignore */ }
+}
+
+function readLocal(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocal(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch { /* storage unavailable, e.g. private browsing */ }
+}
+
+function removeLocal(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch { /* ignore */ }
+}
+
+function readRememberedAuth(): RememberedAuth | null {
+  const stored = readLocal(REMEMBERED_AUTH_KEY);
+  if (!stored) return null;
+
+  try {
+    const auth = JSON.parse(stored) as Partial<EmployeeAuth>;
+    if (
+      auth.userType === 'employee'
+      && auth.user?.id
+      && auth.sessionToken
+      && auth.financialSessionToken
+      && auth.tabId
+      && typeof auth.expiresAt === 'number'
+    ) {
+      return auth as RememberedAuth;
+    }
+  } catch { /* discard malformed value below */ }
+
+  removeLocal(REMEMBERED_AUTH_KEY);
+  return null;
+}
+
+function forgetRememberedSession(sessionToken: string) {
+  if (readRememberedAuth()?.sessionToken === sessionToken) {
+    removeLocal(REMEMBERED_AUTH_KEY);
+  }
+}
+
+export function getRememberedUsername(): string {
+  return readLocal(REMEMBERED_USERNAME_KEY) || '';
+}
+
+export function saveRememberMe(auth: StoredAuth, remember: boolean) {
+  if (remember) writeLocal(REMEMBERED_USERNAME_KEY, auth.user.username);
+  else removeLocal(REMEMBERED_USERNAME_KEY);
+
+  if (auth.userType !== 'employee') return;
+  if (remember) writeLocal(REMEMBERED_AUTH_KEY, JSON.stringify(auth));
+  else removeLocal(REMEMBERED_AUTH_KEY);
+}
+
+export function hasRememberedSession(): boolean {
+  const remembered = readRememberedAuth();
+  if (!remembered) return false;
+  if (remembered.expiresAt > Date.now()) return true;
+  removeLocal(REMEMBERED_AUTH_KEY);
+  return false;
+}
+
+export async function resumeRememberedSession(): Promise<StoredAuth | null> {
+  const remembered = readRememberedAuth();
+  if (!remembered) return null;
+  if (remembered.expiresAt <= Date.now()) {
+    removeLocal(REMEMBERED_AUTH_KEY);
+    return null;
+  }
+
+  let timer = 0;
+  const timeout = new Promise<null>(resolve => {
+    timer = window.setTimeout(() => resolve(null), RESUME_CHECK_TIMEOUT_MS);
+  });
+  const [validation, profile] = await Promise.all([
+    Promise.race([
+      supabase.rpc('validate_employee_session', {
+        p_user_id: remembered.user.id,
+        p_session_token: remembered.financialSessionToken,
+        p_tab_id: remembered.tabId,
+      }),
+      timeout,
+    ]),
+    Promise.race([
+      supabase
+        .from('users')
+        .select(EMPLOYEE_PROFILE_COLUMNS)
+        .eq('id', remembered.user.id)
+        .maybeSingle(),
+      timeout,
+    ]),
+  ]).catch(() => [null, null] as const);
+  window.clearTimeout(timer);
+
+  // Only a definite "invalid" answer drops the session; network trouble lets the dashboard recover on its own.
+  if (validation && !validation.error && validation.data !== true) {
+    forgetRememberedSession(remembered.sessionToken);
+    return null;
+  }
+
+  const freshProfile = profile && !profile.error && profile.data
+    ? (profile.data as Partial<Employee>)
+    : null;
+  const restored: EmployeeAuth = {
+    ...remembered,
+    user: freshProfile ? { ...remembered.user, ...freshProfile } : remembered.user,
+  };
+  storeAuth(restored);
+  return restored;
 }
 
 export function getStoredAuth(): StoredAuth | null {
@@ -229,6 +390,9 @@ export function getStoredAuth(): StoredAuth | null {
 
 export function storeAuth(data: StoredAuth) {
   sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
+  if (data.userType === 'employee' && readRememberedAuth()?.sessionToken === data.sessionToken) {
+    writeLocal(REMEMBERED_AUTH_KEY, JSON.stringify(data));
+  }
 }
 
 export function getAdminFinancialSessionToken(): string {
@@ -264,6 +428,9 @@ export function createFinancialOperationId(): string {
 export function updateStoredUsername(newUsername: string) {
   const stored = getStoredAuth();
   if (stored) {
+    if (getRememberedUsername() === stored.user.username) {
+      writeLocal(REMEMBERED_USERNAME_KEY, newUsername);
+    }
     stored.user.username = newUsername;
     storeAuth(stored);
     window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));

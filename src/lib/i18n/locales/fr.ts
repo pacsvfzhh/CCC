@@ -69,6 +69,8 @@ const fr = {
     password: 'Mot de passe',
     usernamePlaceholder: 'Entrez votre nom d\'utilisateur',
     passwordPlaceholder: 'Entrez votre mot de passe',
+    rememberMe: 'Se souvenir de moi',
+    openedInAnotherTab: 'Votre compte est maintenant ouvert dans un autre onglet ou une autre fenêtre. Vous pouvez fermer cette page.',
     signIn: 'Se Connecter',
     signingIn: 'Connexion...',
     securityWarning: 'Avertissement de Securite',

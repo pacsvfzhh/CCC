@@ -12,9 +12,23 @@ interface TabSessionMessage {
   userId: string;
   tabId: string;
   timestamp: number;
+  sessionMarker?: string;
 }
 
 type SessionExpiredCallback = () => void;
+
+interface SessionOptions {
+  sessionMarker?: string;
+  expiresAt?: number;
+  onHandover?: () => void;
+}
+
+interface SessionOwner {
+  marker: string;
+  tabId: string;
+}
+
+const SESSION_OWNER_KEY = 'work_platform_session_owner';
 
 const SESSION_TIMEOUT = {
   ADMIN: 7 * 24 * 60 * 60 * 1000,
@@ -33,6 +47,10 @@ class TabSessionManager {
   private expirationCheckInterval: NodeJS.Timeout | null = null;
   private onSessionExpired: SessionExpiredCallback | null = null;
   private onSessionWarning: ((remainingSeconds: number) => void) | null = null;
+  private onHandover: (() => void) | null = null;
+  private sessionMarker: string | null = null;
+  private sessionStartedAt = 0;
+  private expiresAt: number | null = null;
   private isActive = false;
 
   constructor() {
@@ -52,6 +70,14 @@ class TabSessionManager {
         this.channel = null;
       }
     }
+
+    // Owner record survives missed broadcasts (e.g. a frozen mobile tab) and is rechecked on return.
+    window.addEventListener('storage', (event) => {
+      if (event.key === SESSION_OWNER_KEY || event.key === null) this.handOverIfSuperseded();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') this.handOverIfSuperseded();
+    });
   }
 
   /**
@@ -74,7 +100,7 @@ class TabSessionManager {
     if (!this.channel) return;
 
     this.channel.onmessage = (event: MessageEvent<TabSessionMessage>) => {
-      const { type, userId, tabId } = event.data;
+      const { type, userId, tabId, timestamp, sessionMarker } = event.data;
 
       // Ignore messages from this tab
       if (tabId === this.tabId) return;
@@ -84,6 +110,17 @@ class TabSessionManager {
 
       // Handle different message types
       if (type === 'NEW_LOGIN') {
+        if (this.sessionMarker && sessionMarker === this.sessionMarker) {
+          const owner = this.readOwner();
+          const superseded = owner?.marker === this.sessionMarker
+            ? owner.tabId !== this.tabId
+            : timestamp >= this.sessionStartedAt;
+          if (superseded) {
+            console.log('[TabSessionManager] Same login opened in another tab, handing over');
+            this.handleHandover();
+          }
+          return;
+        }
         // Another tab logged in with the same user - this tab must logout
         console.log('[TabSessionManager] Another tab logged in, expiring this session');
         this.handleSessionExpired();
@@ -102,15 +139,21 @@ class TabSessionManager {
     userId: string,
     userRole: 'admin' | 'employee',
     onExpired: SessionExpiredCallback,
-    onWarning?: (remainingSeconds: number) => void
+    onWarning?: (remainingSeconds: number) => void,
+    options: SessionOptions = {}
   ): void {
     this.userId = userId;
     this.userRole = userRole;
     this.loginTime = Date.now();
+    this.sessionStartedAt = this.loginTime;
     this.onSessionExpired = onExpired;
     this.onSessionWarning = onWarning || null;
+    this.onHandover = options.onHandover || null;
+    this.sessionMarker = options.sessionMarker || null;
+    this.expiresAt = options.expiresAt ?? null;
     this.isActive = true;
 
+    this.claimOwnership();
     // Broadcast that this tab has logged in
     this.broadcastMessage('NEW_LOGIN');
 
@@ -136,11 +179,15 @@ class TabSessionManager {
       this.broadcastMessage('LOGOUT');
     }
 
+    this.releaseOwnership();
     this.userId = null;
     this.userRole = null;
     this.loginTime = 0;
     this.onSessionExpired = null;
     this.onSessionWarning = null;
+    this.onHandover = null;
+    this.sessionMarker = null;
+    this.expiresAt = null;
 
     // Stop polling
     if (this.pollingInterval) {
@@ -165,7 +212,8 @@ class TabSessionManager {
       type,
       userId: this.userId,
       tabId: this.tabId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      sessionMarker: this.sessionMarker || undefined,
     };
 
     try {
@@ -192,10 +240,9 @@ class TabSessionManager {
     if (!this.userId || !this.isActive) return;
 
     try {
-      const storedTabId = sessionStorage.getItem('tabId');
       const storedAuth = sessionStorage.getItem('work_platform_auth');
 
-      if (!storedAuth || !storedTabId) {
+      if (!storedAuth) {
         this.handleSessionExpired();
         return;
       }
@@ -203,13 +250,15 @@ class TabSessionManager {
       const auth = JSON.parse(storedAuth);
       const userId = auth.user?.id;
       const financialSessionToken = auth.financialSessionToken;
+      // The server binds the session to the tab ID issued at login, not this page load's ID.
+      const sessionTabId = auth.tabId;
 
-      if (!userId || !financialSessionToken) {
+      if (!userId || !financialSessionToken || !sessionTabId) {
         this.handleSessionExpired();
         return;
       }
 
-      const isValid = await validateEmployeeSession(userId, financialSessionToken, storedTabId);
+      const isValid = await validateEmployeeSession(userId, financialSessionToken, sessionTabId);
 
       if (!isValid) {
         console.log('[TabSessionManager] Session validation failed');
@@ -242,6 +291,52 @@ class TabSessionManager {
     }
   }
 
+  private handleHandover(): void {
+    if (!this.isActive) return;
+
+    const callback = this.onHandover || this.onSessionExpired;
+    this.isActive = false;
+    this.userId = null;
+    this.onSessionExpired = null;
+    this.onHandover = null;
+    callback?.();
+  }
+
+  private handOverIfSuperseded(): void {
+    if (!this.isActive || !this.sessionMarker) return;
+    const owner = this.readOwner();
+    if (owner?.marker !== this.sessionMarker || owner.tabId === this.tabId) return;
+    console.log('[TabSessionManager] Same login is now owned by another tab, handing over');
+    this.handleHandover();
+  }
+
+  private readOwner(): SessionOwner | null {
+    try {
+      const stored = localStorage.getItem(SESSION_OWNER_KEY);
+      if (!stored) return null;
+      const owner = JSON.parse(stored) as Partial<SessionOwner>;
+      return typeof owner.marker === 'string' && typeof owner.tabId === 'string'
+        ? { marker: owner.marker, tabId: owner.tabId }
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private claimOwnership(): void {
+    if (!this.sessionMarker) return;
+    try {
+      localStorage.setItem(SESSION_OWNER_KEY, JSON.stringify({ marker: this.sessionMarker, tabId: this.tabId }));
+    } catch { /* storage unavailable; broadcast timestamps still decide */ }
+  }
+
+  private releaseOwnership(): void {
+    if (this.readOwner()?.tabId !== this.tabId) return;
+    try {
+      localStorage.removeItem(SESSION_OWNER_KEY);
+    } catch { /* ignore */ }
+  }
+
   /**
    * Get current tab ID
    */
@@ -264,10 +359,7 @@ class TabSessionManager {
         return;
       }
 
-      const now = Date.now();
-      const elapsed = now - this.loginTime;
-      const timeout = this.userRole === 'admin' ? SESSION_TIMEOUT.ADMIN : SESSION_TIMEOUT.EMPLOYEE;
-      const remaining = timeout - elapsed;
+      const remaining = this.getRemainingMs();
 
       if (remaining <= 0) {
         console.log('[TabSessionManager] Session expired');
@@ -287,12 +379,13 @@ class TabSessionManager {
       return 0;
     }
 
-    const now = Date.now();
-    const elapsed = now - this.loginTime;
-    const timeout = this.userRole === 'admin' ? SESSION_TIMEOUT.ADMIN : SESSION_TIMEOUT.EMPLOYEE;
-    const remaining = timeout - elapsed;
+    return Math.max(0, Math.floor(this.getRemainingMs() / 1000));
+  }
 
-    return Math.max(0, Math.floor(remaining / 1000));
+  private getRemainingMs(): number {
+    if (this.expiresAt) return this.expiresAt - Date.now();
+    const timeout = this.userRole === 'admin' ? SESSION_TIMEOUT.ADMIN : SESSION_TIMEOUT.EMPLOYEE;
+    return timeout - (Date.now() - this.loginTime);
   }
 
   /**

@@ -110,6 +110,8 @@ const de = {
     password: 'Passwort',
     usernamePlaceholder: 'Benutzername eingeben',
     passwordPlaceholder: 'Passwort eingeben',
+    rememberMe: 'Angemeldet bleiben',
+    openedInAnotherTab: 'Ihr Konto ist jetzt in einem anderen Tab oder Fenster geöffnet. Sie können diese Seite schließen.',
     signIn: 'Anmelden',
     signingIn: 'Anmeldung...',
     securityWarning: 'Sicherheitswarnung',

@@ -110,6 +110,8 @@ const ja = {
     password: 'パスワード',
     usernamePlaceholder: 'ユーザー名を入力',
     passwordPlaceholder: 'パスワードを入力',
+    rememberMe: 'ログイン状態を保持',
+    openedInAnotherTab: 'このアカウントは別のタブまたはウィンドウで開かれています。このページは閉じてもかまいません。',
     signIn: 'サインイン',
     signingIn: 'サインイン中...',
     securityWarning: 'セキュリティ警告',
