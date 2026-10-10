@@ -923,13 +923,13 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                 </h2>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.55)] animate-pulse"></div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100/85 min-[1025px]:text-xs min-[1025px]:font-medium min-[1025px]:text-blue-100">{t.announcements.liveUpdates}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-100/85 min-[1025px]:text-xs min-[1025px]:font-medium min-[1025px]:text-blue-100">{t.announcements.liveUpdates}</span>
                 </div>
               </div>
               <div className="relative flex shrink-0 items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-2.5 py-2 min-[1025px]:rounded-lg min-[1025px]:border-white/30 min-[1025px]:bg-white/20 min-[1025px]:px-3 min-[1025px]:py-1.5 min-[1025px]:backdrop-blur-sm">
                 <Sparkles className="h-3.5 w-3.5 text-cyan-200 min-[1025px]:text-blue-100" />
                 <span className="text-sm font-bold text-white">{announcements.length}</span>
-                <span className="text-[10px] font-medium text-blue-100 max-[360px]:hidden min-[1025px]:inline min-[1025px]:text-blue-200">{t.announcements.total}</span>
+                <span className="text-[11px] font-medium text-blue-100 max-[360px]:hidden min-[1025px]:inline min-[1025px]:text-blue-200">{t.announcements.total}</span>
               </div>
             </div>
           </div>
@@ -1052,17 +1052,17 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                             {announcement.is_pinned && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500 rounded-md shadow-sm shadow-amber-200/50 flex-shrink-0">
                                 <Pin className="w-2.5 h-2.5 text-white fill-white" />
-                                <span className="text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider">{t.announcements.pinned}</span>
+                                <span className="text-[11px] font-bold text-white uppercase tracking-wider">{t.announcements.pinned}</span>
                               </span>
                             )}
-                            <h3 className={`font-semibold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug ${
+                            <h3 className={`min-w-0 font-semibold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug [overflow-wrap:anywhere] ${
                               isTabletDevice ? 'text-[15px] line-clamp-2' : 'text-sm sm:text-[15px] line-clamp-1'
                             }`}>
                               {announcement.title}
                             </h3>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0 text-blue-500 group-hover:text-blue-600">
-                            <span className="text-[10px] font-bold hidden sm:inline">{t.announcements.view}</span>
+                            <span className="text-[11px] font-bold hidden sm:inline">{t.announcements.view}</span>
                             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                           </div>
                         </div>
@@ -1071,7 +1071,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                         {/* Bottom meta row */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
                               <Calendar className="w-3 h-3" />
                               {new Date(announcement.publish_at).toLocaleDateString(dateLocale, {
                                 month: 'short',
@@ -1081,7 +1081,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                             </span>
                             {announcement.category && (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ring-1"
+                                className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ring-1"
                                 style={{
                                   backgroundColor: `${categoryColor}20`,
                                   color: categoryColor,

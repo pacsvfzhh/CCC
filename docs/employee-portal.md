@@ -20,6 +20,13 @@
 - 登录时自动发送「模擬客戶」自动消息：读 `simulated_customers`、`customer_auto_messages`、`customer_auto_message_logs`，按员工记录避免重复发送。
 - 会话机制见 `docs/architecture.md`；员工安全 RPC 需要 financial token + `tabId`。
 
+## 屏幕适配
+- 手机横屏提示 `src/components/PhoneLandscapeGuard.tsx`：手机（`pointer: coarse` 且屏幕短边 <600px）横放时全屏遮罩，提示转回竖屏；平板、电脑不拦截。按设备方向（`screen.orientation`，旧浏览器用 `window.orientation`）判断，键盘把竖屏视口压扁不会误触发。遮罩不卸载页面，输入内容与实时订阅都保留；出现时让当前输入框失焦。员工端挂在 `EmployeeDashboard`，有待接订单或订单将超时时显示浅黄/浅红提醒（`notice.tone` = `order`/`urgent`）；登录页由 `App.tsx` 挂载。文字在 `t.orientation`，样式类 `phone-landscape-guard`/`plg-*` 在 `src/index.css`。卡片高过屏幕（矮屏或系统字体放大）时组件加 `data-compact`，隐藏说明文字，保证标题与提醒可见。普通网页无法强制锁定方向（iOS Safari 不支持 `screen.orientation.lock()`），所以采用遮罩提示。
+- 导航：宽 <768 底部导航用短标签（`t.nav.*Mobile`），768–1024 用完整标签（CSS 切换，不依赖 `isMobile`）；≥1025 显示顶部标签栏，1025–1279 收紧按钮内边距与字号。
+- 字号：员工端组件的像素字号最小 11px（固定尺寸的计数气泡 10px），新增文字不要再用更小的像素字号。窄屏根字号缩小造成的 `text-xs`/`text-sm` 过小，由 `src/index.css` 在 `body:has(.employee-shell)` 下补下限：宽 ≤414 时 `text-xs` 为 11px（带 `xs:text-*` 变体的元素在 360px 起交给变体），宽 ≤320 时 `text-sm` 为 11.5px。
+- 留白：各标签内容底部预留 88px，最后的按钮可滚到客服悬浮按钮上方；手机根元素按实测底部导航高度（`--employee-bottom-nav-height`）留白；全屏弹窗打开时隐藏客服悬浮按钮。
+- 布局断点：钱包四张金额卡 ≥1025 才排一行（以下两列）；统计汇总 ≥720 才三列；提交订单表单 ≥1025 才左右两栏；订单处理面板在平板及以上高度为 `clamp(420px, 视口高 − 页头 − 底部导航 − 48px, 575px)`，矮屏平板（如 1024×600）也能完整显示。
+
 ## 派单与接单 `OrderDispatch.tsx`（服务器主导）
 1. 开工前要求 `employee.is_verified`；调用 `start_employee_dispatch_session_secure`。
 2. `prepare_next_dispatch_order_secure`（服务器选池与时间）→ `assign_next_dispatch_order_secure` 派单；派单记录在 `dispatch_assignments`（关联 `dispatch_group_orders`）。

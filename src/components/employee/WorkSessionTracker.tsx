@@ -318,7 +318,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
                   Session Duration
                 </span>
                 {activeSession && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold text-green-300 uppercase tracking-wider">
+                  <span className="flex items-center gap-1 px-2 py-0.5 bg-white/10 rounded text-[11px] font-bold text-green-300 uppercase tracking-wider">
                     <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
                     {t.workSession.active}
                   </span>
@@ -335,7 +335,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-[10px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Started</span>
+                      <span className="text-[11px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Started</span>
                       <span className="text-sm font-semibold text-white">
                         {new Date(activeSession.start_time).toLocaleTimeString([], {
                           hour: '2-digit',
@@ -345,7 +345,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Status</span>
+                      <span className="text-[11px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Status</span>
                       <span className="text-sm font-semibold text-green-300 flex items-center gap-1.5">
                         <span>{t.workSession.active}</span>
                         <Zap className="w-3 h-3" />
@@ -454,20 +454,20 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
           <div className="mt-4 md:mt-6 bg-slate-50 border border-slate-100 rounded-xl p-3.5 md:p-5">
             <div className="grid grid-cols-3 gap-3 md:gap-6">
               <div className="text-center">
-                <p className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Session ID</p>
+                <p className="text-[11px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Session ID</p>
                 <p className="text-xs md:text-sm font-mono font-semibold text-slate-700 truncate">
                   {activeSession.session_id.slice(0, 8)}
                 </p>
               </div>
               <div className="text-center border-x border-slate-200">
-                <p className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Status</p>
+                <p className="text-[11px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Status</p>
                 <p className="text-xs md:text-sm font-semibold text-green-600 flex items-center justify-center gap-1">
                   <Radio className="w-3 h-3 animate-pulse" />
                   <span>{t.workSession.active}</span>
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Duration</p>
+                <p className="text-[11px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Duration</p>
                 <p className="text-xs md:text-sm font-bold text-blue-700 tabular-nums">
                   {formatDuration(currentDuration)}
                 </p>

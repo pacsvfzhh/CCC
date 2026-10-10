@@ -2123,7 +2123,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       timeout: { text: t.dispatch.timeout, color: 'bg-orange-50 text-orange-600 border border-orange-200' },
     };
     const badge = badges[status as keyof typeof badges] || badges.pending;
-    return <span className={`px-2 py-1 md:px-4 md:py-1.5 rounded-full text-[10px] md:text-xs font-semibold ${badge.color}`}>{badge.text}</span>;
+    return <span className={`px-2 py-1 md:px-4 md:py-1.5 rounded-full text-[11px] md:text-xs font-semibold ${badge.color}`}>{badge.text}</span>;
   };
 
   const formatTime = (date: Date | null) => {
@@ -2545,7 +2545,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {/* Work Control Panel - Premium Blue/White Design */}
-      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex h-[420px] flex-col p-0 md:h-[575px]' : 'p-5 md:p-10'} overflow-hidden ${
+      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex h-[420px] flex-col p-0 md:h-[clamp(420px,calc(100vh_-_var(--employee-header-height,76px)_-_var(--employee-bottom-nav-height,0px)_-_48px),575px)]' : 'p-5 md:p-10'} overflow-hidden ${
         waitingPanelActive
           ? 'min-h-[420px] md:min-h-0 dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
           : currentOrder?.status === 'pending'
@@ -2773,18 +2773,18 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         {currentOrder.status === 'pending' && (
                           <div className="flex items-center space-x-1 px-2 py-0.5 md:px-3 md:py-1 bg-cyan-300/15 border border-cyan-200/25 rounded-md md:rounded-lg">
                             <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-cyan-300 rounded-full animate-pulse"></div>
-                            <span className="text-[9px] md:text-xs font-bold text-cyan-100 uppercase tracking-wide">{t.dispatch.verified}</span>
+                            <span className="text-[11px] md:text-xs font-bold text-cyan-100 uppercase tracking-wide">{t.dispatch.verified}</span>
                           </div>
                         )}
                         {currentOrder.status === 'accepted' && currentOrder.assignment_id && (
                           <div className="flex max-w-full min-w-0 items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-2 py-0.5 shadow-sm md:gap-1.5 md:px-3 md:py-1">
-                            <span className="hidden text-[10px] font-bold uppercase tracking-wider text-blue-600 md:inline">{t.dispatch.assignmentIdLabel}</span>
-                            <span className="min-w-0 break-all font-mono text-[9px] font-black tracking-wide text-blue-700 md:text-xs">{currentOrder.assignment_id}</span>
+                            <span className="hidden text-[11px] font-bold uppercase tracking-wider text-blue-600 md:inline">{t.dispatch.assignmentIdLabel}</span>
+                            <span className="min-w-0 break-all font-mono text-[11px] font-black tracking-wide text-blue-700 md:text-xs">{currentOrder.assignment_id}</span>
                             {currentOrder.order_submitted && <CheckCircle className="h-3 w-3 shrink-0 text-emerald-600" />}
                           </div>
                         )}
                       </div>
-                      <p className={`text-[10px] md:text-sm font-semibold mt-1 md:mt-1.5 flex items-center space-x-2 ${
+                      <p className={`text-[11px] md:text-sm font-semibold mt-1 md:mt-1.5 flex items-center space-x-2 ${
                         currentOrder.status === 'pending' ? 'text-blue-100' : hasTimeout ? 'text-rose-200' : 'text-gray-500'
                       }`}>
                         <Clock className="w-3 h-3 md:w-4 md:h-4" />
@@ -2793,7 +2793,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     </div>
                   </div>
                   {currentOrder.status === 'pending' ? (
-                    <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm shadow-orange-950/20 md:px-4 md:py-1.5 md:text-xs">{t.dispatch.statusPending}</span>
+                    <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm shadow-orange-950/20 md:px-4 md:py-1.5 md:text-xs">{t.dispatch.statusPending}</span>
                   ) : currentOrder.status !== 'accepted' ? getStatusBadge(currentOrder.status) : null}
                 </div>
 
@@ -2801,7 +2801,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 {hasTimeout && (
                   <div className="mb-2 md:mb-5 p-1.5 md:p-3 bg-rose-500/15 border border-rose-500/40 rounded-lg md:rounded-xl flex items-center space-x-1.5 md:space-x-3">
                     <AlertTriangle className="w-3.5 h-3.5 md:w-5 md:h-5 text-rose-300 animate-pulse flex-shrink-0" />
-                    <div className="text-rose-200 text-[10px] md:text-sm font-semibold">{t.dispatch.exceededTimeout.replace('{min}', String(currentOrder.session_timeout_minutes ?? currentOrder.session_timeout_minutes_snapshot ?? config.session_timeout_minutes))}</div>
+                    <div className="text-rose-200 text-[11px] md:text-sm font-semibold">{t.dispatch.exceededTimeout.replace('{min}', String(currentOrder.session_timeout_minutes ?? currentOrder.session_timeout_minutes_snapshot ?? config.session_timeout_minutes))}</div>
                   </div>
                 )}
 
@@ -2814,11 +2814,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         <div className="flex items-center space-x-1.5">
                           <div className={`w-1 h-1 rounded-full animate-pulse ${currentOrder.status === 'pending' ? 'bg-cyan-300' : 'bg-blue-500'}`}></div>
                           <FileText className={`w-3 h-3 ${currentOrder.status === 'pending' ? 'text-cyan-200' : 'text-blue-500'}`} />
-                          <h4 className={`text-[10px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-blue-50' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
+                          <h4 className={`text-[11px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-blue-50' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
                         </div>
                         {currentOrder.status === 'pending' && (
                           <div className="rounded border border-amber-200/30 bg-amber-300/15 px-1.5 py-0.5">
-                            <span className="text-[8px] font-bold uppercase text-amber-100">{t.dispatch.locked}</span>
+                            <span className="text-[11px] font-bold uppercase text-amber-100">{t.dispatch.locked}</span>
                           </div>
                         )}
                       </div>
@@ -2839,7 +2839,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                             </div>
                             <p className="mb-1 text-base font-bold tracking-tight text-white">{t.dispatch.newOrderAvailable}</p>
                             <p className="mb-1 text-[11px] font-semibold text-cyan-200">{t.dispatch.secured}</p>
-                            <p className="text-[10px] text-blue-100/80">{t.dispatch.acceptToUnlock}</p>
+                            <p className="text-[11px] text-blue-100/80">{t.dispatch.acceptToUnlock}</p>
                           </div>
                         </div>
                       ) : (
@@ -2930,17 +2930,17 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                               <div className="flex items-center justify-center space-x-4 border-t border-white/20 pt-3">
                                 <div className="flex items-center space-x-1.5">
                                   <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300" />
-                                  <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-100">{t.dispatch.verified}</span>
+                                  <span className="text-[11px] font-bold uppercase tracking-wide text-cyan-100">{t.dispatch.verified}</span>
                                 </div>
                                 <div className="h-3 w-px bg-white/25" />
                                 <div className="flex items-center space-x-1.5">
                                   <div className="h-1.5 w-1.5 rounded-full bg-sky-200" />
-                                  <span className="text-[10px] font-bold uppercase tracking-wide text-blue-100">{t.dispatch.blockchain}</span>
+                                  <span className="text-[11px] font-bold uppercase tracking-wide text-blue-100">{t.dispatch.blockchain}</span>
                                 </div>
                                 <div className="h-3 w-px bg-white/25" />
                                 <div className="flex items-center space-x-1.5">
                                   <div className="h-1.5 w-1.5 rounded-full bg-amber-300" />
-                                  <span className="text-[10px] font-bold uppercase tracking-wide text-amber-100">{t.dispatch.encryptedLabel}</span>
+                                  <span className="text-[11px] font-bold uppercase tracking-wide text-amber-100">{t.dispatch.encryptedLabel}</span>
                                 </div>
                               </div>
                             </div>
@@ -3101,7 +3101,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <div className="mb-7 flex items-center justify-center gap-2 md:mb-6">
                       <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.38)] animate-pulse" />
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-800 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
-                      <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-700 md:text-[10px]">{t.dispatch.live}</span>
+                      <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-cyan-700">{t.dispatch.live}</span>
                     </div>
                     <div className="mx-auto mb-7 w-fit max-w-full md:mb-6">
                       <div className="flex items-start justify-center gap-2.5 md:gap-5">
@@ -3111,7 +3111,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                               <span key={Math.floor(waitingTime / 60)} className="dispatch-timer-tick">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</span>
                             </div>
                           </div>
-                          <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-700/70 md:mt-3 md:text-xs">{t.dispatch.min}</div>
+                          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70 md:mt-3 md:text-xs">{t.dispatch.min}</div>
                         </div>
                         <div aria-hidden="true" className="flex self-center flex-col items-center justify-center gap-2 pb-5 md:gap-3 md:pb-6">
                           <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
@@ -3123,7 +3123,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                               <span key={waitingTime % 60} className="dispatch-timer-tick">{String(waitingTime % 60).padStart(2, '0')}</span>
                             </div>
                           </div>
-                          <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-800/70 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
+                          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-800/70 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                         </div>
                       </div>
                     </div>
@@ -3141,7 +3141,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     {isProcessing ? (
                       <><span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" /><span className="text-xs font-bold md:text-sm">{t.dispatch.endingSession}</span></>
                     ) : (
-                      <><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/20 text-white shadow-inner shadow-white/10 transition-colors group-hover:bg-white/30 md:h-10 md:w-10"><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /></span><span className="min-w-0 text-left"><span className="block text-sm font-bold md:text-base">{t.dispatch.endSession}</span><span className="block text-[10px] font-semibold text-white/95 md:text-xs">{t.dispatch.stopAccepting}</span></span></>
+                      <><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/20 text-white shadow-inner shadow-white/10 transition-colors group-hover:bg-white/30 md:h-10 md:w-10"><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /></span><span className="min-w-0 text-left"><span className="block text-sm font-bold md:text-base">{t.dispatch.endSession}</span><span className="block text-[11px] font-semibold text-white/95 md:text-xs">{t.dispatch.stopAccepting}</span></span></>
                     )}
                   </button>
                 </div>
@@ -3517,18 +3517,18 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                             <div className="w-4 h-4 rounded-md bg-blue-50 flex items-center justify-center">
                               <Package className="w-2.5 h-2.5 text-blue-500" />
                             </div>
-                            <span className="text-[9px] font-semibold text-blue-600 uppercase tracking-wider">{t.dispatch.autoDispatch}</span>
+                            <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">{t.dispatch.autoDispatch}</span>
                           </div>
-                          <p className="text-[10px] text-slate-500 leading-tight">{t.dispatch.ordersByPriority}</p>
+                          <p className="text-[11px] text-slate-500 leading-tight">{t.dispatch.ordersByPriority}</p>
                         </div>
                         <div className="bg-white/80 border border-blue-100 rounded-lg px-2.5 py-2 shadow-sm">
                           <div className="flex items-center gap-1.5 mb-1">
                             <div className="w-4 h-4 rounded-md bg-emerald-50 flex items-center justify-center">
                               <TrendingUp className="w-2.5 h-2.5 text-emerald-500" />
                             </div>
-                            <span className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider">{t.dispatch.realTime}</span>
+                            <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">{t.dispatch.realTime}</span>
                           </div>
-                          <p className="text-[10px] text-slate-500 leading-tight">{t.dispatch.instantNotifications}</p>
+                          <p className="text-[11px] text-slate-500 leading-tight">{t.dispatch.instantNotifications}</p>
                         </div>
                       </div>
                     </div>
@@ -3620,7 +3620,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
             </div>
             <div>
-              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.networkStatus}</div>
+              <div className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.networkStatus}</div>
               <div className="text-sm font-black text-emerald-600 tracking-wide">{t.dispatch.networkOnline}</div>
             </div>
           </div>
@@ -3662,7 +3662,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
             </div>
             <div>
-              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.statusLabel}</div>
+              <div className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.statusLabel}</div>
               <div className="text-sm font-black text-emerald-600 leading-tight">{t.dispatch.onlineUpper}</div>
             </div>
           </div>
@@ -3681,7 +3681,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-800">{t.dispatch.orderAssignment}</h2>
-                <div className="flex items-center space-x-1.5 text-[9px] mt-0.5">
+                <div className="flex items-center space-x-1.5 text-[11px] mt-0.5">
                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 rounded-full">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                     <span className="text-emerald-700 font-semibold">{t.dispatch.onlineUpper}</span>
@@ -3707,7 +3707,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-blue-700 tabular-nums">{stats.total}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.totalSmall}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.totalSmall}</div>
               </div>
             </div>
 
@@ -3720,7 +3720,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-emerald-700 tabular-nums">{stats.completed}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.doneSmall}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.doneSmall}</div>
               </div>
             </div>
 
@@ -3733,7 +3733,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-rose-700 tabular-nums">{stats.error}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.errorsLabel}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.errorsLabel}</div>
               </div>
             </div>
 
@@ -3746,7 +3746,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-cyan-700 tabular-nums">{todaySubmittedOrders}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.submittedSmall}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.submittedSmall}</div>
               </div>
             </div>
 
@@ -3759,7 +3759,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-orange-700 tabular-nums">{stats.timeout}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.timeoutSmallLabel}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.timeoutSmallLabel}</div>
               </div>
             </div>
 
@@ -3774,7 +3774,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 <div className="text-xl font-black text-amber-700 tabular-nums">
                   {(stats.completed + stats.error + stats.timeout) > 0 ? Math.round((stats.completed / (stats.completed + stats.error + stats.timeout)) * 100) : 0}%
                 </div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.successRateLabel}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.successRateLabel}</div>
               </div>
             </div>
           </div>
@@ -3891,13 +3891,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-xl"></div>
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.totalLabel}</span>
+                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.totalLabel}</span>
                 <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
                   <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.total}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.assignmentsLabel}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.assignmentsLabel}</div>
             </div>
           </div>
 
@@ -3906,13 +3906,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-t-xl"></div>
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.doneLabel}</span>
+                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.doneLabel}</span>
                 <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.completed}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.completedSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.completedSmall}</div>
             </div>
           </div>
 
@@ -3921,13 +3921,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-400 rounded-t-xl"></div>
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.errorLabel}</span>
+                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.errorLabel}</span>
                 <div className="w-7 h-7 bg-rose-50 rounded-lg flex items-center justify-center border border-rose-100">
                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.error}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.errorsSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.errorsSmall}</div>
             </div>
           </div>
 
@@ -3936,13 +3936,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-t-xl"></div>
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.submittedLabel}</span>
+                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.submittedLabel}</span>
                 <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center border border-cyan-100">
                   <Send className="w-3.5 h-3.5 text-cyan-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{todaySubmittedOrders}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.submittedSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.submittedSmall}</div>
             </div>
           </div>
 
@@ -3951,13 +3951,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-xl"></div>
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.timeoutLabel}</span>
+                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.timeoutLabel}</span>
                 <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-100">
                   <Clock className="w-3.5 h-3.5 text-orange-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.timeout}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.timeoutSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.timeoutSmall}</div>
             </div>
           </div>
 
@@ -3966,7 +3966,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 to-amber-400 rounded-t-xl"></div>
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.successRateLabel}</span>
+                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.successRateLabel}</span>
                 <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
                   <Zap className="w-3.5 h-3.5 text-amber-600" />
                 </div>
@@ -3974,7 +3974,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">
                 {(stats.completed + stats.error + stats.timeout) > 0 ? Math.round((stats.completed / (stats.completed + stats.error + stats.timeout)) * 100) : 0}%
               </div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.successSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.successSmall}</div>
             </div>
           </div>
         </div>
@@ -4080,14 +4080,14 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         <span className="md:hidden">{t.dispatch.todayRecords}</span>
                       </h3>
                       {todayOrders.length > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[10px] md:text-xs font-semibold text-blue-100 tabular-nums flex-shrink-0 lg:hidden">
+                        <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[11px] md:text-xs font-semibold text-blue-100 tabular-nums flex-shrink-0 lg:hidden">
                           {todayOrders.length}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <div className="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></div>
-                      <span className="text-[10px] md:text-xs text-blue-100 font-medium tracking-wider uppercase">
+                      <span className="text-[11px] md:text-xs text-blue-100 font-medium tracking-wider uppercase">
                         {todayOrders.length > 0
                           ? `${todayOrders.length} ${t.dispatch.assignmentsToday}`
                           : t.dispatch.noAssignmentsYet}
@@ -4103,7 +4103,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <div className="text-2xl font-black text-white tabular-nums leading-none">
                       {todayOrders.length}
                     </div>
-                    <div className="text-[10px] text-blue-200 uppercase tracking-wider font-bold mt-0.5">
+                    <div className="text-[11px] text-blue-200 uppercase tracking-wider font-bold mt-0.5">
                       {t.dispatch.totalLabel}
                     </div>
                   </div>
@@ -4217,7 +4217,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
                           {/* Time info row */}
                           <div className="flex items-center gap-3 flex-wrap">
-                            <span className="inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
                               <Clock className="w-3 h-3" />
                               {new Date(order.assigned_at).toLocaleString(dateLocale, {
                                 year: 'numeric',
@@ -4229,7 +4229,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                               })}
                             </span>
                             {order.completed_at && (
-                              <span className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
+                              <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
                                 order.status === 'error' ? 'ring-rose-100 text-rose-600' :
                                 order.status === 'timeout' || order.status === 'timeout_cancelled' ? 'ring-amber-100 text-amber-600' :
                                 'ring-emerald-100 text-emerald-600'
@@ -4256,10 +4256,10 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         {/* Top row: number + time + status */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${statusStyle.iconBg}`}>
-                              <span className="text-[9px] font-bold text-white">#{actualIndex + 1}</span>
+                            <div className={`min-w-6 h-6 px-1 rounded-lg flex items-center justify-center ${statusStyle.iconBg}`}>
+                              <span className="text-[10px] font-bold text-white">#{actualIndex + 1}</span>
                             </div>
-                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-slate-200/80 text-slate-500">
+                            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-slate-200/80 text-slate-500">
                               <Clock className="w-2.5 h-2.5" />
                               {new Date(order.assigned_at).toLocaleString(dateLocale, {
                                 month: '2-digit',
@@ -4281,13 +4281,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         {order.remarks && (
                           <div className="flex items-start space-x-1.5 px-2 py-1 bg-rose-50 border border-rose-100 rounded-lg overflow-hidden">
                             <AlertTriangle className="w-3 h-3 text-rose-500 flex-shrink-0 mt-0.5" />
-                            <span className="text-[10px] text-rose-600 font-medium leading-tight break-all min-w-0">{order.remarks}</span>
+                            <span className="text-[11px] text-rose-600 font-medium leading-tight break-all min-w-0">{order.remarks}</span>
                           </div>
                         )}
 
                         {order.completed_at && (
                           <div className="flex items-center gap-1.5">
-                            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
+                            <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
                               order.status === 'error' ? 'ring-rose-100 text-rose-600' :
                               order.status === 'timeout' || order.status === 'timeout_cancelled' ? 'ring-amber-100 text-amber-600' :
                               'ring-emerald-100 text-emerald-600'
@@ -4457,11 +4457,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 {/* Status, Assignment ID & Time Cards */}
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className={`${accent.bg} border ${accent.border} rounded-xl p-3 sm:p-4`}>
-                    <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.statusLabel}</div>
+                    <div className="text-[11px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.statusLabel}</div>
                     <div className="scale-90 sm:scale-100 origin-left">{getStatusBadge(selectedOrderDetail.status)}</div>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.assignedLabel}</div>
+                    <div className="text-[11px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.assignedLabel}</div>
                     <div className="text-xs sm:text-sm text-gray-800 font-semibold font-mono leading-tight">
                       {new Date(selectedOrderDetail.assigned_at).toLocaleString(dateLocale, {
                         year: 'numeric',
@@ -4552,11 +4552,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 sm:p-4">
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-semibold">{t.dispatch.assignmentIdLabel}</span>
+                      <span className="text-gray-400 uppercase tracking-wider text-[11px] font-semibold">{t.dispatch.assignmentIdLabel}</span>
                       <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.assignment_id || selectedOrderDetail.id.slice(0, 8) + '...'}</div>
                     </div>
                     <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-semibold">{t.dispatch.orderId}</span>
+                      <span className="text-gray-400 uppercase tracking-wider text-[11px] font-semibold">{t.dispatch.orderId}</span>
                       <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.dispatch_orders.id?.slice(0, 8) || selectedOrderDetail.dispatch_order_id?.slice(0, 8) || selectedOrderDetail.id.slice(0, 8)}...</div>
                     </div>
                   </div>
@@ -4689,7 +4689,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                   <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-200 sm:mb-1 sm:text-[11px]">{t.dispatch.orderAssignment}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-rose-200 sm:mb-1">{t.dispatch.orderAssignment}</p>
                   <h3 id="dispatch-report-title" className="text-lg font-bold tracking-tight text-white sm:text-xl">{t.dispatch.reportErrorTitle}</h3>
                 </div>
               </div>

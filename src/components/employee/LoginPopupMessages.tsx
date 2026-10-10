@@ -319,7 +319,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
                 </div>
 
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 pr-10">
-                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
+                  <span className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
                     {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                   </span>
                 </div>
@@ -336,7 +336,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                        <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
                       </div>
                       <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
                     </div>
@@ -371,7 +371,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
                     {isReward ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0">
-                    <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
+                    <p className={`truncate text-[11px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
                       {t.loginPopup.notification}
                     </p>
                     <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
@@ -460,7 +460,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
                     <X className="h-5 w-5" strokeWidth={2.5} />
                   </button>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 pr-10">
-                    <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
+                    <span className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
                       {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                     </span>
                   </div>
@@ -477,7 +477,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                          <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                          <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
                         </div>
                         <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
                       </div>
@@ -509,7 +509,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
                     {isReward ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0">
-                    <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
+                    <p className={`truncate text-[11px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
                       {t.loginPopup.notification}
                     </p>
                     <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>

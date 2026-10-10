@@ -779,6 +779,30 @@ body:has(.employee-shell) .employee-modal-surface {
   isolation: isolate;
 }
 
+/* Narrow phones shrink the root font to 12-14px, which takes rem-based text-xs/text-sm below a readable size.
+   Elements with an xs: text variant are left to that variant from 360px up. */
+@media (max-width: 414px) {
+  body:has(.employee-shell) .text-xs:not([class*="xs:text-"]) {
+    font-size: 11px;
+  }
+
+  body:has(.employee-shell) .text-xs:not([class*="xs:text-"]):not([class*="leading-"]) {
+    line-height: 15px;
+  }
+}
+
+@media (max-width: 359px) {
+  body:has(.employee-shell) .text-xs {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 320px) {
+  body:has(.employee-shell) .text-sm {
+    font-size: 11.5px;
+  }
+}
+
 .admin-dashboard-root {
   margin: 0 !important;
   padding: 0 !important;

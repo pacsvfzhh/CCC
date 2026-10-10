@@ -872,7 +872,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                   <span className="text-white text-[11px] sm:text-xs font-bold drop-shadow-sm">{uploadProgress}%</span>
                 </div>
               </div>
-              <div className="text-white/70 text-[10px] font-medium mt-1.5">
+              <div className="text-white/70 text-[11px] font-medium mt-1.5">
                 {uploadProgress < 20 ? t.customerService.preparing :
                  uploadProgress < 85 ? t.customerService.uploading :
                  uploadProgress < 100 ? t.customerService.processing : ''}
@@ -899,7 +899,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 border border-white/20 rounded-full">
                   <div className="w-1.5 h-1.5 bg-blue-200 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] text-blue-100 font-semibold">{t.customerService.pending}</span>
+                  <span className="text-[11px] text-blue-100 font-semibold">{t.customerService.pending}</span>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-2.5 py-2">
@@ -931,7 +931,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full">
                   <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full"></div>
-                  <span className="text-[10px] text-emerald-200 font-semibold">{t.customerService.completed}</span>
+                  <span className="text-[11px] text-emerald-200 font-semibold">{t.customerService.completed}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between py-2">
@@ -1012,11 +1012,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                       <Gift className="h-4 w-4 text-amber-100" />
                     </span>
                     <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">{t.customerService.tip}</div>
-                      <div className="mt-0.5 text-[9px] font-medium text-emerald-100/65">Service appreciation</div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-100">{t.customerService.tip}</div>
+                      <div className="mt-0.5 text-[11px] font-medium text-emerald-100/65">Service appreciation</div>
                     </div>
                   </div>
-                  <span className="flex items-center gap-1 rounded-full border border-amber-200/25 bg-white/10 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-100">
+                  <span className="flex items-center gap-1 rounded-full border border-amber-200/25 bg-white/10 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-100">
                     <Sparkles className="h-3 w-3 text-amber-200" /> Reward
                   </span>
                 </div>
@@ -1025,12 +1025,12 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     <span className="mr-1 text-2xl font-black text-amber-100">$</span>
                     <span className="text-[40px] font-black leading-none tracking-tight">{tipAmt.toFixed(2)}</span>
                   </div>
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-[9px] font-semibold tracking-wide text-emerald-100/75">
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-emerald-100/75">
                     <Star className="h-3 w-3 fill-amber-200/70 text-amber-200" />
                     <span>{t.customerService.addedToWallet}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 border-t border-amber-100/15 pt-2.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-100/60">
+                <div className="flex items-center gap-2 border-t border-amber-100/15 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100/60">
                   <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-100/30" />
                   <span>Received with appreciation</span>
                   <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-100/30" />
@@ -2278,11 +2278,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     {messagePopup.customer.is_super && (
                       <div className="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 bg-white/25 backdrop-blur-sm border border-white/40 rounded-full">
                         <Sparkles className="w-2.5 h-2.5 text-white fill-white" />
-                        <span className="text-[10px] font-bold text-white">{messagePopup.customer.vip_label || 'VIP'}</span>
+                        <span className="text-[11px] font-bold text-white">{messagePopup.customer.vip_label || 'VIP'}</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-white/70 truncate">
+                  <p className="text-[11px] sm:text-xs text-white/70 truncate">
                     ID: {messagePopup.customer.customer_id}
                   </p>
                 </div>
@@ -2317,7 +2317,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-white/60 truncate min-w-0">
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-white/60 truncate min-w-0">
                   <Clock className="w-3 h-3 flex-shrink-0" />
                   <span className="truncate">{messagePopup.time}</span>
                 </div>
@@ -2433,7 +2433,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 flex items-center justify-center z-20">
                 <div className="absolute inset-0 bg-red-500 rounded-full animate-ping keep-animation opacity-75"></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500 via-orange-500 to-red-600 rounded-full blur-md opacity-80"></div>
-                <div className="relative flex items-center justify-center min-w-[22px] sm:min-w-[28px] lg:min-w-[36px] h-[22px] sm:h-7 lg:h-9 px-1.5 sm:px-2 lg:px-3 bg-gradient-to-br from-red-500 via-orange-500 to-red-600 text-white text-[10px] sm:text-xs lg:text-sm font-black rounded-full border-2 border-white shadow-xl animate-breath-intense keep-animation">
+                <div className="relative flex items-center justify-center min-w-[22px] sm:min-w-[28px] lg:min-w-[36px] h-[22px] sm:h-7 lg:h-9 px-1.5 sm:px-2 lg:px-3 bg-gradient-to-br from-red-500 via-orange-500 to-red-600 text-white text-[11px] sm:text-xs lg:text-sm font-black rounded-full border-2 border-white shadow-xl animate-breath-intense keep-animation">
                   <span className="relative drop-shadow-lg">{unreadCount > 99 ? '99+' : unreadCount}</span>
                 </div>
               </div>
@@ -2644,7 +2644,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                       <Award className="w-3 h-3 flex-shrink-0" />
                                       {conv.customer.super_customer_title}
                                     </span>
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 border border-amber-300/40 rounded text-[10px] font-bold text-amber-600">
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 border border-amber-300/40 rounded text-[11px] font-bold text-amber-600">
                                       <Sparkles className="w-2.5 h-2.5" />
                                       {conv.customer.vip_label || 'VIP'}
                                     </span>
@@ -2677,7 +2677,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                       </p>
                                     );
                                   })()}
-                                  <div className="flex items-center gap-1 text-[10px] text-amber-500/70 font-medium flex-shrink-0">
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-500/70 font-medium flex-shrink-0">
                                     <Clock className="w-3 h-3" />
                                     {formatTime(conv.last_message_time)}
                                   </div>
@@ -2712,7 +2712,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                 )}
                               </div>
 
-                              <p className="text-[10px] font-mono mb-0.5 text-gray-500">
+                              <p className="text-[11px] font-mono mb-0.5 text-gray-500">
                                 # {conv.customer.customer_id}
                               </p>
 
@@ -2736,7 +2736,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                     </p>
                                   );
                                 })()}
-                                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium flex-shrink-0">
+                                <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium flex-shrink-0">
                                   <Clock className="w-3 h-3" />
                                   {formatTime(conv.last_message_time)}
                                 </div>
@@ -2794,19 +2794,19 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
                         {selectedCustomer.is_super && selectedCustomer.super_customer_title ? (
                           <div className="flex items-center gap-1 mt-0.5">
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded text-[10px] sm:text-xs font-bold text-white">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded text-[11px] sm:text-xs font-bold text-white">
                               <Award className="w-2.5 h-2.5 flex-shrink-0" />
                               <span>{selectedCustomer.super_customer_title}</span>
                             </span>
                           </div>
                         ) : !selectedCustomer.is_super && serviceTicketNumber ? (
-                          <div className="text-[10px] sm:text-xs font-mono text-blue-100 flex items-center gap-1 mt-0.5 leading-tight">
+                          <div className="text-[11px] sm:text-xs font-mono text-blue-100 flex items-center gap-1 mt-0.5 leading-tight">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-300 flex-shrink-0"></div>
                             <span>{t.customerService.ticket}: {serviceTicketNumber}</span>
                           </div>
                         ) : null}
 
-                        <div className={`text-[10px] sm:text-xs font-mono leading-tight mt-0.5 ${
+                        <div className={`text-[11px] sm:text-xs font-mono leading-tight mt-0.5 ${
                           selectedCustomer.is_super ? 'text-amber-100' : 'text-blue-100'
                         }`}>
                           # {selectedCustomer.customer_id}
@@ -2931,7 +2931,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                       </div>
 
                       <div className={`flex flex-col ${msg.sender_type === 'employee' ? 'items-end' : 'items-start'} max-w-[75%] sm:max-w-[75%] md:max-w-[70%] min-w-0`}>
-                        <div className={`text-[10px] sm:text-xs font-semibold mb-0.5 ${
+                        <div className={`text-[11px] sm:text-xs font-semibold mb-0.5 ${
                           msg.sender_type === 'employee'
                             ? 'text-blue-600'
                             : selectedCustomer?.is_super
@@ -2963,7 +2963,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                           </div>
                         </div>
                         )}
-                        <div className="text-[10px] sm:text-[11px] mt-0.5 sm:mt-1 text-gray-400">
+                        <div className="text-[11px] mt-0.5 sm:mt-1 text-gray-400">
                           {new Date(messageCreatedAt).toLocaleString(dateLocale, {
                             year: 'numeric',
                             month: '2-digit',
@@ -3170,7 +3170,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               <div className="relative z-10">
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 rounded-full border border-white/20 w-fit mb-3">
                   <Clock className="w-3 h-3 text-blue-100" />
-                  <span className="text-[10px] sm:text-xs text-blue-50 font-medium">
+                  <span className="text-[11px] sm:text-xs text-blue-50 font-medium">
                     {new Date(viewingRichCard.created_at || new Date(0).toISOString()).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>

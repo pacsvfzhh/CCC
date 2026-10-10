@@ -63,6 +63,7 @@
 - Tailwind 另有两个按屏幕高度的自定义变体（`tailwind.config.js`）：`short:` = 高 ≤640px，`low:` = 高 ≤520px；注册顺序保证两者同时成立时 `low:` 生效。
 - 登录页按 `useResponsive` 选版面：手机版用于宽 <480，以及宽 480–659 且高 >520 的竖屏；平板版（左右两栏）用于宽 660–1024，或高 ≤520 的横放手机（`low:` 紧凑两栏）；>1024 为电脑版。注意 `isTablet` 从 480px 开始（`xl` 类别），不是 600px。手机版的上下间距随屏高伸缩（`clamp(…vh…)` 加有最小值的 flex 空白），矮屏用 `short:`/`low:` 收紧，所以 320×568 等小屏不需滚动。三种版面根元素都带 `login-page`（`src/index.css`：最小高 100dvh，并隐藏页面滚动条，必要时仍可滑动）。
 - `src/index.css` 会按屏宽和触控改按钮尺寸：宽 ≤320/321–375/376–414 时所有 `button`、`input` 被 `!important` 撑到最小高 40/44/48px，根字号也变为 12/13/14px（415–480 为 15px，所以 rem 尺寸随设备变化）；触控设备（`pointer: coarse`）上 class 不含 `w-[`/`h-[` 的按钮另加最小 44×44 和 `12px 16px` 内边距。小按钮要在各设备同尺寸：用像素尺寸（如 `h-[30px]`，同时避开触控规则）再加 `!min-h-0`（压过按屏宽的规则），可参考 `src/pages/Login.tsx` 的眼睛与语言按钮。
+- 员工端（`body:has(.employee-shell)`）在上述缩小根字号的窄屏上另有字号下限：宽 ≤414 时 `text-xs` 为 11px，≤320 时 `text-sm` 为 11.5px；员工端组件像素字号最小 11px。手机横屏提示 `PhoneLandscapeGuard` 以 z-index 2147483000 覆盖整页（登录页与员工端）。细节见 `docs/employee-portal.md`「屏幕适配」。
 - 有多个超大单文件组件：`CccServiceManagement.tsx`（6000+ 行）、`EmployeeManagement.tsx`（约 5900 行）、`CustomerServiceManagement.tsx`（约 5100 行）、`OrderDispatch.tsx`（约 4800 行）。修改前先用搜索定位，尽量小范围改动。
 - 命名：组件 PascalCase，函数与变量 camelCase，Hook `use*`，数据库字段 snake_case。
 

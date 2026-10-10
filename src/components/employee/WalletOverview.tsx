@@ -1112,7 +1112,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
               <WalletIcon className="w-4 h-4 text-amber-600" />
             </div>
-            <span className="min-w-0 break-words text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
+            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-amber-600 font-bold flex-shrink-0 ${
@@ -1136,7 +1136,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
               <DollarSign className="w-4 h-4 text-emerald-600" />
             </div>
-            <span className="min-w-0 break-words text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
+            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-emerald-600 font-bold flex-shrink-0 ${
@@ -1160,7 +1160,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
               <Lock className="w-4 h-4 text-orange-600" />
             </div>
-            <span className="min-w-0 break-words text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
+            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-orange-600 font-bold flex-shrink-0 ${
@@ -1184,7 +1184,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
               <TrendingUp className="w-4 h-4 text-blue-600" />
             </div>
-            <span className="min-w-0 break-words text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
+            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-blue-600 font-bold flex-shrink-0 ${
@@ -1394,7 +1394,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               <h2 className="text-base sm:text-xl md:text-2xl font-bold text-blue-600 leading-tight">
                 {t.wallet.withdraw}
               </h2>
-              <p className="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight">{t.wallet.transferSubtitle}</p>
+              <p className="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight">{t.wallet.transferSubtitle}</p>
             </div>
           </div>
           <button
@@ -1405,7 +1405,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             className="flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg sm:rounded-xl font-semibold transition-all duration-200 text-xs sm:text-sm shadow-sm hover:shadow-md group"
           >
             <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:rotate-[-15deg] transition-transform duration-200" />
-            <span className="tracking-wide text-[10px] sm:text-xs md:text-sm font-bold">{t.wallet.withdrawalHistory}</span>
+            <span className="tracking-wide text-[11px] sm:text-xs md:text-sm font-bold">{t.wallet.withdrawalHistory}</span>
           </button>
         </div>
 
@@ -1492,7 +1492,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                     <h3 className="text-sm sm:text-base md:text-lg font-bold text-white leading-tight">
                       {t.wallet.submitWithdrawal}
                     </h3>
-                    <p className="text-blue-100 text-[10px] sm:text-xs mt-0.5">
+                    <p className="text-blue-100 text-[11px] sm:text-xs mt-0.5">
                       {t.wallet.withdrawFullBalance}
                     </p>
                   </div>
@@ -1505,7 +1505,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                 <div className="bg-gradient-to-br from-gray-50 to-blue-50/50 rounded-xl p-4 sm:p-5 md:p-6 border border-gray-200">
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <span className="text-gray-600 text-xs sm:text-sm font-medium">{t.wallet.withdrawalAmount}</span>
-                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-100 border border-blue-200 rounded-md text-[10px] sm:text-xs text-blue-700 font-bold uppercase tracking-wide">
+                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-100 border border-blue-200 rounded-md text-[11px] sm:text-xs text-blue-700 font-bold uppercase tracking-wide">
                       {t.wallet.submitWithdrawal}
                     </span>
                   </div>
@@ -1574,7 +1574,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             </div>
 
             <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-100">
-              <p className="text-blue-700 text-[10px] sm:text-xs leading-relaxed">
+              <p className="text-blue-700 text-[11px] sm:text-xs leading-relaxed">
                 <span className="font-semibold">{t.wallet.importantNotice}:</span> {t.wallet.withdrawalNote}
               </p>
             </div>
@@ -1633,7 +1633,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                     <p className="text-amber-800 text-xs sm:text-sm font-semibold mb-1.5 sm:mb-2">
                       {t.wallet.importantNotice}
                     </p>
-                    <div className="text-amber-700 text-[10px] sm:text-xs space-y-2 leading-relaxed">
+                    <div className="text-amber-700 text-[11px] sm:text-xs space-y-2 leading-relaxed">
                       <p>{t.wallet.noticeSubmitted}</p>
                       <p>{t.wallet.noticeFrozen}</p>
                       <p>{t.wallet.noticeContact}</p>

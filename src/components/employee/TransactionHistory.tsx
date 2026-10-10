@@ -392,7 +392,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                                 {label}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                            <div className="flex items-center gap-1 text-[11px] text-slate-400">
                               <Calendar className="w-2.5 h-2.5" />
                               <span>{formatDate(transaction.created_at)}</span>
                               <span className="opacity-40">•</span>
@@ -401,7 +401,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Amount</div>
+                          <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Amount</div>
                           <div className="text-xl font-black text-white tracking-tight">
                             ${Math.abs(amount).toFixed(2)}
                           </div>
@@ -412,7 +412,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                         <div className={`rounded-lg border ${config.border} ${config.bg} overflow-hidden`}>
                           <div className={`px-2.5 py-1.5 ${config.iconBg} border-b ${config.border} flex items-center gap-1.5`}>
                             <MessageSquare className={`w-3 h-3 ${config.text}`} />
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${config.text}`}>
+                            <span className={`text-[11px] font-bold uppercase tracking-wider ${config.text}`}>
                               {transaction.type === 'withdrawal' ? 'Feedback' : 'Note'}
                             </span>
                           </div>
@@ -427,7 +427,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                           <div className="space-y-2">
                             <div className="rounded-lg border border-slate-700/40 bg-slate-800/30 p-2.5 text-center">
                               <Clock className="w-5 h-5 text-slate-500 mx-auto mb-1.5" />
-                              <p className="text-[10px] text-slate-500 font-semibold">Pending Review...</p>
+                              <p className="text-[11px] text-slate-500 font-semibold">Pending Review...</p>
                             </div>
                             <button
                               onClick={(e) => {
@@ -443,14 +443,14 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                           </div>
                         ) : (
                           <div className="rounded-lg border border-slate-700/40 bg-slate-800/30 p-2 text-center">
-                            <p className="text-[10px] text-slate-500 italic">No {transaction.type === 'withdrawal' ? 'feedback' : 'note'} provided</p>
+                            <p className="text-[11px] text-slate-500 italic">No {transaction.type === 'withdrawal' ? 'feedback' : 'note'} provided</p>
                           </div>
                         )
                       )}
 
                       {transaction.type === 'withdrawal' && (transaction.data as Withdrawal).audited_at && (
                         <div className="mt-2 pt-2 border-t border-slate-700/50">
-                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+                          <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
                             <CheckCircle className="w-3 h-3 text-emerald-400" />
                             <span className="font-medium">Reviewed</span>
                             <span className="opacity-50">·</span>
@@ -527,7 +527,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                               <div className="flex items-start gap-2">
                                 <MessageSquare className={`w-4 h-4 flex-shrink-0 mt-0.5 ${config.text}`} />
                                 <div className="flex-1 min-w-0">
-                                  <div className={`text-[10px] font-bold uppercase tracking-wider ${config.text} mb-1.5`}>
+                                  <div className={`text-[11px] font-bold uppercase tracking-wider ${config.text} mb-1.5`}>
                                     {transaction.type === 'withdrawal' ? 'Feedback' : 'Note'}
                                   </div>
                                   <p className="text-sm text-slate-200 leading-relaxed break-words">
@@ -718,7 +718,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                         <div className="p-1.5 bg-emerald-500/20 rounded-lg">
                           <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
                         </div>
-                        <span className="text-[10px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Amount</span>
+                        <span className="text-[11px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Amount</span>
                       </div>
                       <div className="text-2xl lg:text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-300 bg-clip-text text-transparent">
                         ${Math.abs(getTransactionAmount(selectedTransaction)).toFixed(2)}
@@ -732,7 +732,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                     <div className={`relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-xl p-3 lg:p-4 border-2 ${getStatusConfig(getTransactionStatus(selectedTransaction)).border} backdrop-blur-sm`}>
                       <div className="flex items-center gap-2 mb-1.5 lg:mb-2">
                         <span className={`w-2 h-2 rounded-full ${getStatusConfig(getTransactionStatus(selectedTransaction)).dotColor} animate-pulse shadow-lg`}></span>
-                        <span className="text-[10px] sm:text-xs text-slate-300 font-black uppercase tracking-wider">Status</span>
+                        <span className="text-[11px] sm:text-xs text-slate-300 font-black uppercase tracking-wider">Status</span>
                       </div>
                       <div className={`text-xl lg:text-2xl font-black uppercase ${getStatusConfig(getTransactionStatus(selectedTransaction)).text}`}>
                         {getTransactionLabel(selectedTransaction)}
@@ -748,7 +748,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                       <div className="p-1.5 bg-blue-500/20 rounded-lg">
                         <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
                       </div>
-                      <span className="text-[10px] sm:text-xs text-blue-300 font-black uppercase tracking-wider">
+                      <span className="text-[11px] sm:text-xs text-blue-300 font-black uppercase tracking-wider">
                         {selectedTransaction.type === 'withdrawal' ? 'Submitted:' : 'Adjusted:'}
                       </span>
                       <span className="text-xs sm:text-sm text-white font-semibold">
@@ -761,7 +761,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                         <div className="p-1.5 bg-emerald-500/20 rounded-lg">
                           <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
                         </div>
-                        <span className="text-[10px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Reviewed:</span>
+                        <span className="text-[11px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Reviewed:</span>
                         <span className="text-xs sm:text-sm text-white font-semibold">
                           {formatDate((selectedTransaction.data as Withdrawal).audited_at!)} {formatTime((selectedTransaction.data as Withdrawal).audited_at!)}
                         </span>

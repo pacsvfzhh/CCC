@@ -915,7 +915,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   {/* Unread count badge */}
                   {unreadMessageCount > 0 && (
                     <div
-                      className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white z-20 keep-animation ${hasNewMessage ? 'animate-badge-bounce' : ''}`}
+                      className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white z-20 keep-animation ${hasNewMessage ? 'animate-badge-bounce' : ''}`}
                       style={{ willChange: hasNewMessage ? 'transform' : 'auto' }}
                     >
                       {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
@@ -951,12 +951,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                               <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 border border-white/20 ring-1 ring-white/10 shadow-inner">
                                 {latestMessage.notificationCategory === 'performance_reward' ? <Gift className="h-4.5 w-4.5 text-white" strokeWidth={2.2} /> : <Bell className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />}
                               </div>
-                              <div className="absolute -top-1 -right-1 min-w-[0.875rem] h-3.5 px-[2px] rounded-full flex items-center justify-center bg-white shadow-md">
-                                <span className="text-[7px] font-black leading-none text-emerald-600">{latestMessage.summaryCount ? (latestMessage.summaryCount > 99 ? '99+' : latestMessage.summaryCount) : 1}</span>
+                              <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-[3px] rounded-full flex items-center justify-center bg-white shadow-md">
+                                <span className="text-[10px] font-black leading-none text-emerald-600">{latestMessage.summaryCount ? (latestMessage.summaryCount > 99 ? '99+' : latestMessage.summaryCount) : 1}</span>
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className={`mb-0.5 block text-[9px] font-bold uppercase tracking-[0.12em] ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-50' : 'text-emerald-200'}`}>{latestMessage.notificationCategory === 'performance_reward' ? 'Performance Reward' : t.header.newMessage}</span>
+                              <span className={`mb-0.5 block text-[11px] font-bold uppercase tracking-[0.12em] ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-50' : 'text-emerald-200'}`}>{latestMessage.notificationCategory === 'performance_reward' ? 'Performance Reward' : t.header.newMessage}</span>
                               <h3 className="font-bold text-[13px] leading-tight truncate text-white">
                                 {latestMessage.summaryCount
                                   ? t.header.newMessagesSummary.replace('{n}', String(latestMessage.summaryCount))
@@ -974,7 +974,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                           {latestMessage.notificationCategory === 'performance_reward' && (
                             <div className="mb-2.5 ml-[44px] flex items-center justify-between rounded-lg border border-white/20 bg-white/15 px-3 py-2 sm:ml-[46px]">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">Credited to Wallet</span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-white/75">Credited to Wallet</span>
                               <span className="text-sm font-black text-white">+{Number(latestMessage.rewardAmount || 0).toFixed(2)} {latestMessage.rewardCurrency}</span>
                             </div>
                           )}
@@ -990,12 +990,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                           {/* Footer */}
                           <div className="flex items-center justify-between ml-[44px] sm:ml-[46px]">
-                            <span className="text-[10px] font-medium text-white/50 truncate mr-2">
+                            <span className="text-[11px] font-medium text-white/50 truncate mr-2">
                               {latestMessage.priority === 'urgent' ? t.header.urgent :
                                latestMessage.priority === 'high' ? t.header.highPriority : t.header.normal}
                             </span>
                             <div className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all active:scale-95 hover:scale-105 bg-white shadow-md ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-700' : 'text-emerald-700'}`}>
-                              <span className="text-[10px] font-bold">{t.header.view}</span>
+                              <span className="text-[11px] font-bold">{t.header.view}</span>
                               <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                             </div>
                           </div>
@@ -1144,7 +1144,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                     <div key={tab.id} className="flex-1 flex items-center min-w-0">
                       <button
                         onClick={() => setActiveTab(tab.id)}
-                        className={`group relative w-full flex items-center justify-center gap-2 px-3 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 overflow-hidden ${
+                        className={`group relative w-full flex items-center justify-center gap-2 px-3 xl:px-4 py-3 rounded-xl font-semibold transition-all duration-200 overflow-hidden ${
                           isActive
                             ? 'text-white'
                             : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
@@ -1188,7 +1188,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                         </div>
 
                         {/* Label */}
-                        <span className="relative z-10 text-sm md:text-base truncate">
+                        <span className="relative z-10 text-sm xl:text-base truncate">
                           {tab.label}
                         </span>
                       </button>
@@ -1328,7 +1328,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
 
                 {/* Label */}
-                <span className={`relative z-10 text-[10px] xs:text-[11px] text-center leading-tight tracking-tight ${
+                <span className={`relative z-10 text-[11px] text-center leading-tight tracking-tight ${
                   isActive
                     ? 'text-blue-600 font-bold'
                     : showNewOrderEffect
@@ -1337,7 +1337,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                         ? 'text-red-600 font-medium'
                         : 'text-slate-400 font-medium'
                 }`}>
-                  {isMobile ? tab.mobileLabel : tab.label}
+                  <span className="min-[768px]:hidden">{tab.mobileLabel}</span>
+                  <span className="hidden min-[768px]:inline">{tab.label}</span>
                 </span>
               </button>
             );

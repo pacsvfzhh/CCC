@@ -243,10 +243,10 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
                     <DollarSign className="w-4 h-4 text-amber-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-amber-600/70 uppercase tracking-wider">{t.statistics.revenue}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-amber-600/70 uppercase tracking-wider">{t.statistics.revenue}</span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-[10px] sm:text-xs font-bold text-amber-600">{currencyUnit}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-amber-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-amber-700 leading-none truncate"
                     style={{
@@ -265,10 +265,10 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
                     <TrendingUp className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-indigo-600/70 uppercase tracking-wider">{t.statistics.commission}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-indigo-600/70 uppercase tracking-wider">{t.statistics.commission}</span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-[10px] sm:text-xs font-bold text-indigo-600">{currencyUnit}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-indigo-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-indigo-700 leading-none truncate"
                     style={{
@@ -287,10 +287,10 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-pink-100 flex items-center justify-center group-hover:bg-pink-200 transition-colors">
                     <Gift className="w-4 h-4 text-pink-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-pink-600/70 uppercase tracking-wider">{t.statistics.tips}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-pink-600/70 uppercase tracking-wider">{t.statistics.tips}</span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-[10px] sm:text-xs font-bold text-pink-600">{currencyUnit}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-pink-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-pink-700 leading-none truncate"
                     style={{
@@ -309,7 +309,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                     <ListChecks className="w-4 h-4 text-blue-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-blue-600/70 uppercase tracking-wider">{t.statistics.orders}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-blue-600/70 uppercase tracking-wider">{t.statistics.orders}</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-blue-700 leading-none">
                   {overallStats.total_orders}
@@ -322,7 +322,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
                     <CheckCircle className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-emerald-600/70 uppercase tracking-wider">{t.statistics.success}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-emerald-600/70 uppercase tracking-wider">{t.statistics.success}</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-emerald-600 leading-none">
                   {overallStats.total_success}
@@ -335,7 +335,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
                     <XCircle className="w-4 h-4 text-red-500" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-red-500/70 uppercase tracking-wider">{t.statistics.failed}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-red-500/70 uppercase tracking-wider">{t.statistics.failed}</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-red-500 leading-none">
                   {overallStats.total_failed}
@@ -523,13 +523,13 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                           {/* Commission */}
                           <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-500/10 rounded border border-indigo-500/20">
                             <TrendingUp className="w-3 h-3 text-indigo-400 flex-shrink-0" />
-                            <span className="text-[10px] font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
                           </div>
 
                           {/* Tips */}
                           <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-500/10 rounded border border-pink-500/20">
                             <Gift className="w-3 h-3 text-pink-400 flex-shrink-0" />
-                            <span className="text-[10px] font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
                           </div>
                         </div>
 

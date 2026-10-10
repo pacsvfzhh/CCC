@@ -216,7 +216,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                 </div>
                 <span className="truncate">{t.orderList.todaysOrders}</span>
                 {allTodayOrders.length > 0 && (
-                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[9px] sm:text-xs font-semibold text-blue-100 tabular-nums flex-shrink-0">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[11px] sm:text-xs font-semibold text-blue-100 tabular-nums flex-shrink-0">
                     {allTodayOrders.length}
                   </span>
                 )}
@@ -270,55 +270,55 @@ export default function OrderList({ employeeId }: OrderListProps) {
           <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-5">
             {/* Total */}
             <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-blue-50 via-white to-sky-50/50 border border-blue-100/80 ring-1 ring-blue-50 group hover:border-blue-200 hover:shadow-md hover:shadow-blue-100/50 transition-all duration-200">
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
                   <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-blue-600/70 uppercase tracking-wider">{t.orderList.total}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-blue-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.total}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-gray-900 leading-none">{todayStats.total}</div>
             </div>
 
             {/* Success */}
             <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 border border-emerald-100/80 ring-1 ring-emerald-50 group hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-100/50 transition-all duration-200">
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-200">
                   <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-emerald-600/70 uppercase tracking-wider">{t.orderList.success}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-emerald-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.success}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-emerald-600 leading-none">{todayStats.success}</div>
             </div>
 
             {/* Failed */}
             <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-rose-50 via-white to-red-50/50 border border-rose-100/80 ring-1 ring-rose-50 group hover:border-rose-200 hover:shadow-md hover:shadow-rose-100/50 transition-all duration-200">
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-sm shadow-rose-200">
                   <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-rose-600/70 uppercase tracking-wider">{t.orderList.failed}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-rose-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.failed}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-rose-500 leading-none">{todayStats.failure}</div>
             </div>
 
             {/* Pending */}
             <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-amber-50 via-white to-orange-50/50 border border-amber-100/80 ring-1 ring-amber-50 group hover:border-amber-200 hover:shadow-md hover:shadow-amber-100/50 transition-all duration-200">
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm shadow-amber-200">
                   <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-amber-600/70 uppercase tracking-wider">{t.orderList.pending}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-amber-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.pending}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-amber-600 leading-none">{todayStats.processing}</div>
             </div>
 
             {/* Rate */}
             <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-cyan-50 via-white to-sky-50/50 border border-cyan-100/80 ring-1 ring-cyan-50 group hover:border-cyan-200 hover:shadow-md hover:shadow-cyan-100/50 transition-all duration-200">
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 flex items-center justify-center shadow-sm shadow-cyan-200">
                   <Percent className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-cyan-600/70 uppercase tracking-wider">{t.orderList.rate}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-cyan-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.rate}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-cyan-600 leading-none">
                 {(todayStats.success + todayStats.failure) > 0 ? `${((todayStats.success / (todayStats.success + todayStats.failure)) * 100).toFixed(0)}%` : '0%'}
@@ -327,11 +327,11 @@ export default function OrderList({ employeeId }: OrderListProps) {
 
             {/* Earned */}
             <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-teal-50 via-white to-emerald-50/50 border border-teal-100/80 ring-1 ring-teal-50 group hover:border-teal-200 hover:shadow-md hover:shadow-teal-100/50 transition-all duration-200">
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm shadow-teal-200">
                   <DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-teal-600/70 uppercase tracking-wider">{t.orderList.earned}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-teal-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.earned}</span>
               </div>
               <div className="flex items-baseline gap-0.5 min-w-0">
                 <span className="text-sm sm:text-base font-bold text-teal-600">$</span>
@@ -385,11 +385,11 @@ export default function OrderList({ employeeId }: OrderListProps) {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300/60 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300/60 text-[11px] font-bold text-amber-700 uppercase tracking-wider">
                                 <Gift className="w-3 h-3" />
                                 {t.orderList.tipBadge}
                               </div>
-                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] sm:text-[11px] text-amber-600 font-medium">
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[11px] text-amber-600 font-medium">
                                 <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                 {new Date(tip.created_at).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
                               </div>
@@ -397,7 +397,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                           </div>
                           <div className="flex items-center justify-between pl-10 sm:pl-11">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] sm:text-[11px] font-semibold text-amber-500 uppercase">{t.orderList.amount}</span>
+                              <span className="text-[11px] font-semibold text-amber-500 uppercase">{t.orderList.amount}</span>
                               <span className="text-base sm:text-lg font-black text-amber-600">+${tip.amount.toFixed(2)}</span>
                             </div>
                             <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 shadow-sm shadow-amber-300"></div>
@@ -428,29 +428,29 @@ export default function OrderList({ employeeId }: OrderListProps) {
                             <div className="min-w-0">
                               <div className="font-mono text-xs text-blue-700 font-semibold truncate">{order.order_number}</div>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[10px] sm:text-xs text-gray-500 font-medium truncate">{order.product_name}</span>
+                                <span className="text-[11px] sm:text-xs text-gray-500 font-medium truncate">{order.product_name}</span>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 border ${statusConfig.badge}`}>
+                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0 border ${statusConfig.badge}`}>
                               {order.status === 'success' ? <><span className="hidden sm:inline">{t.orderList.statusSuccess}</span><span className="sm:hidden">{t.orderList.statusOk}</span></> : order.status === 'failure' ? <><span className="hidden sm:inline">{t.orderList.statusFailed}</span><span className="sm:hidden">X</span></> : <><span className="hidden sm:inline">{t.orderList.statusPending}</span><span className="sm:hidden">...</span></>}
                             </div>
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[10px] sm:text-[11px] text-slate-500 font-medium">
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[11px] text-slate-500 font-medium">
                               <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                               {new Date(order.created_at).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between pl-9 sm:pl-10">
-                          <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="flex items-center justify-between gap-2 xs:pl-9 sm:pl-10">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 uppercase">{t.orderList.value}</span>
+                              <span className="text-[11px] font-semibold text-gray-400 uppercase">{t.orderList.value}</span>
                               <span className="text-xs sm:text-sm font-bold text-gray-700">${order.product_value.toFixed(2)}</span>
                             </div>
-                            <div className="w-px h-3 bg-gray-200"></div>
+                            <div className="hidden xs:block w-px h-3 bg-gray-200"></div>
                             <div className="flex items-center gap-1.5">
-                              <span className={`text-[9px] sm:text-[10px] font-semibold uppercase ${order.status === 'failure' ? 'text-rose-400' : order.status === 'processing' ? 'text-amber-400' : 'text-emerald-500'}`}>{t.orderList.commission}</span>
+                              <span className={`text-[11px] font-semibold uppercase ${order.status === 'failure' ? 'text-rose-400' : order.status === 'processing' ? 'text-amber-400' : 'text-emerald-500'}`}>{t.orderList.commission}</span>
                               <span className={`text-xs sm:text-sm font-bold ${order.status === 'failure' ? 'text-rose-500' : order.status === 'processing' ? 'text-amber-500' : 'text-emerald-600'}`}>
                                 {order.commission_amount ? `$${order.commission_amount.toFixed(2)}` : '-'}
                               </span>
@@ -491,11 +491,11 @@ export default function OrderList({ employeeId }: OrderListProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300/60 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300/60 text-[11px] font-bold text-amber-700 uppercase tracking-wider">
                           <Gift className="w-3 h-3" />
                           {t.orderList.tipBadge}
                         </div>
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] sm:text-[11px] text-amber-600 font-medium">
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[11px] text-amber-600 font-medium">
                           <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                           {new Date(tip.created_at).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
                         </div>
@@ -504,7 +504,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
 
                     <div className="flex items-center justify-between pl-10 sm:pl-11">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] sm:text-[11px] font-semibold text-amber-500 uppercase">{t.orderList.amount}</span>
+                        <span className="text-[11px] font-semibold text-amber-500 uppercase">{t.orderList.amount}</span>
                         <span className="text-base sm:text-lg font-black text-amber-600">+${tip.amount.toFixed(2)}</span>
                       </div>
                       <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 shadow-sm shadow-amber-300"></div>
@@ -549,12 +549,12 @@ export default function OrderList({ employeeId }: OrderListProps) {
                           <div className="min-w-0">
                             <div className="font-mono text-xs text-blue-700 font-semibold truncate">{order.order_number}</div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] sm:text-xs text-gray-500 font-medium truncate">{order.product_name}</span>
+                              <span className="text-[11px] sm:text-xs text-gray-500 font-medium truncate">{order.product_name}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 border ${statusConfig.badge}`}>
+                          <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0 border ${statusConfig.badge}`}>
                             {order.status === 'success' ? (
                               <>
                                 <span className="hidden sm:inline">{t.orderList.statusSuccess}</span>
@@ -572,7 +572,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                               </>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[10px] sm:text-[11px] text-slate-500 font-medium">
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[11px] text-slate-500 font-medium">
                             <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                             {new Date(order.created_at).toLocaleString([], {
                               month: '2-digit',
@@ -589,12 +589,12 @@ export default function OrderList({ employeeId }: OrderListProps) {
                       <div className="flex items-center justify-between pl-9 sm:pl-10">
                         <div className="flex items-center gap-3 sm:gap-4">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 uppercase">{t.orderList.value}</span>
+                            <span className="text-[11px] font-semibold text-gray-400 uppercase">{t.orderList.value}</span>
                             <span className="text-xs sm:text-sm font-bold text-gray-700">${order.product_value.toFixed(2)}</span>
                           </div>
                           <div className="w-px h-3 bg-gray-200"></div>
                           <div className="flex items-center gap-1.5">
-                            <span className={`text-[9px] sm:text-[10px] font-semibold uppercase ${
+                            <span className={`text-[11px] font-semibold uppercase ${
                               order.status === 'failure' ? 'text-rose-400' : order.status === 'processing' ? 'text-amber-400' : 'text-emerald-500'
                             }`}>{t.orderList.commission}</span>
                             <span className={`text-xs sm:text-sm font-bold ${

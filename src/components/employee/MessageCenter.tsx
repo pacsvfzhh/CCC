@@ -365,7 +365,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                     <Bell className="w-5 h-5 text-white" />
                   </div>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-white text-blue-600 text-[10px] font-black rounded-full flex items-center justify-center shadow-lg ring-2 ring-blue-500">
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-white text-blue-600 text-[11px] font-black rounded-full flex items-center justify-center shadow-lg ring-2 ring-blue-500">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
@@ -406,7 +406,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                     key={f.id}
                     onClick={() => setFilter(f.id as typeof filter)}
                     aria-pressed={isActive}
-                    className={`message-center-filter-tab msg-force-transition relative flex min-w-0 items-center justify-center overflow-hidden rounded-xl text-center text-[10px] leading-tight transition-all duration-200 sm:text-[11px] md:text-xs lg:px-3 ${
+                    className={`message-center-filter-tab msg-force-transition relative flex min-w-0 items-center justify-center overflow-hidden rounded-xl text-center text-[11px] leading-tight transition-all duration-200 md:text-xs lg:px-3 ${
                       isActive
                         ? 'bg-white/20 font-bold text-white shadow-sm ring-1 ring-white/30'
                         : 'font-medium text-white/65 hover:bg-white/10 hover:text-white'
@@ -522,7 +522,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
 
                             {isReward && (
                               <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-200/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-200/60 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-amber-800">
                                   <Sparkles className="h-3 w-3" /> {t.messages.rewardTitle}
                                 </span>
                                 <span className="text-sm font-black text-amber-700">
@@ -541,14 +541,14 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                             {/* Bottom meta row */}
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${
+                                <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${
                                   deliveredMessageType === 'login_popup'
                                     ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200/80'
                                     : 'bg-teal-100 text-teal-700 ring-1 ring-teal-200/80'
                                 }`}>
                                   {deliveredMessageType === 'login_popup' ? t.messages.typeLogin : t.messages.typeLive}
                                 </span>
-                                <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${
+                                <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${
                                   msg.messages.priority === 'urgent'
                                     ? 'bg-rose-100 text-rose-700 ring-1 ring-rose-200/80'
                                     : msg.messages.priority === 'high'
@@ -562,12 +562,12 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                                 {msg.is_read ? (
                                   <div className="flex items-center gap-1.5 text-slate-500">
                                     <Eye className="w-3.5 h-3.5" />
-                                    <span className="text-[10px] font-medium uppercase tracking-wide">{t.messages.read}</span>
+                                    <span className="text-[11px] font-medium uppercase tracking-wide">{t.messages.read}</span>
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-1.5 text-blue-600 group-hover:text-blue-700">
                                     <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.14)]" />
-                                    <span className="text-[10px] font-black uppercase tracking-wide">{t.messages.unread}</span>
+                                    <span className="text-[11px] font-black uppercase tracking-wide">{t.messages.unread}</span>
                                     <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                   </div>
                                 )}
@@ -670,10 +670,10 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
 
                 {/* Tags */}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
-                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : getDeliveredMessageType(selectedMessage) === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
+                  <span className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : getDeliveredMessageType(selectedMessage) === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
                     {getDeliveredMessageType(selectedMessage) === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
                   </span>
-                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
+                  <span className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
                     {selectedMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : selectedMessage.messages.priority === 'high' ? t.messages.priorityHigh : selectedMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                   </span>
                 </div>
@@ -698,7 +698,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                        <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
                       </div>
                       <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(selectedMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{selectedMessage.messages.reward_currency}</span></p>
                     </div>
@@ -737,7 +737,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                         <CheckCircle className="w-4 h-4 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{t.messages.read}</p>
+                        <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">{t.messages.read}</p>
                         <p className="text-sm text-slate-700 font-semibold">{new Date(selectedMessage.read_at!).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                     </>
@@ -747,7 +747,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                         <Sparkles className="w-4 h-4 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{t.messages.notification}</p>
+                        <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">{t.messages.notification}</p>
                         <p className="text-sm text-blue-700 font-semibold">{t.messages.markAsRead}</p>
                       </div>
                     </>

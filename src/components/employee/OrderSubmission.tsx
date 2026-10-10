@@ -523,11 +523,11 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
   return (
     <div className={`relative isolate overflow-hidden rounded-xl bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8 ${showConfirmModal || showSubmitAnimation ? 'border-0' : 'border border-blue-200'}`}>
       {/* Header - Mobile Optimized */}
-      <div className="relative flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8">
+      <div className="relative flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-8">
         <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-blue-50 rounded-lg sm:rounded-xl border border-blue-200 overflow-hidden group/icon flex-shrink-0">
           <Package className="w-5 h-5 text-blue-600 relative z-10" />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-[8rem] sm:min-w-[12rem]">
           <h2 className="text-base sm:text-2xl font-black text-blue-600 relative truncate">
             {t.orderSubmission.title}
           </h2>
@@ -550,7 +550,7 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5">
           {/* User Number - Mobile Optimized */}
           <div className="group relative">
             <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 mb-2 sm:mb-3">

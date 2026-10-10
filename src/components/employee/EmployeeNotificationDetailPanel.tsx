@@ -84,10 +84,10 @@ export default function EmployeeNotificationDetailPanel({ message, onClose, embe
           </div>
 
           <div className={`mt-2 flex flex-wrap items-center gap-1.5 ${readOnlyPreview ? '' : 'pr-10'}`}>
-            <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : 'border-white/20 bg-white/15 text-sky-100'}`}>
+            <span className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${isReward ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : 'border-white/20 bg-white/15 text-sky-100'}`}>
               {message.message_type === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
             </span>
-            <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
+            <span className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
               {message.priority === 'urgent' ? t.messages.priorityUrgent : message.priority === 'high' ? t.messages.priorityHigh : message.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
             </span>
           </div>
@@ -103,7 +103,7 @@ export default function EmployeeNotificationDetailPanel({ message, onClose, embe
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                  <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                  <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
                 </div>
                 <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(message.reward_amount || 0).toFixed(2)} <span className="text-base">{message.reward_currency}</span></p>
               </div>
@@ -136,7 +136,7 @@ export default function EmployeeNotificationDetailPanel({ message, onClose, embe
                   <CheckCircle className="h-4 w-4 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{t.messages.read}</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t.messages.read}</p>
                   <p className="text-sm font-semibold text-slate-700">{new Date(message.read_at || message.created_at || Date.now()).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </>
@@ -146,7 +146,7 @@ export default function EmployeeNotificationDetailPanel({ message, onClose, embe
                   <Sparkles className="h-4 w-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{t.messages.notification}</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t.messages.notification}</p>
                   <p className="text-sm font-semibold text-blue-700">{t.messages.markAsRead}</p>
                 </div>
               </>

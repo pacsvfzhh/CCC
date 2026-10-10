@@ -340,7 +340,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
               <h2 className="text-base sm:text-lg font-bold text-white leading-tight">
                 {t.withdrawals.title}
               </h2>
-              <p className="text-[10px] sm:text-xs text-blue-100 mt-0.5">{t.withdrawals.subtitle}</p>
+              <p className="text-[11px] sm:text-xs text-blue-100 mt-0.5">{t.withdrawals.subtitle}</p>
             </div>
           </div>
           <button
@@ -425,11 +425,11 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                 <span className="text-lg sm:text-xl font-bold text-gray-900">
                                   ${parseFloat(record.amount.toString()).toFixed(2)}
                                 </span>
-                                <span className={`px-2 py-0.5 rounded-md border text-[10px] sm:text-xs font-semibold w-fit ${getStatusBadgeStyle(record)}`}>
+                                <span className={`px-2 py-0.5 rounded-md border text-[11px] sm:text-xs font-semibold w-fit ${getStatusBadgeStyle(record)}`}>
                                   {getStatusLabel(record)}
                                 </span>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-gray-500">
+                              <div className="text-[11px] sm:text-xs text-gray-500">
                                 {new Date(record.created_at).toLocaleString(dateLocale, {
                                   year: 'numeric',
                                   month: 'short',
@@ -455,19 +455,19 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0 space-y-2 sm:space-y-3 border-t border-black/5">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 sm:pt-4">
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
                                   <div className="text-base sm:text-lg font-bold text-gray-900">
                                     ${parseFloat(withdrawal.amount.toString()).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.status}</div>
-                                  <div className={`inline-flex px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[10px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.status}</div>
+                                  <div className={`inline-flex px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[11px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
                                     {getStatusLabel(record)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.date}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.date}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     {new Date(withdrawal.created_at).toLocaleString(dateLocale, {
                                       year: 'numeric',
@@ -480,7 +480,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                 </div>
                                 {withdrawal.audited_at && (
                                   <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                    <div className={`text-[10px] sm:text-xs mb-1 ${
+                                    <div className={`text-[11px] sm:text-xs mb-1 ${
                                       withdrawal.status === 'approved' ? 'text-emerald-600' :
                                       withdrawal.status === 'rejected' ? 'text-red-600' :
                                       'text-gray-400'
@@ -515,7 +515,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                       <span className="text-sm sm:text-base font-semibold">{t.withdrawals.withdrawalApproved}</span>
                                     </div>
                                     {withdrawal.audited_at && (
-                                      <div className="text-[10px] sm:text-xs text-emerald-500 sm:text-right">
+                                      <div className="text-[11px] sm:text-xs text-emerald-500 sm:text-right">
                                         {new Date(withdrawal.audited_at).toLocaleString(dateLocale, {
                                           month: 'short',
                                           day: 'numeric',
@@ -530,7 +530,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                   </p>
                                   {withdrawal.audit_remark && (
                                     <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-emerald-100">
-                                      <div className="text-[10px] sm:text-xs text-emerald-500 mb-1">{t.withdrawals.adminNote}</div>
+                                      <div className="text-[11px] sm:text-xs text-emerald-500 mb-1">{t.withdrawals.adminNote}</div>
                                       <div className="text-xs sm:text-sm text-emerald-700">{withdrawal.audit_remark === 'Cancelled by user' ? t.withdrawals.cancelledByUser : withdrawal.audit_remark}</div>
                                     </div>
                                   )}
@@ -557,7 +557,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                   </div>
                                   {withdrawal.audit_remark ? (
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-red-400 mb-1">{t.withdrawals.rejectionReason}</div>
+                                      <div className="text-[11px] sm:text-xs text-red-400 mb-1">{t.withdrawals.rejectionReason}</div>
                                       <div className="text-xs sm:text-sm text-red-700">{withdrawal.audit_remark === 'Cancelled by user' ? t.withdrawals.cancelledByUser : withdrawal.audit_remark}</div>
                                     </div>
                                   ) : (
@@ -610,7 +610,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                   </div>
                                   {withdrawal.audit_remark ? (
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.reason}</div>
+                                      <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.reason}</div>
                                       <div className="text-xs sm:text-sm text-gray-600">{withdrawal.audit_remark === 'Cancelled by user' ? t.withdrawals.cancelledByUser : withdrawal.audit_remark}</div>
                                     </div>
                                   ) : (
@@ -631,32 +631,32 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0 space-y-2 sm:space-y-3 border-t border-black/5">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 sm:pt-4">
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionType}</div>
-                                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[10px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionType}</div>
+                                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[11px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
                                     {isAdd ? <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                                     {isAdd ? t.withdrawals.balanceAdded : t.withdrawals.balanceDeducted}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
                                   <div className={`text-base sm:text-lg font-bold ${isAdd ? 'text-emerald-600' : 'text-red-600'}`}>
                                     {isAdd ? '+' : ''}${Math.abs(parseFloat(transaction.amount.toString())).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceBefore}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceBefore}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     ${parseFloat(transaction.balance_before.toString()).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceAfter}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceAfter}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     ${parseFloat(transaction.balance_after.toString()).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="col-span-1 sm:col-span-2 bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionTime}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionTime}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     {new Date(transaction.created_at).toLocaleString(dateLocale, {
                                       year: 'numeric',
@@ -677,7 +677,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                       {t.withdrawals.financialAdjustment}
                                     </span>
                                   </div>
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.remarks}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.remarks}</div>
                                   <div className={`text-xs sm:text-sm ${isAdd ? 'text-emerald-700' : 'text-red-700'}`}>
                                     {transaction.remarks}
                                   </div>
