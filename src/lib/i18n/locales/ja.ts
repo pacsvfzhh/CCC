@@ -140,7 +140,6 @@ const ja = {
   },
   loginPopup: { notification: '通知', prev: '前', next: '次', done: '完了', gotIt: '了解', of: '/', newMessages: '件の新着メッセージ' },
   orientation: {
-    badge: '縦画面モード',
     title: 'スマートフォンを縦向きにしてください',
     message: 'このページは縦向きでのみ利用できます。縦向きに戻すと続きから操作でき、入力中の内容も保持されます。',
     newOrder: '新しい注文が届いています。縦向きに戻して受け付けてください。',

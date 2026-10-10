@@ -146,7 +146,6 @@ const it = {
   },
   loginPopup: { notification: 'Notifica', prev: 'Prec.', next: 'Succ.', done: 'Fatto', gotIt: 'Capito', of: 'di', newMessages: 'nuovi messaggi' },
   orientation: {
-    badge: 'Modalità verticale',
     title: 'Ruota il telefono in verticale',
     message: 'Questa pagina funziona solo in verticale. Riporta il telefono in verticale per continuare: non perderai nulla di quello che stavi facendo.',
     newOrder: 'Hai un nuovo ordine in attesa. Ruota il telefono in verticale per accettarlo.',

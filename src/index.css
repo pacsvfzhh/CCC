@@ -1872,10 +1872,8 @@ button .animate-bell-ring.keep-animation,
   min-height: 100dvh;
 }
 
-/* Phone landscape prompt. Illustration sizes derive from --plg-v (not em) so minimum-font-size settings in in-app browsers can't distort it. */
+/* Phone landscape prompt */
 .phone-landscape-guard {
-  --plg-v: clamp(68px, min(34vh, 19vw), 140px);
-  --plg-loop: 3.6s;
   position: fixed;
   inset: 0;
   z-index: 2147483000;
@@ -1886,752 +1884,182 @@ button .animate-bell-ring.keep-animation,
     max(20px, env(safe-area-inset-right))
     max(14px, env(safe-area-inset-bottom))
     max(20px, env(safe-area-inset-left));
-  color: #fff;
-  background: linear-gradient(135deg, #172554 0%, #1e40af 32%, #2563eb 66%, #3b82f6 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #eff6ff 100%);
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-  -webkit-font-smoothing: antialiased;
-  animation: plg-fade-in 0.35s ease-out both;
 }
 
-.plg-bg {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.plg-bg > * {
-  position: absolute;
-}
-
-.plg-blob {
-  width: 90vh;
-  height: 90vh;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(103, 232, 249, 0.34) 0%, transparent 65%);
-  animation: plg-blob 14s ease-in-out infinite alternate;
-}
-
-.plg-blob--a {
-  top: -38vh;
-  right: -12vw;
-}
-
-.plg-blob--b {
-  bottom: -42vh;
-  left: -14vw;
-  background: radial-gradient(circle, rgba(147, 197, 253, 0.3) 0%, transparent 65%);
-  animation-duration: 18s;
-  animation-direction: alternate-reverse;
-}
-
-.plg-dots {
-  inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.5px);
-  background-size: 22px 22px;
-  opacity: 0.55;
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, transparent 35%, #000 80%);
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, transparent 35%, #000 80%);
-}
-
-.plg-lane {
-  left: 0;
-  right: 0;
-  height: 1px;
-  overflow: hidden;
-  background: linear-gradient(90deg, transparent, rgba(165, 243, 252, 0.3) 22%, rgba(255, 255, 255, 0.34) 50%, rgba(165, 243, 252, 0.3) 78%, transparent);
-}
-
-.plg-lane--top {
-  top: 12%;
-}
-
-.plg-lane--bottom {
-  bottom: 12%;
-}
-
-.plg-lane::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 24%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
-  animation: plg-lane 6s cubic-bezier(0.45, 0, 0.25, 1) infinite;
-}
-
-.plg-lane--bottom::after {
-  animation-direction: reverse;
-  animation-delay: -3s;
-}
-
-.plg-shape {
-  --plg-r: 0deg;
-  border: 2px solid rgba(255, 255, 255, 0.13);
-  border-radius: 14px;
-  animation: plg-drift 9s ease-in-out infinite;
-}
-
-.plg-shape--1 { top: 8%; left: 5%; width: 56px; height: 56px; --plg-r: 12deg; }
-.plg-shape--2 { top: 16%; right: 9%; width: 28px; height: 28px; border-radius: 8px; border-color: rgba(165, 243, 252, 0.26); --plg-r: -8deg; animation-duration: 7s; animation-delay: -2s; }
-.plg-shape--3 { bottom: 10%; right: 5%; width: 44px; height: 44px; border-radius: 12px; --plg-r: 45deg; animation-duration: 11s; animation-delay: -4s; }
-.plg-shape--4 { bottom: 18%; left: 13%; width: 18px; height: 18px; border-radius: 50%; border-color: rgba(165, 243, 252, 0.3); animation-duration: 8s; animation-delay: -1s; }
-.plg-shape--5 { bottom: -30px; left: 24%; width: 78px; height: 78px; border-radius: 22px; border-color: rgba(255, 255, 255, 0.08); --plg-r: -14deg; animation-duration: 13s; animation-delay: -6s; }
-.plg-shape--6 { top: 7%; left: 48%; width: 12px; height: 12px; border: 0; border-radius: 4px; background: rgba(255, 255, 255, 0.14); --plg-r: 20deg; animation-duration: 6s; animation-delay: -3s; }
-
-.plg-vignette {
-  inset: 0;
-  background: radial-gradient(ellipse 85% 95% at 50% 50%, transparent 55%, rgba(15, 23, 42, 0.4) 100%);
-}
-
-/* The card carries role="dialog"; lift the global short-screen dialog height caps so it never turns into a scroll box. */
+/* The card carries role="dialog"; lift the global short-screen dialog height caps. */
 .phone-landscape-guard .plg-card {
-  position: relative;
   display: flex;
-  align-items: center;
-  gap: clamp(14px, 4vw, 32px);
-  width: min(680px, 100%);
+  width: min(600px, 100%);
   max-height: none !important;
   margin: auto;
   overflow: hidden !important;
-  padding: clamp(12px, 5vh, 26px) clamp(16px, 4vw, 34px);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 28px;
-  background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.12) 100%),
-    rgba(30, 58, 138, 0.55);
-  box-shadow:
-    0 30px 60px -28px rgba(8, 18, 56, 0.8),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 44px -24px rgba(30, 64, 175, 0.35), 0 2px 6px rgba(15, 23, 42, 0.05);
   text-align: left;
-  animation: plg-card-in 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  animation: plg-enter 0.32s ease-out both;
 }
 
-.plg-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(165, 243, 252, 0.95), transparent);
-}
-
-.plg-card::after {
-  content: '';
-  position: absolute;
-  top: -10%;
-  bottom: -10%;
-  left: 0;
-  width: 36%;
-  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 60%, transparent 100%);
-  transform: translateX(-160%) skewX(-14deg);
-  animation: plg-sheen 7s ease-in-out 1.4s infinite;
-  pointer-events: none;
-}
-
-.plg-visual {
-  --u: calc(var(--plg-v) / 14);
-  position: relative;
-  z-index: 1;
-  flex: none;
-  width: var(--plg-v);
-  height: var(--plg-v);
-}
-
-.plg-visual > * {
-  position: absolute;
-}
-
-.plg-halo {
-  inset: 2%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(147, 197, 253, 0.12) 46%, transparent 70%);
-}
-
-.plg-pulse {
-  inset: 16%;
-  border: 1.5px solid rgba(165, 243, 252, 0.6);
-  border-radius: 50%;
-  opacity: 0;
-  animation: plg-pulse var(--plg-loop) cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.plg-pulse--late {
-  animation-delay: calc(var(--plg-loop) / 2);
-}
-
-.plg-track {
-  inset: 6%;
-  border: 1px dashed rgba(255, 255, 255, 0.26);
-  border-radius: 50%;
-  animation: plg-spin 28s linear infinite;
-}
-
-.plg-rings {
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.plg-arc,
-.plg-head {
-  fill: none;
-  stroke: #a5f3fc;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.plg-arc--back,
-.plg-head--back {
-  stroke: rgba(255, 255, 255, 0.72);
-}
-
-/* Dash 100 / gap 110 on a pathLength of 100: offset 105 hides the arc without leaving a round-cap dot. */
-.plg-arc {
-  stroke-dasharray: 100 110;
-  stroke-dashoffset: 105;
-  animation: plg-arc var(--plg-loop) cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-
-.plg-head {
-  opacity: 0;
-  animation: plg-head var(--plg-loop) ease-out infinite;
-}
-
-.plg-spark {
-  width: calc(var(--u) * 0.95);
-  height: calc(var(--u) * 0.95);
-  fill: #e0f2fe;
-  opacity: 0;
-  animation: plg-spark var(--plg-loop) ease-out infinite;
-}
-
-.plg-spark--a {
-  top: 20%;
-  left: 17%;
-}
-
-.plg-spark--b {
-  right: 16%;
-  bottom: 21%;
-  width: calc(var(--u) * 0.7);
-  height: calc(var(--u) * 0.7);
-  animation-delay: 0.12s;
-}
-
-.plg-phone {
-  inset: 0;
-  width: calc(var(--u) * 4.6);
-  height: calc(var(--u) * 7.8);
-  margin: auto;
-  padding: calc(var(--u) * 0.24);
-  border-radius: calc(var(--u) * 0.95);
-  background: linear-gradient(160deg, #ffffff 0%, #dbeafe 100%);
-  box-shadow: 0 calc(var(--u) * 0.9) calc(var(--u) * 1.8) calc(var(--u) * -0.6) rgba(8, 18, 56, 0.7);
-  transform: rotate(-90deg) scale(1);
-  animation: plg-turn var(--plg-loop) cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-
-.plg-phone::after {
-  content: '';
-  position: absolute;
-  inset: calc(var(--u) * -0.34);
-  border: max(1px, calc(var(--u) * 0.12)) solid rgba(165, 243, 252, 0.9);
-  border-radius: calc(var(--u) * 1.22);
-  box-shadow: 0 0 calc(var(--u) * 1.2) rgba(103, 232, 249, 0.6);
-  opacity: 0;
-  animation: plg-phone-glow var(--plg-loop) ease-out infinite;
-}
-
-.plg-screen {
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  border-radius: calc(var(--u) * 0.72);
-  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 75%);
-}
-
-.plg-screen span {
-  display: block;
-}
-
-.plg-island {
-  position: absolute;
-  top: calc(var(--u) * 0.3);
-  left: 0;
-  right: 0;
-  z-index: 1;
-  width: calc(var(--u) * 1.3);
-  height: calc(var(--u) * 0.34);
-  margin: 0 auto;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.85);
-}
-
-.plg-screen .plg-mini-header {
+.plg-icon {
   display: flex;
-  align-items: flex-end;
-  gap: calc(var(--u) * 0.24);
-  height: calc(var(--u) * 1.6);
-  padding: 0 calc(var(--u) * 0.4) calc(var(--u) * 0.3);
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: clamp(92px, 22vw, 140px);
   background: linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #3b82f6 100%);
 }
 
-.plg-mini-logo {
-  width: calc(var(--u) * 0.46);
-  height: calc(var(--u) * 0.46);
-  border-radius: calc(var(--u) * 0.12);
-  background: #fff;
-}
-
-.plg-mini-title {
-  width: calc(var(--u) * 1.5);
-  height: calc(var(--u) * 0.2);
-  margin-bottom: calc(var(--u) * 0.13);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
-}
-
-.plg-screen .plg-mini-cards {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--u) * 0.3);
-  padding: calc(var(--u) * 0.42) calc(var(--u) * 0.34);
-}
-
-.plg-mini-card {
-  position: relative;
-  height: calc(var(--u) * 0.98);
-  border-radius: calc(var(--u) * 0.28);
-  background: #dbeafe;
-}
-
-.plg-mini-card:nth-child(2) {
-  background: #e0f2fe;
-}
-
-.plg-mini-card::before {
-  content: '';
-  position: absolute;
-  top: calc(var(--u) * 0.26);
-  left: calc(var(--u) * 0.24);
-  width: calc(var(--u) * 0.46);
-  height: calc(var(--u) * 0.46);
-  border-radius: calc(var(--u) * 0.12);
-  background: #93c5fd;
-}
-
-.plg-mini-card::after {
-  content: '';
-  position: absolute;
-  top: calc(var(--u) * 0.41);
-  left: calc(var(--u) * 0.88);
-  right: calc(var(--u) * 0.32);
-  height: calc(var(--u) * 0.16);
-  border-radius: 999px;
-  background: #bfdbfe;
-}
-
-.plg-screen .plg-mini-nav {
-  position: absolute;
-  right: calc(var(--u) * 0.34);
-  bottom: calc(var(--u) * 0.26);
-  left: calc(var(--u) * 0.34);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  height: calc(var(--u) * 0.6);
-  border-top: 1px solid #dbeafe;
-}
-
-.plg-mini-nav span {
-  width: calc(var(--u) * 0.26);
-  height: calc(var(--u) * 0.26);
-  border-radius: 50%;
-  background: #bfdbfe;
-}
-
-.plg-mini-nav span:first-child {
-  background: #2563eb;
-}
-
-.plg-check {
-  position: absolute;
-  top: calc(var(--u) * -0.62);
-  right: calc(var(--u) * -0.72);
-  z-index: 2;
+.plg-tile {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--u) * 1.75);
-  height: calc(var(--u) * 1.75);
-  border-radius: 50%;
-  color: #fff;
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
-  box-shadow: 0 0 0 max(1.5px, calc(var(--u) * 0.16)) #fff, 0 calc(var(--u) * 0.4) calc(var(--u) * 0.9) calc(var(--u) * -0.2) rgba(5, 150, 105, 0.75);
-  opacity: 0;
-  transform: scale(0);
-  animation: plg-check var(--plg-loop) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
 }
 
-.plg-check svg {
-  width: calc(var(--u) * 1);
-  height: calc(var(--u) * 1);
+.plg-phone {
+  width: 36px;
+  height: 36px;
+  color: #fff;
+  transform: rotate(-90deg);
+  animation: plg-rotate 3.2s cubic-bezier(0.45, 0, 0.2, 1) infinite;
 }
 
 .plg-copy {
-  position: relative;
-  z-index: 1;
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.plg-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 4px 11px 4px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #cffafe;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.plg-badge svg {
-  flex: none;
-  width: 12px;
-  height: 12px;
+  padding: 20px 24px;
 }
 
 /* !important beats the global short-landscape `h2 { font-size: 1.1rem !important }`. */
 .phone-landscape-guard .plg-title {
-  margin: 10px 0 0;
-  color: #fff;
-  font-size: clamp(17px, 5.6vh, 24px) !important;
-  font-weight: 800;
-  line-height: 1.22;
-  letter-spacing: -0.01em;
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px !important;
+  font-weight: 700;
+  line-height: 1.3;
   overflow-wrap: break-word;
   text-wrap: balance;
 }
 
 .plg-message {
   margin: 6px 0 0;
-  color: rgba(219, 234, 254, 0.92);
-  font-size: clamp(12.5px, 3.9vh, 14.5px);
-  line-height: 1.5;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.55;
   overflow-wrap: break-word;
   text-wrap: pretty;
 }
 
 .plg-notice {
-  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin: 12px 0 0;
-  overflow: hidden;
-  padding: 8px 13px 8px 9px;
-  border-radius: 14px;
-  font-size: clamp(12.5px, 3.7vh, 14px);
-  font-weight: 700;
-  line-height: 1.4;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .plg-notice--order {
-  color: #451a03;
-  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 55%, #fbbf24 100%);
-  box-shadow: 0 12px 26px -14px rgba(251, 191, 36, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
 }
 
 .plg-notice--urgent {
-  color: #fff;
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-  box-shadow: 0 12px 26px -14px rgba(225, 29, 72, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .plg-notice-icon {
-  position: relative;
-  display: flex;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: calc((1.45em - 16px) / 2);
 }
 
-.plg-notice--order .plg-notice-icon {
-  color: #b45309;
-  background: rgba(255, 255, 255, 0.7);
+.plg-card[data-compact] .plg-message {
+  display: none;
 }
 
-.plg-notice--urgent .plg-notice-icon {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.plg-notice-icon::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  opacity: 0;
-  animation: plg-notice-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.plg-notice-icon svg {
-  width: 15px;
-  height: 15px;
-  transform-origin: 50% 12%;
-  animation: plg-bell 1.8s ease-in-out infinite;
-}
-
-.plg-notice--urgent .plg-notice-icon svg {
-  transform-origin: 50% 50%;
-  animation-name: plg-shake;
-}
-
-.plg-notice-text {
-  padding-top: calc((26px - 1.4em) / 2);
-  text-wrap: pretty;
-}
-
-.plg-rise {
-  animation: plg-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.plg-badge.plg-rise { animation-delay: 0.12s; }
-.plg-title.plg-rise { animation-delay: 0.2s; }
-.plg-message.plg-rise { animation-delay: 0.28s; }
-.plg-notice.plg-rise { animation-delay: 0.36s; }
-
-@supports (height: 1dvh) {
-  .phone-landscape-guard {
-    --plg-v: clamp(68px, min(34dvh, 19vw), 140px);
-  }
-
-  .phone-landscape-guard .plg-card {
-    padding: clamp(12px, 5dvh, 26px) clamp(16px, 4vw, 34px);
+@media (max-height: 340px) {
+  .plg-copy {
+    padding: 14px 20px;
   }
 
   .phone-landscape-guard .plg-title {
-    font-size: clamp(17px, 5.6dvh, 24px) !important;
+    font-size: 18px !important;
   }
 
   .plg-message {
-    font-size: clamp(12.5px, 3.9dvh, 14.5px);
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .plg-notice {
-    font-size: clamp(12.5px, 3.7dvh, 14px);
+    margin-top: 10px;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+
+  .plg-tile {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+  }
+
+  .plg-phone {
+    width: 32px;
+    height: 32px;
   }
 }
 
-/* Short landscape viewports (browser bars showing): shed decoration first, then tighten type. */
-@media (max-height: 360px) {
-  .plg-badge {
-    display: none;
-  }
-
-  .phone-landscape-guard .plg-title {
-    margin-top: 0;
-  }
-}
-
-@media (max-height: 300px) {
+@media (max-height: 280px) {
   .phone-landscape-guard {
     padding-top: max(8px, env(safe-area-inset-top));
     padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
-  .phone-landscape-guard .plg-card {
-    gap: 16px;
+  .plg-copy {
     padding: 12px 18px;
-    border-radius: 22px;
-  }
-
-  .phone-landscape-guard .plg-title {
-    font-size: 17px !important;
-  }
-
-  .plg-message {
-    margin-top: 4px;
-    font-size: 12.5px;
-    line-height: 1.42;
-  }
-
-  .plg-notice {
-    margin-top: 8px;
-    padding: 6px 11px 6px 8px;
-    font-size: 12.5px;
   }
 }
 
-/* Set by the component when the card would not fit the screen otherwise. */
-.plg-card[data-fit='1'] .plg-badge,
-.plg-card[data-fit='2'] .plg-badge,
-.plg-card[data-fit='2'] .plg-message {
-  display: none;
-}
-
-.phone-landscape-guard .plg-card[data-fit='1'] .plg-title,
-.phone-landscape-guard .plg-card[data-fit='2'] .plg-title {
-  margin-top: 0;
-}
-
-@keyframes plg-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes plg-card-in {
-  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.95); }
+@keyframes plg-enter {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 
-@keyframes plg-rise {
-  from { opacity: 0; transform: translate3d(0, 10px, 0); }
-  to { opacity: 1; transform: none; }
-}
-
-@keyframes plg-blob {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-6vw, 5vh, 0) scale(1.12); }
-}
-
-@keyframes plg-lane {
-  from { transform: translateX(-110%); }
-  to { transform: translateX(430%); }
-}
-
-@keyframes plg-drift {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--plg-r)); }
-  50% { transform: translate3d(0, -10px, 0) rotate(calc(var(--plg-r) + 12deg)); }
-}
-
-@keyframes plg-sheen {
-  0% { transform: translateX(-160%) skewX(-14deg); }
-  32%, 100% { transform: translateX(330%) skewX(-14deg); }
-}
-
-@keyframes plg-pulse {
-  0% { opacity: 0; transform: scale(0.72); }
-  14% { opacity: 0.85; }
-  100% { opacity: 0; transform: scale(1.32); }
-}
-
-@keyframes plg-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* One 3.6s loop: nudge sideways, turn upright with a slight overshoot, confirm, then fade back to the start. */
-@keyframes plg-turn {
-  0% { transform: rotate(-90deg) scale(1); opacity: 1; }
-  7% { transform: rotate(-98deg) scale(1); }
-  13% { transform: rotate(-83deg) scale(1); }
-  19% { transform: rotate(-90deg) scale(1); }
-  48% { transform: rotate(6deg) scale(1); }
-  56% { transform: rotate(0deg) scale(1); }
-  84% { transform: rotate(0deg) scale(1); opacity: 1; }
-  92% { transform: rotate(0deg) scale(0.86); opacity: 0; }
-  93% { transform: rotate(-90deg) scale(0.86); opacity: 0; }
-  100% { transform: rotate(-90deg) scale(1); opacity: 1; }
-}
-
-@keyframes plg-arc {
-  0%, 19% { stroke-dashoffset: 105; opacity: 1; }
-  50%, 84% { stroke-dashoffset: 0; opacity: 1; }
-  92% { stroke-dashoffset: 0; opacity: 0; }
-  100% { stroke-dashoffset: 105; opacity: 0; }
-}
-
-@keyframes plg-head {
-  0%, 46% { opacity: 0; }
-  54%, 84% { opacity: 1; }
-  92%, 100% { opacity: 0; }
-}
-
-@keyframes plg-phone-glow {
-  0%, 50% { opacity: 0; }
-  60% { opacity: 1; }
-  84% { opacity: 0.8; }
-  92%, 100% { opacity: 0; }
-}
-
-@keyframes plg-check {
-  0%, 52% { opacity: 0; transform: scale(0); }
-  62%, 84% { opacity: 1; transform: scale(1); }
-  92%, 100% { opacity: 0; transform: scale(0.4); }
-}
-
-@keyframes plg-spark {
-  0%, 54% { opacity: 0; transform: scale(0.3) rotate(0deg); }
-  64% { opacity: 1; transform: scale(1) rotate(45deg); }
-  82%, 100% { opacity: 0; transform: scale(0.5) rotate(90deg); }
-}
-
-@keyframes plg-notice-ping {
-  0% { opacity: 0.6; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.75); }
-}
-
-@keyframes plg-bell {
-  0%, 48%, 100% { transform: rotate(0deg); }
-  8% { transform: rotate(16deg); }
-  16% { transform: rotate(-14deg); }
-  24% { transform: rotate(10deg); }
-  32% { transform: rotate(-6deg); }
-  40% { transform: rotate(2deg); }
-}
-
-@keyframes plg-shake {
-  0%, 48%, 100% { transform: rotate(0deg); }
-  8%, 24% { transform: rotate(-12deg); }
-  16%, 32% { transform: rotate(12deg); }
-  40% { transform: rotate(-4deg); }
+/* Turn upright, hold, then fade back to the start instead of visibly rotating back to landscape. */
+@keyframes plg-rotate {
+  0%, 18% { transform: rotate(-90deg); opacity: 1; }
+  46%, 84% { transform: rotate(0deg); opacity: 1; }
+  92% { transform: rotate(0deg); opacity: 0; }
+  93% { transform: rotate(-90deg); opacity: 0; }
+  100% { transform: rotate(-90deg); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .phone-landscape-guard,
-  .phone-landscape-guard *,
-  .phone-landscape-guard *::before,
-  .phone-landscape-guard *::after {
-    animation: none !important;
+  .phone-landscape-guard .plg-card,
+  .plg-phone {
+    animation: none;
   }
 
   .plg-phone {
     transform: none;
-  }
-
-  .plg-phone::after {
-    opacity: 0.85;
-  }
-
-  .plg-check {
-    opacity: 1;
-    transform: none;
-  }
-
-  .plg-arc {
-    stroke-dashoffset: 0;
-  }
-
-  .plg-head {
-    opacity: 1;
   }
 }
 

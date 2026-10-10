@@ -99,7 +99,6 @@ const fr = {
   },
   loginPopup: { notification: 'Notification', prev: 'Prec.', next: 'Suiv.', done: 'Termine', gotIt: 'Compris', of: 'sur', newMessages: 'nouveaux messages' },
   orientation: {
-    badge: 'Mode portrait',
     title: 'Tournez votre téléphone à la verticale',
     message: 'Cette page fonctionne uniquement en mode portrait. Remettez votre téléphone à la verticale pour continuer ; rien de ce que vous faisiez ne sera perdu.',
     newOrder: 'Une nouvelle commande vous attend. Remettez votre téléphone à la verticale pour l\'accepter.',
