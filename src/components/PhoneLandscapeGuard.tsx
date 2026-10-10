@@ -65,7 +65,7 @@ export default function PhoneLandscapeGuard({ notice }: { notice?: PhoneLandscap
   // On very short screens or with enlarged system text, drop the explanation so the title and order notice stay visible.
   useLayoutEffect(() => {
     const card = cardRef.current;
-    const guard = card?.parentElement;
+    const guard = card?.closest<HTMLElement>('.phone-landscape-guard');
     if (!blocked || !card || !guard) return;
     const fit = () => {
       const style = getComputedStyle(guard);
@@ -85,28 +85,36 @@ export default function PhoneLandscapeGuard({ notice }: { notice?: PhoneLandscap
 
   return createPortal(
     <div className="phone-landscape-guard">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="phone-landscape-title"
-        aria-describedby="phone-landscape-message"
-        className="plg-card"
-        ref={cardRef}
-      >
-        <div className="plg-icon" aria-hidden="true">
-          <span className="plg-tile">
+      <div className="plg-blocks" aria-hidden="true">
+        <span className="plg-block plg-block--1" />
+        <span className="plg-block plg-block--2" />
+        <span className="plg-block plg-block--3" />
+        <span className="plg-block plg-block--4" />
+      </div>
+      <div className="plg-stage">
+        <span className="plg-accent plg-accent--a" aria-hidden="true" />
+        <span className="plg-accent plg-accent--b" aria-hidden="true" />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="phone-landscape-title"
+          aria-describedby="phone-landscape-message"
+          className="plg-card"
+          ref={cardRef}
+        >
+          <span className="plg-tile" aria-hidden="true">
             <Smartphone className="plg-phone" strokeWidth={1.9} />
           </span>
-        </div>
-        <div className="plg-copy">
-          <h2 id="phone-landscape-title" className="plg-title">{t.orientation.title}</h2>
-          <p id="phone-landscape-message" className="plg-message">{t.orientation.message}</p>
-          {notice && (
-            <p role="status" className={`plg-notice plg-notice--${notice.tone}`}>
-              <NoticeIcon aria-hidden="true" className="plg-notice-icon" strokeWidth={2.2} />
-              <span>{notice.message}</span>
-            </p>
-          )}
+          <div className="plg-copy">
+            <h2 id="phone-landscape-title" className="plg-title">{t.orientation.title}</h2>
+            <p id="phone-landscape-message" className="plg-message">{t.orientation.message}</p>
+            {notice && (
+              <p role="status" className={`plg-notice plg-notice--${notice.tone}`}>
+                <NoticeIcon aria-hidden="true" className="plg-notice-icon" strokeWidth={2.2} />
+                <span>{notice.message}</span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>,
