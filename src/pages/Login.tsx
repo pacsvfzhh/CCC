@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Lock, Globe, Package, ClipboardCheck, ArrowRight, AlertTriangle, ShieldAlert, Clock, Info, Check } from 'lucide-react';
+import { Shield, Lock, Globe, Package, ClipboardCheck, ArrowRight, AlertTriangle, ShieldAlert, Clock, Info, Check, Eye, EyeOff } from 'lucide-react';
 import {
   AccountLockedError,
   clearOpenedElsewhereNotice,
@@ -27,6 +27,7 @@ interface LoginProps {
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [username, setUsername] = useState(getRememberedUsername);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => getRememberedUsername() !== '');
   const [openedElsewhere, setOpenedElsewhere] = useState(hasOpenedElsewhereNotice);
   const [loading, setLoading] = useState(false);
@@ -235,6 +236,21 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     </label>
   );
 
+  // Explicit w-[]/h-[] sizes opt out of the global 44px touch-target rule; mousedown is cancelled to keep the keyboard open.
+  const passwordToggle = (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => setShowPassword(visible => !visible)}
+      aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
+      aria-pressed={showPassword}
+      title={showPassword ? t.login.hidePassword : t.login.showPassword}
+      className="absolute right-1.5 top-1/2 flex h-[40px] w-[40px] -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+    >
+      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+    </button>
+  );
+
   const openedElsewhereNotice = openedElsewhere && (
     <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 p-3">
       <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
@@ -372,17 +388,18 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 <div className="relative">
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     required
-                    className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full pl-11 pr-12 py-3.5 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                     placeholder={t.login.passwordPlaceholder}
                   />
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300">
                     <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
                   </div>
+                  {passwordToggle}
                 </div>
               </div>
 
@@ -631,16 +648,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <label htmlFor="password" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                       {t.login.password}
                     </label>
-                    <input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required
-                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
-                      placeholder={t.login.passwordPlaceholder}
-                    />
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                        required
+                        className="w-full px-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
+                        placeholder={t.login.passwordPlaceholder}
+                      />
+                      {passwordToggle}
+                    </div>
                   </div>
 
                   {rememberMeField}
@@ -907,16 +927,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
                       {t.login.password}
                     </label>
-                    <input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required
-                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
-                      placeholder={t.login.passwordPlaceholder}
-                    />
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                        required
+                        className="w-full px-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all hover:border-slate-300"
+                        placeholder={t.login.passwordPlaceholder}
+                      />
+                      {passwordToggle}
+                    </div>
                   </div>
 
                   {rememberMeField}

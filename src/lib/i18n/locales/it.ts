@@ -118,6 +118,8 @@ const it = {
     passwordPlaceholder: 'Inserisci la password',
     rememberMe: 'Ricordami',
     openedInAnotherTab: 'Il tuo account è ora aperto in un\'altra scheda o finestra. Puoi chiudere questa pagina.',
+    showPassword: 'Mostra password',
+    hidePassword: 'Nascondi password',
     signIn: 'Accedi',
     signingIn: 'Accesso in corso...',
     securityWarning: 'Avviso di Sicurezza',

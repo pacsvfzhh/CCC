@@ -112,6 +112,8 @@ const ja = {
     passwordPlaceholder: 'パスワードを入力',
     rememberMe: 'ログイン状態を保持',
     openedInAnotherTab: 'このアカウントは別のタブまたはウィンドウで開かれています。このページは閉じてもかまいません。',
+    showPassword: 'パスワードを表示',
+    hidePassword: 'パスワードを隠す',
     signIn: 'サインイン',
     signingIn: 'サインイン中...',
     securityWarning: 'セキュリティ警告',

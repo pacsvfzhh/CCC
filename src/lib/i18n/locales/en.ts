@@ -745,6 +745,8 @@ const en = {
     passwordPlaceholder: 'Enter your password',
     rememberMe: 'Remember me',
     openedInAnotherTab: 'Your account is now open in another tab or window. You can close this page.',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     signIn: 'Sign In',
     signingIn: 'Signing in...',
     securityWarning: 'Security Warning',

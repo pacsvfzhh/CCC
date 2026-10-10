@@ -112,6 +112,8 @@ const de = {
     passwordPlaceholder: 'Passwort eingeben',
     rememberMe: 'Angemeldet bleiben',
     openedInAnotherTab: 'Ihr Konto ist jetzt in einem anderen Tab oder Fenster geöffnet. Sie können diese Seite schließen.',
+    showPassword: 'Passwort anzeigen',
+    hidePassword: 'Passwort verbergen',
     signIn: 'Anmelden',
     signingIn: 'Anmeldung...',
     securityWarning: 'Sicherheitswarnung',

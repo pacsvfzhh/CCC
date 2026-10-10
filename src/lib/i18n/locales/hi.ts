@@ -739,6 +739,8 @@ const hi = {
     passwordPlaceholder: 'अपना पासवर्ड दर्ज करें',
     rememberMe: 'मुझे याद रखें',
     openedInAnotherTab: 'आपका खाता अब किसी दूसरे टैब या विंडो में खुला है। आप यह पेज बंद कर सकते हैं।',
+    showPassword: 'पासवर्ड दिखाएँ',
+    hidePassword: 'पासवर्ड छिपाएँ',
     signIn: 'साइन इन',
     signingIn: 'साइन इन हो रहा है...',
     securityWarning: 'सुरक्षा चेतावनी',

@@ -71,6 +71,8 @@ const pt = {
     passwordPlaceholder: 'Digite sua senha',
     rememberMe: 'Lembrar de mim',
     openedInAnotherTab: 'Sua conta agora está aberta em outra aba ou janela. Você pode fechar esta página.',
+    showPassword: 'Mostrar senha',
+    hidePassword: 'Ocultar senha',
     signIn: 'Entrar',
     signingIn: 'Entrando...',
     securityWarning: 'Aviso de Seguranca',

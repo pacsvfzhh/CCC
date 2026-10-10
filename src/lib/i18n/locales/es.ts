@@ -620,6 +620,8 @@ const es = {
     passwordPlaceholder: 'Ingresa tu contrasena',
     rememberMe: 'Recordarme',
     openedInAnotherTab: 'Tu cuenta ya está abierta en otra pestaña o ventana. Puedes cerrar esta página.',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
     signIn: 'Iniciar Sesion',
     signingIn: 'Iniciando sesion...',
     securityWarning: 'Advertencia de Seguridad',
