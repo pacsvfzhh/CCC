@@ -375,7 +375,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-amber-400 via-yellow-400 to-orange-400"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-100/30 to-transparent opacity-50"></div>
                         <div className="relative pl-5 pr-3 sm:pr-4 py-3 sm:py-3.5">
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 mb-2">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md shadow-amber-300/40">
                                 <Gift className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
@@ -384,7 +384,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                                 <div className="text-xs sm:text-sm font-bold text-amber-800">{t.orderList.customerTip}</div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="ml-auto flex items-center gap-2">
                               <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300/60 text-[11px] font-bold text-amber-700 uppercase tracking-wider">
                                 <Gift className="w-3 h-3" />
                                 {t.orderList.tipBadge}
@@ -420,8 +420,8 @@ export default function OrderList({ employeeId }: OrderListProps) {
                     >
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusConfig.accent}`}></div>
                       <div className="pl-4 pr-3 sm:pr-4 py-3 sm:py-3.5">
-                        <div className="flex items-center justify-between mb-2.5">
-                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 mb-2.5">
+                          <div className="flex items-center gap-2.5 flex-1 min-w-[11.5rem]">
                             <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br ${statusConfig.iconBg} flex items-center justify-center shadow-sm flex-shrink-0`}>
                               {order.status === 'success' ? <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" /> : order.status === 'failure' ? <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" /> : <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />}
                             </div>
@@ -432,7 +432,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
                             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0 border ${statusConfig.badge}`}>
                               {order.status === 'success' ? <><span className="hidden sm:inline">{t.orderList.statusSuccess}</span><span className="sm:hidden">{t.orderList.statusOk}</span></> : order.status === 'failure' ? <><span className="hidden sm:inline">{t.orderList.statusFailed}</span><span className="sm:hidden">X</span></> : <><span className="hidden sm:inline">{t.orderList.statusPending}</span><span className="sm:hidden">...</span></>}
                             </div>

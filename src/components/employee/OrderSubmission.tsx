@@ -527,8 +527,8 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
         <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-blue-50 rounded-lg sm:rounded-xl border border-blue-200 overflow-hidden group/icon flex-shrink-0">
           <Package className="w-5 h-5 text-blue-600 relative z-10" />
         </div>
-        <div className="flex-1 min-w-[8rem] sm:min-w-[12rem]">
-          <h2 className="text-base sm:text-2xl font-black text-blue-600 relative truncate">
+        <div className="flex-1 min-w-[8rem] sm:min-w-[15rem]">
+          <h2 className="text-base sm:text-2xl font-black text-blue-600 relative leading-tight [overflow-wrap:anywhere]">
             {t.orderSubmission.title}
           </h2>
           <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1 flex items-center gap-1.5 sm:gap-2">
@@ -827,7 +827,7 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
           </div>
 
           {/* Transaction ID - Mobile Optimized */}
-          <div className="md:col-span-2 group relative">
+          <div className="lg:col-span-2 group relative">
             <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 mb-2 sm:mb-3">
               <div className="relative flex-shrink-0">
                 <div className="absolute inset-0 bg-blue-400/30 rounded-full blur-sm group-hover:bg-blue-400/50 transition-all hidden sm:block"></div>

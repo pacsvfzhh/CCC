@@ -3790,8 +3790,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.todayTotal}</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.todayTotal}</span>
               <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-100 transition-colors">
                 <TrendingUp className="w-4.5 h-4.5 text-blue-600" />
               </div>
@@ -3806,8 +3806,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.completedLabel}</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.completedLabel}</span>
               <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
                 <CheckCircle className="w-4.5 h-4.5 text-emerald-600" />
               </div>
@@ -3822,8 +3822,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-rose-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-rose-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.errorOrders}</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.errorOrders}</span>
               <div className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-100 group-hover:bg-rose-100 transition-colors">
                 <XCircle className="w-4.5 h-4.5 text-rose-600" />
               </div>
@@ -3838,8 +3838,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.submittedLabel}</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.submittedLabel}</span>
               <div className="w-9 h-9 bg-cyan-50 rounded-xl flex items-center justify-center border border-cyan-100 group-hover:bg-cyan-100 transition-colors">
                 <Send className="w-4.5 h-4.5 text-cyan-600" />
               </div>
@@ -3854,8 +3854,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.timeoutOrders}</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.timeoutOrders}</span>
               <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center border border-orange-100 group-hover:bg-orange-100 transition-colors">
                 <Clock className="w-4.5 h-4.5 text-orange-600" />
               </div>
@@ -3870,8 +3870,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-amber-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.successRateLabel}</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.successRateLabel}</span>
               <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100 group-hover:bg-amber-100 transition-colors">
                 <Zap className="w-4.5 h-4.5 text-amber-600" />
               </div>
@@ -3890,8 +3890,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-blue-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.totalLabel}</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.totalLabel}</span>
                 <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
                   <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
                 </div>
@@ -3905,8 +3905,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-emerald-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.doneLabel}</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.doneLabel}</span>
                 <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
@@ -3920,8 +3920,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-rose-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.errorLabel}</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.errorLabel}</span>
                 <div className="w-7 h-7 bg-rose-50 rounded-lg flex items-center justify-center border border-rose-100">
                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
                 </div>
@@ -3935,8 +3935,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-cyan-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.submittedLabel}</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.submittedLabel}</span>
                 <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center border border-cyan-100">
                   <Send className="w-3.5 h-3.5 text-cyan-600" />
                 </div>
@@ -3950,8 +3950,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-orange-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.timeoutLabel}</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.timeoutLabel}</span>
                 <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-100">
                   <Clock className="w-3.5 h-3.5 text-orange-600" />
                 </div>
@@ -3965,8 +3965,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-amber-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 to-amber-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.successRateLabel}</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight [overflow-wrap:anywhere]">{t.dispatch.successRateLabel}</span>
                 <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
                   <Zap className="w-3.5 h-3.5 text-amber-600" />
                 </div>
