@@ -1642,12 +1642,18 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5 sm:space-y-5 sm:px-7 sm:py-6">
               <dl className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-1 text-sm sm:px-5">
                 <div className="flex items-center justify-between gap-3 py-3">
-                  <dt className="text-slate-500">{t.wallet.amount}</dt>
-                  <dd className="font-semibold tabular-nums text-slate-900">${wallet?.available_balance.toFixed(2)}</dd>
+                  <dt className="flex items-center gap-2 text-slate-500">
+                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    {t.wallet.amount}
+                  </dt>
+                  <dd className="font-bold tabular-nums text-emerald-600">${wallet?.available_balance.toFixed(2)}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-dashed border-slate-200 py-3">
-                  <dt className="text-slate-500">{t.wallet.afterWithdrawal}</dt>
-                  <dd className="font-semibold tabular-nums text-slate-400">$0.00</dd>
+                  <dt className="flex items-center gap-2 text-slate-500">
+                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" aria-hidden="true"></span>
+                    {t.wallet.afterWithdrawal}
+                  </dt>
+                  <dd className="font-bold tabular-nums text-blue-700">$0.00</dd>
                 </div>
               </dl>
 
