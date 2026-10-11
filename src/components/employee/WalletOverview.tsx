@@ -32,6 +32,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [eligibilityOverlayLeaving, setEligibilityOverlayLeaving] = useState(false);
   const contentInnerRef = useRef<HTMLDivElement>(null);
+  const withdrawPanelRef = useRef<HTMLDivElement>(null);
+  const [curtainHeight, setCurtainHeight] = useState<number | null>(null);
   const [contentHeight, setContentHeight] = useState<number | null>(null);
   const [contentResizing, setContentResizing] = useState(false);
   const [contentRevealActive, setContentRevealActive] = useState(false);
@@ -366,6 +368,19 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     return { eligible: policy.eligible === true, message: policy.eligible ? '' : message || t.wallet.eligibilityFailed };
   };
 
+  // Pin curtain artwork to the panel's settled height so later resizes don't stretch it.
+  useLayoutEffect(() => {
+    if (!checkingEligibility) {
+      setCurtainHeight(null);
+      return;
+    }
+    const panel = withdrawPanelRef.current;
+    const inner = contentInnerRef.current;
+    const wrapper = inner?.parentElement;
+    if (!panel || !inner || !wrapper) return;
+    setCurtainHeight(panel.offsetHeight - wrapper.offsetHeight + inner.offsetHeight);
+  }, [checkingEligibility]);
+
   const handleRequestWithdrawal = async () => {
     if (checkingEligibility) return;
     setMessage(null);
@@ -469,8 +484,14 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     }
   };
 
+  const buttonLoading = checkingEligibility && !eligibilityOverlayLeaving;
+
   const dollarBlocks = (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
+      style={{ height: curtainHeight ?? '100%' }}
+      aria-hidden="true"
+    >
       {[
         { left: '5%', top: '10%', size: 46, rot: -12 },
         { left: '80%', top: '7%', size: 58, rot: 14 },
@@ -1305,7 +1326,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       </div>
 
       {/* Withdraw Funds Panel - Wealth Transfer Theme */}
-      <div className={`relative rounded-2xl overflow-hidden border transition-[border-color,box-shadow] duration-500 ease-out ${
+      <div ref={withdrawPanelRef} className={`relative rounded-2xl overflow-hidden border transition-[border-color,box-shadow] duration-500 ease-out ${
         contentResizing
           ? 'border-cyan-300 shadow-[0_0_0_4px_rgba(103,232,249,0.18),0_14px_32px_-14px_rgba(37,99,235,0.35)]'
           : 'border-gray-200 shadow-sm'
@@ -1341,8 +1362,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
             {/* Center loading area with progress - positioned below title */}
             <div
-              className="keep-animation absolute inset-0 z-50 flex items-start md:items-center justify-center pt-12 sm:pt-16 md:pt-0"
-              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-content-out 260ms ease-in both' : 'wd-curtain-content-in 600ms ease-out 1300ms both' }}
+              className="keep-animation absolute inset-x-0 top-0 z-50 flex items-start md:items-center justify-center pt-12 sm:pt-16 md:pt-0"
+              style={{ height: curtainHeight ?? '100%', animation: eligibilityOverlayLeaving ? 'wd-curtain-content-out 260ms ease-in both' : 'wd-curtain-content-in 600ms ease-out 1300ms both' }}
               role="status"
               aria-live="polite"
             >
@@ -1501,7 +1522,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           <div className="absolute bottom-0 left-0 w-32 h-32 border-b border-l border-cyan-400/10 rounded-bl-2xl"></div>
         </div>
 
-        <div className={`relative p-3 sm:p-4 md:p-6 ${checkingEligibility ? '' : 'z-10'}`}>
+        <div className="relative z-10 p-3 sm:p-4 md:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6 sm:mb-8">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Animated Wallet Icon with Gold Coins */}
@@ -1541,10 +1562,10 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           </button>
         </div>
 
-        <style>{'@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}.wd-reveal-stagger>.wd-reveal-late{animation-delay:1.1s}.wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
+        <style>{'@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
         {/* Content wrapper with transition animation */}
         <div
-          className={`relative ${checkingEligibility && !showWithdrawalForm ? 'z-[55]' : 'z-10'}`}
+          className="relative z-10"
           style={{
             height: contentHeight ?? undefined,
             transition: 'height 520ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -1560,7 +1581,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className={contentRevealActive ? 'wd-reveal-stagger' : ''}>
               {message && (
                 <div
-                  className={`wd-reveal-late rounded-lg p-2.5 sm:p-3 md:p-4 text-[11px] sm:text-xs md:text-sm flex items-start gap-1.5 sm:gap-2 md:gap-3 mb-3 sm:mb-4 ${
+                  className={`rounded-lg p-2.5 sm:p-3 md:p-4 text-[11px] sm:text-xs md:text-sm flex items-start gap-1.5 sm:gap-2 md:gap-3 mb-3 sm:mb-4 ${
                     message.type === 'success'
                       ? 'bg-green-500/10 border border-green-500/50 text-green-400'
                       : 'bg-red-500/10 border border-red-500/50 text-red-400'
@@ -1575,29 +1596,29 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                 onClick={handleRequestWithdrawal}
                 disabled={checkingEligibility}
                 className={`wd-reveal-skip relative w-full min-h-[44px] text-white py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold flex items-center justify-center gap-1.5 sm:gap-2 group overflow-hidden disabled:cursor-not-allowed text-sm sm:text-base transition-all duration-300 ${
-                  checkingEligibility
+                  buttonLoading
                     ? 'bg-blue-600 cursor-wait shadow-2xl shadow-blue-500/50 ring-2 ring-white/60'
                     : 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 hover:from-blue-500 hover:via-cyan-500 hover:to-blue-600 shadow-2xl shadow-blue-500/50 hover:shadow-cyan-500/50 hover:scale-[1.02] active:scale-[0.98]'
                 }`}
               >
                 {/* Pulsing glow when loading */}
-                {checkingEligibility && (
+                {buttonLoading && (
                   <div className="keep-animation absolute inset-0 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 rounded-lg sm:rounded-xl blur-xl opacity-40 animate-pulse"></div>
                 )}
 
                 {/* Shimmer effect when loading */}
-                {checkingEligibility && (
+                {buttonLoading && (
                   <div className="keep-animation absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
                 )}
 
                 {/* Hover effect when not loading */}
-                {!checkingEligibility && (
+                {!buttonLoading && (
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 )}
 
                 {/* Icon and text */}
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  {checkingEligibility ? (
+                  {buttonLoading ? (
                     <>
                       {/* Double spinner effect - outer ring + inner ring */}
                       <div className="keep-animation relative">
