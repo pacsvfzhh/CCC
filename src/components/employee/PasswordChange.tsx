@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { hashPassword } from '../../lib/passwordHash';
-import { verifyPassword } from '../../lib/passwordHash';
-import { useLanguage } from '../../lib/i18n';
+import { getEmployeeFinancialSession } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface PasswordChangeProps {
   employeeId: string;
@@ -23,21 +23,24 @@ export default function PasswordChange({ employeeId, onClose, onLogout }: Passwo
   const [success, setSuccess] = useState(false);
   const { t } = useLanguage();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scrollY = window.scrollY;
     const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
     body.style.position = 'fixed';
     body.style.top = `-${scrollY}px`;
     body.style.left = '0';
     body.style.right = '0';
     body.style.overflow = 'hidden';
     return () => {
-      body.style.position = '';
-      body.style.top = '';
-      body.style.left = '';
-      body.style.right = '';
-      body.style.overflow = '';
-      window.scrollTo(0, scrollY);
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
     };
   }, []);
 
@@ -82,29 +85,17 @@ export default function PasswordChange({ employeeId, onClose, onLogout }: Passwo
     setLoading(true);
 
     try {
-      const { data: user, error: fetchError } = await supabase
-        .from('users')
-        .select('password_hash')
-        .eq('id', employeeId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const isValid = await verifyPassword(currentPassword, user.password_hash);
-      if (!isValid) {
-        setError(t.passwordChange.errorCurrentIncorrect);
-        setLoading(false);
-        return;
-      }
-
-      const hashedPassword = await hashPassword(newPassword);
-
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ password_hash: hashedPassword })
-        .eq('id', employeeId);
+      const financialSession = getEmployeeFinancialSession();
+      const { data, error: updateError } = await supabase.rpc('change_employee_password_atomic', {
+        p_user_id: employeeId,
+        p_session_token: financialSession.token,
+        p_tab_id: financialSession.tabId,
+        p_current_password: currentPassword,
+        p_new_password: newPassword,
+      });
 
       if (updateError) throw updateError;
+      if (!data) throw new Error(t.passwordChange.errorGeneric);
 
       setSuccess(true);
       setCurrentPassword('');
@@ -116,19 +107,19 @@ export default function PasswordChange({ employeeId, onClose, onLogout }: Passwo
         onLogout();
       }, 2000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error changing password:', error);
-      setError(error.message || t.passwordChange.errorGeneric);
+      setError(error instanceof Error ? error.message : t.passwordChange.errorGeneric);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4" style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
-      <div className="bg-white rounded-2xl shadow-2xl shadow-slate-900/20 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 animate-[menuAppear_0.2s_ease-out]">
+  return createPortal(
+    <div className="employee-modal-backdrop fixed inset-0 bg-slate-900/50 flex items-center justify-center z-[10000] p-4" style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
+      <div className="employee-modal-surface bg-white rounded-2xl shadow-2xl shadow-slate-900/20 max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Premium Header */}
-        <div className="relative px-6 py-5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-t-2xl overflow-hidden">
+        <div className="relative px-6 py-5 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12)_0%,_transparent_60%)]" />
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <div className="relative flex items-center justify-between">
@@ -281,6 +272,7 @@ export default function PasswordChange({ employeeId, onClose, onLogout }: Passwo
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -5,6 +5,9 @@
  */
 
 import { supabase } from './supabase';
+import type { Database } from '../types/database';
+
+type TableName = keyof Database['public']['Tables'];
 
 /**
  * Validates that a required table column exists
@@ -14,8 +17,8 @@ export async function validateTableColumn(
   columnName: string
 ): Promise<boolean> {
   try {
-    const { data, error } = await supabase
-      .from(tableName)
+    const { error } = await supabase
+      .from(tableName as TableName)
       .select(columnName)
       .limit(1);
 
@@ -81,7 +84,7 @@ export async function safeQuery<T>(
     }
 
     const { data, error } = await supabase
-      .from(tableName)
+      .from(tableName as TableName)
       .select(select);
 
     if (error) {
@@ -108,7 +111,7 @@ export async function safeQuery<T>(
 export async function tableExists(tableName: string): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from(tableName)
+      .from(tableName as TableName)
       .select('*')
       .limit(0);
 

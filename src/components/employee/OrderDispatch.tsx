@@ -1,24 +1,31 @@
-import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../lib/supabase';
-import { getTodayStartUTC, getCurrentTimestamp } from '../../lib/dateUtils';
+import { AUTH_STORAGE_KEY, getStoredAuth } from '../../lib/auth';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { getTodayStartUTC } from '../../lib/dateUtils';
 import { Play, Square, CheckCircle, XCircle, Clock, Package, TrendingUp, AlertTriangle, AlertCircle, Zap, Timer, FileText, ShieldAlert, CheckSquare, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useResponsive } from '../../lib/useResponsive';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 import type { Employee } from '../../types';
 
 interface DispatchAssignment {
   id: string;
-  dispatch_order_id: string;
+  dispatch_order_id: string | null;
   status: string;
   assigned_at: string;
-  accepted_at?: string;
-  completed_at?: string;
-  remarks?: string;
-  assignment_id?: string;
+  accepted_at?: string | null;
+  completed_at?: string | null;
+  remarks?: string | null;
+  assignment_id?: string | null;
   order_submitted?: boolean;
+  dispatch_session_id?: string | null;
+  accept_deadline_at?: string | null;
+  session_timeout_minutes?: number | null;
+  session_timeout_minutes_snapshot?: number | null;
+  order_content_snapshot?: string | null;
   dispatch_orders: {
+    id?: string;
     order_content: string;
   };
 }
@@ -30,15 +37,36 @@ interface WorkSession {
 }
 
 interface DispatchConfig {
-  dispatch_interval_min: number;
-  dispatch_interval_max: number;
   session_timeout_minutes: number;
-  dispatch_order_mode: 'random' | 'sequential';
+}
+
+interface DispatchSelection {
+  sessionId: string;
+  groupId: string;
+  poolId: string;
+  dueAt: number;
+}
+
+type RecoveryOutcome =
+  | { state: 'active'; assignment: DispatchAssignment }
+  | { state: 'idle' | 'ended' | 'stale' };
+
+const PAUSED_DISPATCH_CHECK_MS = 5 * 60 * 1000;
+
+function getOrderDispatchErrorMessage(error: unknown) {
+  return formatSupabaseError(error);
+}
+
+function isInvalidDispatchSession(message: string) {
+  return message.includes('Employee work session is invalid, offline, or stale.')
+    || message.includes('Employee session is invalid or expired.')
+    || message.includes('Employee session has expired.');
 }
 
 interface OrderDispatchProps {
   employee: Employee;
   onStatusChange?: (hasNewOrder: boolean, hasTimeout: boolean) => void;
+  onSessionExpired?: () => void;
   onNavigateToOrders?: () => void;
 }
 
@@ -48,68 +76,6 @@ interface Notification {
   title: string;
   message: string;
   duration?: number; // 0 = 不自动关闭
-}
-
-/**
- * Generate a truly random number with uniform distribution
- * Uses crypto.getRandomValues for better randomness when available
- * Ensures balanced distribution across the entire range, like a fair lottery
- *
- * @param min - Minimum value (inclusive)
- * @param max - Maximum value (inclusive)
- * @returns Random integer between min and max (inclusive)
- */
-function getEnhancedRandomSeconds(min: number, max: number): number {
-  const range = max - min;
-
-  // Use crypto.getRandomValues for cryptographically strong randomness
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
-    // Generate multiple random values for true lottery-like randomness
-    const randomBuffer = new Uint32Array(3);
-    window.crypto.getRandomValues(randomBuffer);
-
-    // Use a combination of random sources with weighted distribution
-    // This creates more variation and unpredictability like a real lottery
-    const r1 = randomBuffer[0] / (0xffffffff + 1);
-    const r2 = randomBuffer[1] / (0xffffffff + 1);
-    const r3 = randomBuffer[2] / (0xffffffff + 1);
-
-    // Apply non-linear transformation for lottery-like distribution
-    // Use quadratic weighting to create more variation at extremes
-    const selector = randomBuffer[0] % 100;
-
-    let randomValue: number;
-    if (selector < 20) {
-      // 20% chance: favor minimum (fast delivery)
-      randomValue = Math.pow(r1, 2); // Skew towards lower values
-    } else if (selector < 40) {
-      // 20% chance: favor maximum (longer wait)
-      randomValue = 1 - Math.pow(1 - r2, 2); // Skew towards higher values
-    } else {
-      // 60% chance: truly random across full range
-      // Use multiple random sources mixed together
-      randomValue = (r1 + r2 + r3) / 3;
-    }
-
-    // Map to range with integer result
-    return Math.floor(randomValue * range) + min;
-  }
-
-  // Fallback to Math.random() with enhanced distribution
-  const r1 = Math.random();
-  const r2 = Math.random();
-  const selector = Math.floor(Math.random() * 100);
-
-  let randomValue: number;
-  if (selector < 20) {
-    randomValue = Math.pow(r1, 2);
-  } else if (selector < 40) {
-    randomValue = 1 - Math.pow(1 - r2, 2);
-  } else {
-    randomValue = (r1 + r2 + Math.random()) / 3;
-  }
-
-  return Math.floor(randomValue * range) + min;
 }
 
 function generateAssignmentId(): string {
@@ -128,7 +94,7 @@ function generateAssignmentId(): string {
   return id;
 }
 
-export default function OrderDispatch({ employee, onStatusChange, onNavigateToOrders }: OrderDispatchProps) {
+export default function OrderDispatch({ employee, onStatusChange, onSessionExpired, onNavigateToOrders }: OrderDispatchProps) {
   const [session, setSession] = useState<WorkSession>({
     isWorking: false,
     sessionId: null,
@@ -148,65 +114,39 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorReason, setErrorReason] = useState('');
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [config, setConfig] = useState<DispatchConfig>({
-    dispatch_interval_min: 30,
-    dispatch_interval_max: 120,
-    session_timeout_minutes: 10,
-    dispatch_order_mode: 'random',
-  });
+  const [config, setConfig] = useState<DispatchConfig>({ session_timeout_minutes: 10 });
   const [nextOrderTime, setNextOrderTime] = useState<Date | null>(null);
   const [showOrderDetail, setShowOrderDetail] = useState(false);
   const [hasTimeout, setHasTimeout] = useState(false);
   const [hasFiveMinuteWarning, setHasFiveMinuteWarning] = useState(false);
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
   const [waitingTime, setWaitingTime] = useState(0);
-  const [totalWorkTime, setTotalWorkTime] = useState(0);
-  const [unacceptedCount, setUnacceptedCount] = useState(0);
+  const [, setTotalWorkTime] = useState(0);
+  const [, setUnacceptedCount] = useState(0);
   const [showAutoStopModal, setShowAutoStopModal] = useState(false);
+  const [autoStopReason, setAutoStopReason] = useState<'missed' | 'inactivity' | 'ended' | 'unverified'>('missed');
   const [showTimeoutStopModal, setShowTimeoutStopModal] = useState(false);
-  const [selectedOrderDetail, setSelectedOrderDetail] = useState<any | null>(null);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<DispatchAssignment | null>(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [showGrabFailedModal, setShowGrabFailedModal] = useState(false);
   const [showGrabSuccessAnimation, setShowGrabSuccessAnimation] = useState(false);
-  const [acceptPhase, setAcceptPhase] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
-  const prevOrderStatusRef = useRef<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionType, setTransitionType] = useState<'start' | 'end' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+  const [dispatchPause, setDispatchPause] = useState<{ type: 'unavailable' | 'error'; message: string } | null>(null);
+  const [timeoutStopMinutes, setTimeoutStopMinutes] = useState(10);
   // Debounce states for preventing duplicate requests
   const [isAccepting, setIsAccepting] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showOrderNotSubmittedModal, setShowOrderNotSubmittedModal] = useState(false);
 
-  // Lock body scroll when Order Not Submitted modal is open
-  useEffect(() => {
-    if (showOrderNotSubmittedModal) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
-    }
-  }, [showOrderNotSubmittedModal]);
-
-  // Smooth phase transition when order moves from pending -> accepted
-  useEffect(() => {
-    const prevStatus = prevOrderStatusRef.current;
-    const curStatus = currentOrder?.status ?? null;
-    prevOrderStatusRef.current = curStatus;
-    if (prevStatus === 'pending' && curStatus === 'accepted') {
-      setAcceptPhase('fade-out');
-      const t1 = setTimeout(() => setAcceptPhase('fade-in'), 350);
-      const t2 = setTimeout(() => setAcceptPhase('idle'), 850);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
-  }, [currentOrder?.status]);
   const [isReporting, setIsReporting] = useState(false);
   const [isStartButtonPressed, setIsStartButtonPressed] = useState(false);
   const [showStartRipple, setShowStartRipple] = useState(false);
   const [showStartSuccess, setShowStartSuccess] = useState(false);
   const [showStopSuccess, setShowStopSuccess] = useState(false);
-  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [, setIsPageVisible] = useState(true);
   const [suppressAnimations, setSuppressAnimations] = useState(false);
 
   // Device optimization hooks
@@ -240,10 +180,31 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const sessionIdRef = useRef<string | null>(null);
   const sessionActiveRef = useRef<boolean>(false);
   const unacceptedCountRef = useRef<number>(0);
-  const timeoutCountRef = useRef<number>(0);
-  const currentGroupConfigRef = useRef<DispatchConfig | null>(null);
+  const selectedDispatchRef = useRef<DispatchSelection | null>(null);
+  const preparingDispatchRef = useRef<{ sessionId: string; generation: number } | null>(null);
+  const assigningDispatchRef = useRef<{ sessionId: string; generation: number } | null>(null);
+  const dispatchPausedRef = useRef(false);
+  const configRef = useRef(config);
+  configRef.current = config;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
+  const startTimeoutCheckRef = useRef<(() => void) | null>(null);
+  const processTimeoutInFlightRef = useRef(false);
+  const startActivityMonitorRef = useRef<(() => void) | null>(null);
+  const handleAcceptTimeoutRef = useRef<((assignmentId: string) => Promise<void>) | null>(null);
   const currentOrderRef = useRef<DispatchAssignment | null>(null);
   const startWorkLockRef = useRef<boolean>(false);
+  const componentMountedRef = useRef(false);
+  const lifecycleGenerationRef = useRef(0);
+  const initialCleanupPromiseRef = useRef<Promise<void> | null>(null);
+  const visibilityRestartPromiseRef = useRef<Promise<void> | null>(null);
+  const restartSessionRef = useRef<(() => Promise<void>) | null>(null);
+  const sendHeartbeatRef = useRef<(() => Promise<void>) | null>(null);
+  const checkPendingOrderRef = useRef<(() => Promise<void>) | null>(null);
+  const recoveryInFlightRef = useRef<Promise<RecoveryOutcome> | null>(null);
+  const membershipRevisionRef = useRef(0);
+  const membershipChangeDuringAssignmentRef = useRef(false);
+  const membershipChangeHandlerRef = useRef<() => void>(() => {});
 
   // 通知系统
   const showNotification = (notification: Omit<Notification, 'id'>) => {
@@ -265,78 +226,60 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   useEffect(() => {
+    componentMountedRef.current = true;
     loadConfig();
     loadTodayOrders();
     loadTotalWorkTime();
-    checkPendingOrder();
-
-    // Cleanup stale sessions on page load
-    cleanupStaleSessions();
+    const previousInitialCheck = initialCleanupPromiseRef.current;
+    const initialCheckPromise = (previousInitialCheck || Promise.resolve())
+      .catch(error => {
+        console.error('Previous pending-order check failed:', error);
+      })
+      .then(() => checkPendingOrderRef.current?.())
+      .catch(error => {
+        console.error('Initial pending-order check failed:', error);
+      });
+    initialCleanupPromiseRef.current = initialCheckPromise;
+    void initialCheckPromise.finally(() => {
+      if (initialCleanupPromiseRef.current === initialCheckPromise) {
+        initialCleanupPromiseRef.current = null;
+      }
+    });
 
     // Refresh total work time every 60 seconds (cron handles stale cleanup globally)
     const workTimeInterval = setInterval(() => {
       loadTotalWorkTime();
     }, 60000);
 
-    // Hot reload configuration every 5 minutes for active sessions
-    const configReloadInterval = setInterval(async () => {
-      if (sessionActiveRef.current) {
-        // Store previous config from ref (more reliable than state)
-        const previousConfig = currentGroupConfigRef.current ?
-          { ...currentGroupConfigRef.current } :
-          { ...config };
-
-        await loadConfig();
-
-        // Get current config after reload
-        const currentConfig = currentGroupConfigRef.current || config;
-
-        // Check if config changed
-        const hasChanged =
-          previousConfig.dispatch_interval_min !== currentConfig.dispatch_interval_min ||
-          previousConfig.dispatch_interval_max !== currentConfig.dispatch_interval_max ||
-          previousConfig.session_timeout_minutes !== currentConfig.session_timeout_minutes ||
-          previousConfig.dispatch_order_mode !== currentConfig.dispatch_order_mode;
-
-        if (hasChanged) {
-          console.log('Configuration updated silently:', {
-            previous: previousConfig,
-            current: currentConfig
-          });
-
-          // If session timeout changed and we have a current order, restart timeout check
-          if (previousConfig.session_timeout_minutes !== currentConfig.session_timeout_minutes && currentOrderRef.current) {
-            console.log('Session timeout changed, restarting timeout check silently');
-            startTimeoutCheck();
-          }
-        }
-      }
-    }, 300000); // Check every 5 minutes
-
     // Handle page close/refresh - stop work session
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (sessionActiveRef.current) {
-        const auth = sessionStorage.getItem('quantum_trader_auth');
-        if (auth) {
-          const authData = JSON.parse(auth);
-          const userId = authData?.user?.id;
+    const stopDispatchSessionWithBeacon = () => {
+      const auth = getStoredAuth();
+      const currentSessionId = sessionIdRef.current;
+      if (!sessionActiveRef.current || !currentSessionId || auth?.userType !== 'employee') return;
 
-          if (userId) {
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseKey) return;
 
-            if (supabaseUrl && supabaseKey) {
-              const payload = JSON.stringify({ p_user_id: userId });
-              const blob = new Blob([payload], { type: 'application/json' });
+      const payload = JSON.stringify({
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: currentSessionId,
+      });
+      const blob = new Blob([payload], { type: 'application/json' });
 
-              navigator.sendBeacon(
-                `${supabaseUrl}/rest/v1/rpc/end_work_session_by_user?apikey=${supabaseKey}`,
-                blob
-              );
-            }
-          }
-        }
+      const queued = navigator.sendBeacon(
+        `${supabaseUrl}/rest/v1/rpc/stop_employee_dispatch_session_secure?apikey=${supabaseKey}`,
+        blob
+      );
+      if (!queued) {
+        console.error('Failed to queue dispatch-session stop beacon.');
       }
+    };
+
+    const handleBeforeUnload = () => {
+      stopDispatchSessionWithBeacon();
     };
 
     // Handle page visibility change - detect when user switches tabs or minimizes
@@ -346,9 +289,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         setIsPageVisible(false);
         pageHiddenAtRef.current = Date.now();
         if (sessionActiveRef.current) {
-          // Send heartbeat immediately to mark accurate last-active time
-          sendHeartbeat();
-          updateActivity();
+          // Send heartbeat immediately to mark accurate last-active time.
+          lastActivityRef.current = new Date();
+          void sendHeartbeatRef.current?.();
         }
       } else {
         // Page is now visible again
@@ -361,49 +304,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           const gapMinutes = gapMs / 1000 / 60;
 
           if (gapMinutes > 1.5) {
-            // Page was hidden for more than 1.5 minutes
-            // The work session's last_heartbeat_at is from when page went hidden
-            // We need to end the old session and start a new one to avoid gap inflation
-            const restartSession = async () => {
-              try {
-                const auth = sessionStorage.getItem('quantum_trader_auth');
-                if (!auth) return;
-                const userId = JSON.parse(auth).user.id;
-
-                // End current work session (will use last_heartbeat_at for accurate end time)
-                await supabase.rpc('end_work_session', { p_user_id: userId });
-
-                // Start a new work session immediately
-                const { data: newWorkSession } = await supabase.rpc('start_work_session', { p_user_id: userId });
-
-                // Re-activate dispatch session if it was marked offline
-                const currentSessionId = sessionIdRef.current;
-                if (currentSessionId) {
-                  await supabase
-                    .from('dispatch_sessions')
-                    .update({ status: 'online', last_activity_at: getCurrentTimestamp() })
-                    .eq('id', currentSessionId);
-                }
-
-                if (newWorkSession) {
-                  sendHeartbeat();
-                }
-
-                // Refresh displayed work time
-                loadTotalWorkTime();
-              } catch (error) {
-                console.error('Failed to restart work session after visibility gap:', error);
-              }
-            };
-            restartSession();
+            // Serialize the stop/start pair so visibility and heartbeat recovery cannot race.
+            void restartSessionRef.current?.();
           } else {
-            // Short gap - just send heartbeat to resume tracking
-            sendHeartbeat();
+            // Short gap - just send heartbeat to resume tracking.
+            void sendHeartbeatRef.current?.();
           }
         }
 
         // MOBILE OPTIMIZATION: Very brief animation suppression to prevent flash
-        if (isMobile) {
+        if (isMobileRef.current) {
           setSuppressAnimations(true);
           requestAnimationFrame(() => {
             setTimeout(() => {
@@ -417,25 +327,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     // pagehide is more reliable than beforeunload on mobile (iOS Safari, Android Chrome)
     // Only end session if page won't be restored (e.g., tab close, not just background)
     const handlePageHide = (e: PageTransitionEvent) => {
-      if (!e.persisted && sessionActiveRef.current) {
-        const auth = sessionStorage.getItem('quantum_trader_auth');
-        if (auth) {
-          const authData = JSON.parse(auth);
-          const userId = authData?.user?.id;
-          if (userId) {
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-            if (supabaseUrl && supabaseKey) {
-              const payload = JSON.stringify({ p_user_id: userId });
-              const blob = new Blob([payload], { type: 'application/json' });
-              navigator.sendBeacon(
-                `${supabaseUrl}/rest/v1/rpc/end_work_session_by_user?apikey=${supabaseKey}`,
-                blob
-              );
-            }
-          }
-        }
-      }
+      if (!e.persisted) stopDispatchSessionWithBeacon();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -443,6 +335,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      componentMountedRef.current = false;
+      lifecycleGenerationRef.current += 1;
       if (dispatchTimerRef.current) clearTimeout(dispatchTimerRef.current);
       if (activityTimerRef.current) clearInterval(activityTimerRef.current);
       if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
@@ -452,7 +346,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       if (fiveMinuteWarningRef.current) clearTimeout(fiveMinuteWarningRef.current);
       if (grabFailedTimerRef.current) clearTimeout(grabFailedTimerRef.current);
       clearInterval(workTimeInterval);
-      clearInterval(configReloadInterval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('pagehide', handlePageHide);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -460,9 +353,18 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   }, []);
 
   useEffect(() => {
+    const channel = supabase.channel(`employee-dispatch-group-${employee.id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'dispatch_group_members', filter: `user_id=eq.${employee.id}`,
+      }, () => membershipChangeHandlerRef.current())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [employee.id]);
+
+  useEffect(() => {
     if (session.isWorking) {
-      startActivityMonitor();
-      startTimeoutCheck();
+      startActivityMonitorRef.current?.();
+      startTimeoutCheckRef.current?.();
     } else {
       if (activityTimerRef.current) {
         clearInterval(activityTimerRef.current);
@@ -475,37 +377,33 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   }, [session.isWorking]);
 
-  // Track waiting time when session is active and no current order
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    // Only count waiting time when working, no current order, and not showing grab failed modal
-    if (session.isWorking && !currentOrder && !showGrabFailedModal) {
-      interval = setInterval(() => {
-        setWaitingTime(prev => prev + 1);
-      }, 1000);
-    } else if (!session.isWorking || currentOrder) {
-      // Reset waiting time when not working or has current order
+    if (!session.isWorking || currentOrder) {
       setWaitingTime(0);
+      return;
     }
-    // Don't reset waiting time when showing grab failed modal
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    if (showGrabFailedModal) return;
+    const interval = setInterval(() => setWaitingTime(previous => previous + 1), 1000);
+    return () => clearInterval(interval);
   }, [session.isWorking, currentOrder, showGrabFailedModal]);
+
+  // Keep the async timer guards in sync before setting up per-order timers.
+  useEffect(() => {
+    currentOrderRef.current = currentOrder;
+  }, [currentOrder]);
 
   useEffect(() => {
     if (currentOrder && currentOrder.status === 'pending') {
-      // Use local arrival time to avoid clock skew between browser and database.
-      // The 60-second window starts when this order first appears in this tab.
       if (
         !acceptDeadlineRef.current ||
         acceptDeadlineRef.current.orderId !== currentOrder.id
       ) {
+        const deadline = currentOrder.accept_deadline_at
+          ? new Date(currentOrder.accept_deadline_at).getTime()
+          : Date.now() + 60000;
         acceptDeadlineRef.current = {
           orderId: currentOrder.id,
-          arrivedAt: Date.now(),
+          arrivedAt: deadline - 60000,
         };
       }
 
@@ -518,7 +416,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         clearTimeout(acceptTimeoutRef.current);
       }
       acceptTimeoutRef.current = setTimeout(() => {
-        handleAcceptTimeout(currentOrder.id);
+        void handleAcceptTimeoutRef.current?.(currentOrder.id);
       }, remaining * 1000);
     } else if (currentOrder && currentOrder.status === 'accepted') {
       // Clear accept timeout when accepted
@@ -527,7 +425,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         acceptTimeoutRef.current = null;
       }
       acceptDeadlineRef.current = null;
-      startTimeoutCheck();
+      startTimeoutCheckRef.current?.();
     } else {
       // Clear all timeouts when no current order
       if (acceptTimeoutRef.current) {
@@ -557,31 +455,36 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   }, [showOrderDetail, currentOrder, hasTimeout, hasFiveMinuteWarning, onStatusChange]);
 
-  // iOS-compatible scroll lock when any modal is open
-  useEffect(() => {
-    const isAnyModalOpen = showOrderDetailModal || showErrorModal || showVerificationModal ||
-                           showAutoStopModal || showTimeoutStopModal || showGrabFailedModal || showTimeoutAlert;
+  const isAnyModalOpen = showOrderNotSubmittedModal || showOrderDetailModal || showErrorModal || showVerificationModal ||
+                         showAutoStopModal || showTimeoutStopModal || showGrabFailedModal || showTimeoutAlert;
 
-    if (isAnyModalOpen) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+  useLayoutEffect(() => {
+    if (!isAnyModalOpen) return;
 
-      return () => {
-        const savedScrollY = parseInt(body.style.top || '0', 10) * -1;
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
-      };
-    }
-  }, [showOrderDetailModal, showErrorModal, showVerificationModal, showAutoStopModal, showTimeoutStopModal, showGrabFailedModal, showTimeoutAlert]);
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    html.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      Object.assign(body.style, previousBodyStyles);
+      html.style.overflow = previousHtmlOverflow;
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isAnyModalOpen]);
 
   const startTimeoutCheck = () => {
     if (timeoutCheckRef.current) {
@@ -594,14 +497,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       clearTimeout(processTimeoutRef.current);
     }
 
-    if (!currentOrder || !currentOrder.accepted_at) {
-      console.log('startTimeoutCheck: No currentOrder or accepted_at, skipping timeout setup');
-      return;
-    }
+    const order = currentOrder;
+    if (!order || order.status !== 'accepted' || !order.accepted_at || order.order_submitted) return;
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId) return;
 
-    // Get timeout configuration from group config or default config
-    const currentConfig = currentGroupConfigRef.current || config;
-    const timeoutMinutes = currentConfig.session_timeout_minutes;
+    // Recovery retains the assignment's original group timeout snapshot.
+    const timeoutMinutes = order.session_timeout_minutes ?? order.session_timeout_minutes_snapshot ?? configRef.current.session_timeout_minutes;
+    const acceptedAt = new Date(order.accepted_at).getTime();
+    const elapsedMs = Math.max(0, Date.now() - acceptedAt);
     // Dynamic warning time: warn 3 minutes before timeout, with minimum of 3 minutes
     // BUT: if timeout is too short, warning should be at most 60% of timeout duration
     let warningMinutes = Math.max(3, timeoutMinutes - 3);
@@ -619,84 +524,60 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     }
 
-    console.log(`startTimeoutCheck: Setting up ${warningMinutes}-minute warning and ${timeoutMinutes}-minute timeout for order:`, currentOrder.id);
-
-    // Set dynamic warning timer only if warning time is valid
-    if (warningMinutes > 0) {
-      fiveMinuteWarningRef.current = setTimeout(() => {
-        console.log(`${warningMinutes}-minute warning triggered for order:`, currentOrder.id);
-        setHasFiveMinuteWarning(true);
-      }, warningMinutes * 60 * 1000);
-    } else {
-      console.log('Warning timer disabled for this order due to short timeout');
+    const updateWarnings = () => {
+      if (!sessionActiveRef.current || currentOrderRef.current?.id !== order.id) return;
+      if (currentOrderRef.current.order_submitted) {
+        setHasFiveMinuteWarning(false);
+        setHasTimeout(false);
+        return;
+      }
+      const minutesPassed = (Date.now() - acceptedAt) / 60000;
+      setHasFiveMinuteWarning(warningMinutes > 0 && minutesPassed >= warningMinutes);
+      setHasTimeout(minutesPassed >= timeoutMinutes);
+    };
+    updateWarnings();
+    if (warningMinutes > 0 && elapsedMs < warningMinutes * 60000) {
+      fiveMinuteWarningRef.current = setTimeout(updateWarnings, warningMinutes * 60000 - elapsedMs);
     }
 
-    // Set auto-cancel and end work timer based on configured timeout
-    processTimeoutRef.current = setTimeout(async () => {
-      console.log(`${timeoutMinutes}-minute timeout triggered for order:`, currentOrder?.id);
-
-      // Check if work session is still active
-      if (!sessionActiveRef.current) {
-        console.log('Work session already stopped, skipping timeout handling');
-        return;
-      }
-
-      if (currentOrder && currentOrder.id) {
-        await handleProcessTimeout(currentOrder.id);
-        // End work session after timeout
-        await handleStopWork(false);
-
-        // Show page notification
-        showNotification({
-          type: 'error',
-          title: t.dispatch.processingEnded,
-          message: `Order not completed within ${timeoutMinutes} minutes. Session has been stopped.`,
-          duration: 0, // Don't auto-close
-        });
-
-        // Show timeout stop modal
-        setShowTimeoutStopModal(true);
-      }
-    }, timeoutMinutes * 60 * 1000);
-
-    // Check every 10 seconds for display updates
-    timeoutCheckRef.current = setInterval(() => {
-      // Check if work session is still active
-      if (!sessionActiveRef.current) {
-        return;
-      }
-
-      if (currentOrder && currentOrder.status === 'accepted' && currentOrder.accepted_at) {
-        const acceptedTime = new Date(currentOrder.accepted_at);
-        const now = new Date();
-        const minutesPassed = (now.getTime() - acceptedTime.getTime()) / 1000 / 60;
-
-        // Get current config for accurate timeout checking
-        const checkConfig = currentGroupConfigRef.current || config;
-        const checkTimeoutMinutes = checkConfig.session_timeout_minutes;
-        let checkWarningMinutes = Math.max(3, checkTimeoutMinutes - 3); // Dynamic warning
-
-        // Safety check: warning must be less than timeout
-        if (checkWarningMinutes >= checkTimeoutMinutes) {
-          checkWarningMinutes = Math.max(0.5, Math.floor(checkTimeoutMinutes * 0.6 * 10) / 10);
-          if (checkWarningMinutes >= checkTimeoutMinutes - 0.5) {
-            checkWarningMinutes = 0; // Disable for very short timeouts
-          }
+    let failedChecks = 0;
+    const checkAndStop = async () => {
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== order.id ||
+          processTimeoutInFlightRef.current) return;
+      processTimeoutInFlightRef.current = true;
+      try {
+        const timedOut = await handleProcessTimeout(order.id, sessionId, generation);
+        if (!timedOut || !isCurrentDispatch(sessionId, generation)) return;
+        // Only a confirmed server timeout can end the local work session.
+        setTimeoutStopMinutes(timeoutMinutes);
+        await handleStopWork(true, 'order');
+      } catch (error) {
+        if (isCurrentDispatch(sessionId, generation) && currentOrderRef.current?.id === order.id) {
+          console.error('Could not confirm assignment timeout:', error);
+          failedChecks += 1;
+          const willRetry = failedChecks < 3;
+          showNotification({
+            type: 'error', title: 'Order Timeout Check Failed',
+            message: `${getOrderDispatchErrorMessage(error)}. The order remains active. ${willRetry ? 'Checking again in 30 seconds.' : 'Automatic checks have paused; refresh or contact support if the problem persists.'}`,
+            duration: willRetry ? 6000 : 0,
+          });
+          if (willRetry) processTimeoutRef.current = setTimeout(() => { void checkAndStop(); }, 30000);
         }
-
-        if (checkWarningMinutes > 0 && minutesPassed >= checkWarningMinutes && !hasFiveMinuteWarning) {
-          setHasFiveMinuteWarning(true);
-        }
-        if (minutesPassed >= checkTimeoutMinutes) {
-          setHasTimeout(true);
-        }
+      } finally {
+        processTimeoutInFlightRef.current = false;
       }
-    }, 10000);
+    };
+    processTimeoutRef.current = setTimeout(() => { void checkAndStop(); }, Math.max(0, timeoutMinutes * 60000 - elapsedMs));
+
+    timeoutCheckRef.current = setInterval(updateWarnings, 10000);
   };
+  startTimeoutCheckRef.current = startTimeoutCheck;
 
   const playOrderNotificationSound = () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextConstructor) return;
+      const audioContext = new AudioContextConstructor();
 
       // Create a more prominent multi-tone notification sound
       const playTone = (frequency: number, startTime: number, duration: number, volume: number = 0.3) => {
@@ -727,37 +608,267 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   };
 
-  const cleanupStaleSessions = async () => {
-    try {
-      console.log('Running cleanup for stale sessions...');
-      const { data, error } = await supabase.rpc('cleanup_all_stale_sessions');
-
-      if (error) {
-        console.error('Failed to cleanup stale sessions:', error);
-      } else {
-        console.log('Stale sessions cleanup result:', data);
-      }
-    } catch (error) {
-      console.error('Error during cleanup:', error);
+  const stopHeartbeat = () => {
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
     }
+  };
+
+  const stopLocalWorkingState = (expectedSessionId: string) => {
+    if (sessionIdRef.current !== expectedSessionId) return;
+
+    lifecycleGenerationRef.current += 1;
+    sessionActiveRef.current = false;
+    sessionIdRef.current = null;
+    stopHeartbeat();
+    if (dispatchTimerRef.current) {
+      clearTimeout(dispatchTimerRef.current);
+      dispatchTimerRef.current = null;
+    }
+    selectedDispatchRef.current = null;
+    dispatchPausedRef.current = false;
+    if (grabFailedTimerRef.current) {
+      clearTimeout(grabFailedTimerRef.current);
+      grabFailedTimerRef.current = null;
+      setShowGrabFailedModal(false);
+    }
+    if (activityTimerRef.current) {
+      clearInterval(activityTimerRef.current);
+      activityTimerRef.current = null;
+    }
+    if (acceptTimeoutRef.current) {
+      clearTimeout(acceptTimeoutRef.current);
+      acceptTimeoutRef.current = null;
+    }
+    if (processTimeoutRef.current) {
+      clearTimeout(processTimeoutRef.current);
+      processTimeoutRef.current = null;
+    }
+    if (fiveMinuteWarningRef.current) {
+      clearTimeout(fiveMinuteWarningRef.current);
+      fiveMinuteWarningRef.current = null;
+    }
+    if (timeoutCheckRef.current) {
+      clearInterval(timeoutCheckRef.current);
+      timeoutCheckRef.current = null;
+    }
+
+    unacceptedCountRef.current = 0;
+    currentOrderRef.current = null;
+    if (componentMountedRef.current) {
+      setCurrentOrder(null);
+      setShowOrderDetail(false);
+      setSession({ isWorking: false, sessionId: null, startedAt: null });
+      setUnacceptedCount(0);
+      setNextOrderTime(null);
+      setDispatchPause(null);
+      setHasTimeout(false);
+      setHasFiveMinuteWarning(false);
+      setShowTimeoutAlert(false);
+      onStatusChange?.(false, false);
+    }
+  };
+
+  const recoverDispatchState = async (expectedSessionId: string | null, generation: number): Promise<RecoveryOutcome> => {
+    const priorRecovery = recoveryInFlightRef.current;
+    if (priorRecovery) {
+      try { await priorRecovery; } catch { /* A fresh attempt may still succeed. */ }
+    }
+    const isCurrentRecovery = () => componentMountedRef.current &&
+      lifecycleGenerationRef.current === generation &&
+      sessionIdRef.current === expectedSessionId;
+    if (!isCurrentRecovery()) return { state: 'stale' };
+
+    const operation = (async (): Promise<RecoveryOutcome> => {
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
+      const { data, error } = await supabase.rpc('recover_employee_dispatch_assignment_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+      });
+      if (!isCurrentRecovery()) return { state: 'stale' };
+      if (error) throw error;
+      if (!data?.success) throw new Error('The dispatch server could not confirm the work session.');
+      if (!data.recovered) {
+        if (expectedSessionId) {
+          stopLocalWorkingState(expectedSessionId);
+          setAutoStopReason('ended');
+          setShowAutoStopModal(true);
+        }
+        return { state: 'ended' };
+      }
+      if (!data.session_id || !data.started_at) throw new Error('Incomplete dispatch recovery response.');
+
+      clearDispatchTimer();
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      setNextOrderTime(null);
+      if (grabFailedTimerRef.current) clearTimeout(grabFailedTimerRef.current);
+      grabFailedTimerRef.current = null;
+      setShowGrabFailedModal(false);
+      sessionActiveRef.current = true;
+      sessionIdRef.current = data.session_id;
+      lastActivityRef.current = new Date();
+      const count = Number(data.unaccepted_count || 0);
+      unacceptedCountRef.current = count;
+      setUnacceptedCount(count);
+      setSession({ isWorking: true, sessionId: data.session_id, startedAt: new Date(data.started_at) });
+      if (data.session_id !== expectedSessionId || !heartbeatTimerRef.current) startHeartbeat();
+      void loadTotalWorkTime();
+      void loadTodayOrders();
+
+      const assignment = data.assignment;
+      currentOrderRef.current = assignment || null;
+      setCurrentOrder(assignment || null);
+      setShowOrderDetail(Boolean(assignment));
+      if (assignment?.status !== 'accepted') {
+        setShowErrorModal(false);
+        setErrorReason('');
+      }
+      if (assignment) return { state: 'active', assignment };
+      void scheduleNextOrder();
+      return { state: 'idle' };
+    })();
+    recoveryInFlightRef.current = operation;
+    try {
+      return await operation;
+    } finally {
+      if (recoveryInFlightRef.current === operation) recoveryInFlightRef.current = null;
+    }
+  };
+
+  const restartSessionAfterLifecycleGap = (): Promise<void> => {
+    if (visibilityRestartPromiseRef.current) {
+      return visibilityRestartPromiseRef.current;
+    }
+
+    if (!componentMountedRef.current || !sessionActiveRef.current || document.hidden) return Promise.resolve();
+    const generation = ++lifecycleGenerationRef.current;
+    clearDispatchTimer();
+    selectedDispatchRef.current = null;
+    const oldSessionId = sessionIdRef.current;
+    const operation = (async () => {
+      if (!oldSessionId || !isCurrentDispatch(oldSessionId, generation) || document.hidden) return;
+      const outcome = await recoverDispatchState(oldSessionId, generation);
+      if (outcome.state !== 'stale' && sessionActiveRef.current) void sendHeartbeatRef.current?.();
+    })().catch(error => {
+      console.error('Failed to recover work session after lifecycle gap:', error);
+      if (oldSessionId && isCurrentDispatch(oldSessionId, generation)) {
+        showNotification({
+          type: 'error', title: 'Session Recovery Failed',
+          message: getOrderDispatchErrorMessage(error), duration: 5000,
+        });
+        if (currentOrderRef.current?.status === 'accepted') startTimeoutCheckRef.current?.();
+        pauseDispatch('error', getOrderDispatchErrorMessage(error), oldSessionId, generation);
+      }
+    }).finally(() => {
+      if (visibilityRestartPromiseRef.current === operation) {
+        visibilityRestartPromiseRef.current = null;
+      }
+    });
+
+    visibilityRestartPromiseRef.current = operation;
+    return operation;
+  };
+  restartSessionRef.current = restartSessionAfterLifecycleGap;
+
+  const handleInvalidDispatchSession = async (message: string, currentSessionId: string) => {
+    if (!componentMountedRef.current || sessionIdRef.current !== currentSessionId) return;
+    stopLocalWorkingState(currentSessionId);
+    const stoppedGeneration = lifecycleGenerationRef.current;
+
+    if (!message.includes('Employee session is invalid or expired.') && !message.includes('Employee session has expired.')) {
+      setAutoStopReason('ended');
+      setShowAutoStopModal(true);
+      return;
+    }
+
+    const auth = getStoredAuth();
+    let financialSessionValid: boolean | null = auth?.userType === 'employee' ? null : false;
+    if (auth?.userType === 'employee') {
+      try {
+        const [validation, account] = await Promise.all([
+          supabase.rpc('validate_employee_session', {
+            p_user_id: auth.user.id,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+          }),
+          supabase.from('users')
+            .select('current_session_token, current_tab_id, is_active')
+            .eq('id', auth.user.id)
+            .maybeSingle(),
+        ]);
+        if (validation.error || account.error) {
+          console.error('Could not verify employee session:', getOrderDispatchErrorMessage(validation.error || account.error));
+        } else {
+          financialSessionValid = validation.data === true
+            && account.data?.is_active === true
+            && account.data.current_session_token === auth.sessionToken
+            && account.data.current_tab_id === auth.tabId;
+        }
+      } catch (error) {
+        console.error('Could not verify employee session:', getOrderDispatchErrorMessage(error));
+      }
+    }
+
+    if (!componentMountedRef.current || lifecycleGenerationRef.current !== stoppedGeneration || sessionIdRef.current !== null) return;
+    if (financialSessionValid === false) {
+      onSessionExpired?.();
+      return;
+    }
+    setAutoStopReason(financialSessionValid === null ? 'unverified' : 'ended');
+    setShowAutoStopModal(true);
   };
 
   const sendHeartbeat = async () => {
     const currentSessionId = sessionIdRef.current;
-    if (!currentSessionId) return;
+    const auth = getStoredAuth();
+    if (
+      !componentMountedRef.current ||
+      !sessionActiveRef.current ||
+      !currentSessionId ||
+      auth?.userType !== 'employee'
+    ) {
+      return;
+    }
 
     try {
-      const { error } = await supabase.rpc('update_session_heartbeat', {
-        p_session_id: currentSessionId
+      const { data, error } = await supabase.rpc('update_session_heartbeat_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: currentSessionId,
       });
 
-      if (error) {
-        console.error('Failed to send heartbeat:', error);
+      if (error) throw error;
+      if (!data?.success) {
+        console.error('Heartbeat rejected:', data?.reason || 'unknown reason');
+        if (
+          componentMountedRef.current &&
+          sessionActiveRef.current &&
+          !document.hidden &&
+          sessionIdRef.current === currentSessionId
+        ) {
+          await restartSessionAfterLifecycleGap();
+        } else if (sessionIdRef.current === currentSessionId) {
+          stopLocalWorkingState(currentSessionId);
+          setAutoStopReason('ended');
+          setShowAutoStopModal(true);
+        }
       }
     } catch (error) {
-      console.error('Error sending heartbeat:', error);
+      const message = getOrderDispatchErrorMessage(error);
+      if (isInvalidDispatchSession(message)) {
+        await handleInvalidDispatchSession(message, currentSessionId);
+        return;
+      }
+      console.error('Error sending heartbeat:', message);
     }
   };
+  sendHeartbeatRef.current = sendHeartbeat;
 
   const startHeartbeat = () => {
     if (heartbeatTimerRef.current) {
@@ -770,168 +881,33 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     // Send heartbeat every ~60 seconds (with jitter) to keep session alive
     heartbeatTimerRef.current = setInterval(() => {
-      sendHeartbeat();
+      void sendHeartbeatRef.current?.();
     }, heartbeatInterval);
 
     // Send initial heartbeat with small delay to avoid startup spike
     setTimeout(() => {
-      sendHeartbeat();
+      void sendHeartbeatRef.current?.();
     }, Math.random() * 3000);
   };
 
-  const stopHeartbeat = () => {
-    if (heartbeatTimerRef.current) {
-      clearInterval(heartbeatTimerRef.current);
-      heartbeatTimerRef.current = null;
-    }
-  };
-
   const checkPendingOrder = async () => {
-    try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
-      if (!auth) return;
-
-      const userId = JSON.parse(auth).user.id;
-
-      // First check if there's an active work session
-      const { data: activeWorkSession } = await supabase.rpc('get_active_work_session', {
-        p_user_id: userId
-      });
-
-      // Check if there's an active dispatch session
-      const { data: dispatchSession } = await supabase
-        .from('dispatch_sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'online')
-        .maybeSingle();
-
-      // If there's an active work session, clean it up on page load
-      // This handles page refresh/close scenarios where beforeunload didn't complete
-      if (activeWorkSession && activeWorkSession.length > 0) {
-        console.log('🧹 Cleanup: Found stale work session from previous page load. Cleaning up...');
-
-        // End work session
-        await supabase.rpc('end_work_session', {
-          p_user_id: userId
-        });
-        console.log('🧹 Cleanup: Stale work session ended (this is normal after page refresh)');
-
-        // End any orphaned dispatch session
-        if (dispatchSession) {
-          await supabase
-            .from('dispatch_sessions')
-            .update({
-              status: 'offline',
-              ended_at: new Date().toISOString(),
-            })
-            .eq('id', dispatchSession.id);
-          console.log('Dispatch session ended');
-        }
-      }
-
-      // Check if there's a pending or accepted order for this user
-      const { data, error } = await supabase
-        .from('dispatch_assignments')
-        .select(`
-          *,
-          dispatch_orders:dispatch_group_orders (
-            order_content
-          )
-        `)
-        .eq('user_id', userId)
-        .in('status', ['pending', 'accepted'])
-        .order('assigned_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        console.log('Found existing pending/accepted order on page load:', data.id);
-        setCurrentOrder(data);
-        setShowOrderDetail(true);
-        // The useEffect will handle setting up timeouts
-      }
-    } catch (error) {
-      console.error('Failed to check pending order:', error);
-    }
+    await recoverDispatchState(sessionIdRef.current, lifecycleGenerationRef.current);
   };
+
+  checkPendingOrderRef.current = checkPendingOrder;
 
   const loadConfig = async () => {
     try {
-      // Load global config first as fallback
+      // Global timeout is only for legacy assignments and idle activity; dispatch
+      // interval, group, pool, and mode always come from the secure server RPCs.
       const { data, error } = await supabase
         .from('dispatch_config')
-        .select('*');
-
+        .select('config_value')
+        .eq('config_key', 'session_timeout_minutes')
+        .maybeSingle();
       if (error) throw error;
+      setConfig({ session_timeout_minutes: Number(data?.config_value) || 10 });
 
-      const configMap: any = {};
-      data?.forEach(item => {
-        if (item.config_key === 'dispatch_order_mode') {
-          configMap[item.config_key] = item.config_value;
-        } else {
-          configMap[item.config_key] = parseInt(item.config_value);
-        }
-      });
-
-      const globalConfig = {
-        dispatch_interval_min: configMap['dispatch_interval_min'] || 30,
-        dispatch_interval_max: configMap['dispatch_interval_max'] || 120,
-        session_timeout_minutes: configMap['session_timeout_minutes'] || 10,
-        dispatch_order_mode: configMap['dispatch_order_mode'] || 'random',
-      };
-
-      setConfig(globalConfig);
-
-      // Try to load user's group config
-      const auth = sessionStorage.getItem('quantum_trader_auth');
-      if (auth) {
-        const userId = JSON.parse(auth).user.id;
-
-        const { data: membershipData } = await supabase
-          .from('dispatch_group_members')
-          .select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (membershipData && membershipData.dispatch_groups) {
-          const group = membershipData.dispatch_groups as any;
-          if (group.is_active) {
-            const userGroupConfig = {
-              dispatch_interval_min: group.dispatch_interval_min,
-              dispatch_interval_max: group.dispatch_interval_max,
-              session_timeout_minutes: group.session_timeout_minutes,
-              dispatch_order_mode: group.dispatch_order_mode,
-            };
-            currentGroupConfigRef.current = userGroupConfig;
-            setConfig(userGroupConfig);
-            console.log('Loaded user group config on init:', userGroupConfig);
-            return;
-          }
-        }
-
-        // Try default group if no user group
-        const { data: defaultGroup } = await supabase
-          .from('dispatch_groups')
-          .select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode')
-          .eq('is_default', true)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (defaultGroup) {
-          const defaultGroupConfig = {
-            dispatch_interval_min: defaultGroup.dispatch_interval_min,
-            dispatch_interval_max: defaultGroup.dispatch_interval_max,
-            session_timeout_minutes: defaultGroup.session_timeout_minutes,
-            dispatch_order_mode: defaultGroup.dispatch_order_mode,
-          };
-          currentGroupConfigRef.current = defaultGroupConfig;
-          setConfig(defaultGroupConfig);
-          console.log('Loaded default group config on init:', defaultGroupConfig);
-        }
-      }
     } catch (error) {
       console.error('Failed to load config:', error);
     }
@@ -939,7 +915,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const loadTotalWorkTime = async () => {
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (!auth) return;
 
       const userId = JSON.parse(auth).user.id;
@@ -957,7 +933,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const loadTodayOrders = async () => {
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (!auth) return;
 
       const userId = JSON.parse(auth).user.id;
@@ -982,9 +958,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Stale pending/accepted orders are reconciled by the database
       // (auto_recover_stale_pending_orders cron); do not compute timeouts
       // against the browser clock here, as clock skew causes false cancels.
-      const finalData = data;
+      const finalData: DispatchAssignment[] = (data || []).map(assignment => ({
+        ...assignment,
+        session_timeout_minutes: assignment.session_timeout_minutes_snapshot,
+        dispatch_orders: {
+          id: assignment.dispatch_orders?.id,
+          order_content: assignment.order_content_snapshot ?? assignment.dispatch_orders?.order_content ?? '',
+        },
+      }));
 
-      setTodayOrders(finalData || []);
+      setTodayOrders(finalData);
 
       const completed = finalData?.filter(o => o.status === 'completed').length || 0;
       const errorCount = finalData?.filter(o => o.status === 'error').length || 0;
@@ -1005,7 +988,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           .gte('created_at', todayStartUTC);
         setTodaySubmittedOrders(count || 0);
       } catch { /* ignore */ }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load today orders:', error);
     }
   };
@@ -1017,22 +1000,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       const now = new Date();
       const timeSinceLastActivity = (now.getTime() - lastActivityRef.current.getTime()) / 1000 / 60;
 
-      if (timeSinceLastActivity >= config.session_timeout_minutes) {
-        handleStopWork(true);
+      if (!currentOrderRef.current && !selectedDispatchRef.current && !dispatchPausedRef.current &&
+          timeSinceLastActivity >= configRef.current.session_timeout_minutes) {
+        void handleStopWork(true, 'inactivity').catch(() => {
+          // The handler reports the failure and preserves active state for retry.
+        });
       }
     }, 30000);
   };
+  startActivityMonitorRef.current = startActivityMonitor;
 
   const updateActivity = () => {
     lastActivityRef.current = new Date();
-    const currentSessionId = sessionIdRef.current;
-    if (currentSessionId) {
-      supabase
-        .from('dispatch_sessions')
-        .update({ last_activity_at: getCurrentTimestamp() })
-        .eq('id', currentSessionId)
-        .then();
-    }
+    if (sessionIdRef.current) void sendHeartbeat();
   };
 
   const handleStartWork = async () => {
@@ -1054,6 +1034,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     console.log('✅ Employee verified - proceeding with work session');
 
+    // Explicit lifecycle operations invalidate any older visibility restart.
+    const startGeneration = lifecycleGenerationRef.current + 1;
+    lifecycleGenerationRef.current = startGeneration;
+    const staleVisibilityRestart = visibilityRestartPromiseRef.current;
+
     // Mobile: Show ripple effect on tap
     console.log('🔍 Device check - isMobile:', isMobile);
     if (isMobile) {
@@ -1072,6 +1057,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     // Use setTimeout instead of await to allow React to render the state change
     setTimeout(async () => {
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        startWorkLockRef.current = false;
+        return;
+      }
+
       // Reset press state immediately
       setIsStartButtonPressed(false);
 
@@ -1088,174 +1078,79 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     try {
       console.log('Starting work session...');
-      const auth = sessionStorage.getItem('quantum_trader_auth');
-      if (!auth) {
-        console.error('No auth found in localStorage');
+      const initialCleanup = initialCleanupPromiseRef.current;
+      if (initialCleanup) {
+        try {
+          await initialCleanup;
+        } catch (error) {
+          console.error('Initial dispatch cleanup failed before Start:', error);
+        }
+      }
+      if (staleVisibilityRestart) {
+        try {
+          await staleVisibilityRestart;
+        } catch (error) {
+          console.error('Stale visibility restart failed before Start:', error);
+        }
+      }
+
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        return;
+      }
+
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') {
+        console.error('No employee auth found in session storage');
         setIsTransitioning(false);
         setTransitionType(null);
         setIsProcessing(false);
         return;
       }
 
-      const userId = JSON.parse(auth).user.id;
+      const userId = auth.user.id;
       console.log('User ID:', userId);
 
       // Minimal animation duration - the loading state is shown immediately
       const animationPromise = new Promise(resolve => setTimeout(resolve, isMobile ? 100 : performanceSettings.transitionDuration));
 
-      // OPTIMIZED: Parallel data fetching, sequential cleanup->creation to prevent race conditions
-      console.log('Starting optimized database operations...');
-
-      // Reset session ref immediately
+      // The secure RPC creates the session; group and pool selection happen on the server.
       sessionActiveRef.current = false;
 
-      // Step 1: Fetch all data in parallel (read-only operations)
-      const [
-        activeWorkSessionResult,
-        activeDispatchSessionResult,
-        membershipResult,
-        defaultGroupResult
-      ] = await Promise.allSettled([
-        supabase.rpc('get_active_work_session', { p_user_id: userId }),
-        supabase.from('dispatch_sessions').select('id').eq('user_id', userId).eq('status', 'online').maybeSingle(),
-        supabase.from('dispatch_group_members').select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)').eq('user_id', userId).maybeSingle(),
-        supabase.from('dispatch_groups').select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode').eq('is_default', true).eq('is_active', true).maybeSingle()
-      ]);
-
-      // Step 2: Cleanup old sessions in parallel (if they exist)
-      const cleanupTasks = [];
-
-      if (activeWorkSessionResult.status === 'fulfilled' && activeWorkSessionResult.value.data?.length > 0) {
-        console.log('Cleaning up previous work session...');
-        cleanupTasks.push(supabase.rpc('end_work_session', { p_user_id: userId }));
-      }
-
-      if (activeDispatchSessionResult.status === 'fulfilled' && activeDispatchSessionResult.value.data) {
-        console.log('Cleaning up previous dispatch session...');
-        cleanupTasks.push(
-          supabase.from('dispatch_sessions')
-            .update({ status: 'offline', ended_at: getCurrentTimestamp() })
-            .eq('id', activeDispatchSessionResult.value.data.id)
-        );
-      }
-
-      if (cleanupTasks.length > 0) {
-        await Promise.all(cleanupTasks);
-        console.log('Cleanup completed');
-        // Small delay to ensure cleanup commits before creating new sessions
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-
-      // Determine group config from parallel results
-      let groupConfig: DispatchConfig = config;
-
-      if (membershipResult.status === 'fulfilled' && membershipResult.value.data?.dispatch_groups) {
-        const group = membershipResult.value.data.dispatch_groups as any;
-        if (group.is_active) {
-          groupConfig = {
-            dispatch_interval_min: group.dispatch_interval_min,
-            dispatch_interval_max: group.dispatch_interval_max,
-            session_timeout_minutes: group.session_timeout_minutes,
-            dispatch_order_mode: group.dispatch_order_mode,
-          };
-          console.log('Using user group config:', groupConfig);
-        }
-      } else if (defaultGroupResult.status === 'fulfilled' && defaultGroupResult.value.data) {
-        const defaultGroup = defaultGroupResult.value.data;
-        groupConfig = {
-          dispatch_interval_min: defaultGroup.dispatch_interval_min,
-          dispatch_interval_max: defaultGroup.dispatch_interval_max,
-          session_timeout_minutes: defaultGroup.session_timeout_minutes,
-          dispatch_order_mode: defaultGroup.dispatch_order_mode,
-        };
-        console.log('Using default group config:', groupConfig);
-      }
-
-      // Store config
-      currentGroupConfigRef.current = groupConfig;
-      setConfig(groupConfig);
-
-      // Step 3: Create new sessions with proper error handling
+      // Create one online dispatch session and its corresponding work session atomically.
       console.log('Creating new sessions...');
-
-      // First create work session
-      const { data: workSessionData, error: workSessionError } = await supabase.rpc('start_work_session', { p_user_id: userId });
-
-      if (workSessionError) {
-        console.error('Failed to start work session:', workSessionError);
-        throw workSessionError;
+      const { data: startResult, error: startError } = await supabase.rpc('start_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+      });
+      if (startError) {
+        console.error('Failed to start secure dispatch session:', startError);
+        throw startError;
       }
-
-      console.log('Work session created:', workSessionData);
-
-      // Then create dispatch session
-      // The unique index will prevent duplicates, we just need to handle the error gracefully
-      let dispatchData = null;
-      let dispatchError = null;
-
-      const insertResult = await supabase
-        .from('dispatch_sessions')
-        .insert({
-          user_id: userId,
-          status: 'online',
-          started_at: getCurrentTimestamp(),
-          last_activity_at: getCurrentTimestamp(),
-        })
-        .select()
-        .single();
-
-      if (insertResult.error) {
-        // If unique constraint violation, try to fetch the existing online session
-        if (insertResult.error.code === '23505') {
-          console.log('Dispatch session already exists, fetching it...');
-          const fetchResult = await supabase
-            .from('dispatch_sessions')
-            .select()
-            .eq('user_id', userId)
-            .eq('status', 'online')
-            .maybeSingle();
-
-          if (fetchResult.error || !fetchResult.data) {
-            dispatchError = fetchResult.error || new Error('Failed to fetch existing dispatch session');
-          } else {
-            dispatchData = fetchResult.data;
-            console.log('Using existing dispatch session:', dispatchData.id);
-          }
-        } else {
-          dispatchError = insertResult.error;
-        }
-      } else {
-        dispatchData = insertResult.data;
-        console.log('New dispatch session created:', dispatchData.id);
-      }
-
-      // Package results in same format as before for compatibility
-      const workSessionResult = { status: 'fulfilled' as const, value: { data: workSessionData, error: null } };
-      const dispatchSessionResult = dispatchError
-        ? { status: 'rejected' as const, reason: dispatchError }
-        : { status: 'fulfilled' as const, value: { data: dispatchData, error: null } };
-
-      // Check results
-      if (workSessionResult.status === 'rejected') {
-        console.error('Failed to start work session:', workSessionResult.reason);
-        throw workSessionResult.reason;
-      }
-
-      if (dispatchSessionResult.status === 'rejected') {
-        console.error('Failed to create dispatch session, cleaning up work session...');
-        await supabase.rpc('end_work_session', { p_user_id: userId });
-        throw dispatchSessionResult.reason;
-      }
-
-      const data = dispatchSessionResult.value.data;
-
-      // Validate data before proceeding
-      if (!data || !data.id) {
-        console.error('Dispatch session creation returned invalid data:', data);
-        await supabase.rpc('end_work_session', { p_user_id: userId });
+      if (!startResult?.success || !startResult.session_id || !startResult.started_at) {
+        console.error('Dispatch session creation returned invalid data:', startResult);
         throw new Error('Failed to create dispatch session - no session ID returned');
       }
 
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        try {
+          const { error: cleanupError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+            p_user_id: userId,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_session_id: startResult.session_id,
+          });
+          if (cleanupError) console.error('Failed to clean up stale Start session:', cleanupError);
+        } catch (cleanupError) {
+          console.error('Failed to clean up stale Start session:', cleanupError);
+        }
+        return;
+      }
+
+      const data = {
+        id: startResult.session_id,
+        started_at: startResult.started_at,
+      };
       console.log('Sessions created successfully, session_id:', data.id);
 
       // Load total work time (non-blocking - can happen after UI update)
@@ -1264,7 +1159,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       const newSession = {
         isWorking: true,
         sessionId: data.id,
-        startedAt: new Date(),
+        startedAt: new Date(data.started_at),
       };
 
       // Prepare session data but don't update state yet
@@ -1276,31 +1171,33 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Start heartbeat to keep session alive
       startHeartbeat();
 
-      // Schedule with the group config using enhanced random distribution
-      const minSeconds = groupConfig.dispatch_interval_min;
-      const maxSeconds = groupConfig.dispatch_interval_max;
-      const randomSeconds = getEnhancedRandomSeconds(minSeconds, maxSeconds);
-      const nextTime = new Date(Date.now() + randomSeconds * 1000);
-
-      if (dispatchTimerRef.current) {
-        clearTimeout(dispatchTimerRef.current);
-      }
-
-      dispatchTimerRef.current = setTimeout(() => {
-        console.log('Dispatch timer triggered, calling dispatchNewOrder()');
-        dispatchNewOrder();
-      }, randomSeconds * 1000);
-
-      console.log(`Work session started. Next order will be dispatched in ${randomSeconds} seconds (using config: ${minSeconds}-${maxSeconds}s, mode: ${groupConfig.dispatch_order_mode})`);
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      void scheduleNextOrder();
 
       // Wait for animation to complete before updating UI state
       await animationPromise;
 
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        try {
+          const { error: cleanupError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+            p_user_id: userId,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_session_id: data.id,
+          });
+          if (cleanupError) console.error('Failed to clean up stale animated Start session:', cleanupError);
+        } catch (cleanupError) {
+          console.error('Failed to clean up stale animated Start session:', cleanupError);
+        }
+        stopLocalWorkingState(data.id);
+        return;
+      }
+
       // Now update the session state to trigger UI change
       setSession(newSession);
-      setWaitingTime(0);
       setUnacceptedCount(0);
-      setNextOrderTime(nextTime);
 
       // Mobile: Show success toast
       if (isMobile) {
@@ -1309,17 +1206,18 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           setTimeout(() => setShowStartSuccess(false), 1200);
         }, 100);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to start work:', error);
       console.error('Error details:', {
-        message: error.message,
-        hint: error.hint,
-        details: error.details,
-        code: error.code
+        message: getOrderDispatchErrorMessage(error)
       });
 
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        return;
+      }
+
       // User-friendly error message
-      const errorMsg = error.message || 'Unknown error occurred';
+      const errorMsg = getOrderDispatchErrorMessage(error);
       showNotification({
         type: 'error',
         title: 'Failed to Start',
@@ -1341,15 +1239,21 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         startedAt: null,
       });
       sessionActiveRef.current = false;
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      setNextOrderTime(null);
 
       // Ensure all timers are cleared
       if (dispatchTimerRef.current) clearTimeout(dispatchTimerRef.current);
       if (heartbeatTimerRef.current) clearTimeout(heartbeatTimerRef.current);
       if (timeoutCheckRef.current) clearTimeout(timeoutCheckRef.current);
     } finally {
-      setIsProcessing(false);
-      setIsTransitioning(false);
-      setTransitionType(null);
+      if (componentMountedRef.current) {
+        setIsProcessing(false);
+        setIsTransitioning(false);
+        setTransitionType(null);
+      }
       // Release lock after a small delay to ensure state updates complete
       setTimeout(() => {
         startWorkLockRef.current = false;
@@ -1358,8 +1262,15 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }, 150); // End of setTimeout for button press feedback
   };
 
-  const handleStopWork = async (timeout: boolean = false) => {
+  const handleStopWork = async (timeout: boolean = false, stopReason: 'order' | 'inactivity' = 'order') => {
     if (isProcessing && !timeout) return;
+    const stoppingSessionId = sessionIdRef.current;
+
+    // Explicit lifecycle operations invalidate any older visibility restart.
+    const stopGeneration = lifecycleGenerationRef.current + 1;
+    lifecycleGenerationRef.current = stopGeneration;
+    clearDispatchTimer();
+    const staleVisibilityRestart = visibilityRestartPromiseRef.current;
 
     // Show transition animation (unless auto-stopped by timeout)
     if (!timeout) {
@@ -1375,68 +1286,66 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     const animationPromise = !timeout ? new Promise(resolve => setTimeout(resolve, 500)) : Promise.resolve();
 
     try {
-      // Get user ID first
-      const auth = sessionStorage.getItem('quantum_trader_auth');
-      const authData = auth ? JSON.parse(auth) : null;
-      const userId = authData?.user?.id;
-
-      // PARALLEL OPTIMIZATION: Execute all cleanup operations simultaneously
-      const cleanupTasks = [];
-
-      // 1. Update dispatch session status
-      if (session.sessionId) {
-        cleanupTasks.push(
-          supabase.from('dispatch_sessions')
-            .update({ status: 'offline', ended_at: getCurrentTimestamp() })
-            .eq('id', session.sessionId)
-        );
+      if (staleVisibilityRestart) {
+        try {
+          await staleVisibilityRestart;
+        } catch (error) {
+          console.error('Stale visibility restart failed before Stop:', error);
+        }
       }
 
-      // 2. Cancel pending orders
-      if (userId) {
-        cleanupTasks.push(
-          supabase.from('dispatch_assignments')
-            .update({
-              status: 'cancelled',
-              completed_at: getCurrentTimestamp(),
-              remarks: 'Auto-cancelled: Work session stopped by user',
-            })
-            .eq('user_id', userId)
-            .eq('status', 'pending')
-            .then(result => {
-              if (result.data) {
-                console.log(`Cancelled pending orders`);
-              }
-              return result;
-            })
-        );
-
-        // 3. End work session
-        cleanupTasks.push(
-          supabase.rpc('end_work_session', { p_user_id: userId })
-            .then(result => {
-              console.log('🛑 Work session ended by user');
-              return result;
-            })
-        );
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
+        return;
       }
 
-      // Execute all cleanup tasks in parallel
-      await Promise.allSettled(cleanupTasks);
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+
+      const userId = auth.user.id;
+      const currentSessionId = sessionIdRef.current || session.sessionId;
+
+      if (currentOrder?.status === 'pending') {
+        const { error: cancelError } = await supabase.rpc('finish_dispatch_assignment_secure', {
+          p_user_id: userId,
+          p_session_token: auth.financialSessionToken,
+          p_tab_id: auth.tabId,
+          p_assignment_id: currentOrder.id,
+          p_status: 'cancelled',
+          p_remarks: 'Auto-cancelled: Work session stopped by user',
+        });
+        if (cancelError) console.error('Failed to cancel pending assignment while stopping work:', cancelError);
+      }
+
+      const { data: stopResult, error: stopError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: currentSessionId,
+      });
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration ||
+          sessionIdRef.current !== currentSessionId) return;
+      if (stopError) throw stopError;
+      if (!stopResult?.success) {
+        throw new Error('The work session could not be stopped. Please try again.');
+      }
+      console.log('Work session ended by user');
 
       // Load total work time (non-blocking - can happen after UI update)
-      if (userId) {
-        loadTotalWorkTime().catch(err => console.error('Failed to load work time:', err));
-      }
+      void loadTotalWorkTime().catch(err => console.error('Failed to load work time:', err));
 
       // Stop heartbeat
       stopHeartbeat();
 
-      // Clear all timers
+      // Clear all timers only after the server confirms the stop.
       if (dispatchTimerRef.current) {
         clearTimeout(dispatchTimerRef.current);
         dispatchTimerRef.current = null;
       }
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
       if (acceptTimeoutRef.current) {
         clearTimeout(acceptTimeoutRef.current);
         acceptTimeoutRef.current = null;
@@ -1454,7 +1363,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         timeoutCheckRef.current = null;
       }
 
-      // Prepare to clear state but don't update UI-affecting states yet
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
+        return;
+      }
+
+      // Prepare to clear state but don't update UI-affecting states yet.
       sessionActiveRef.current = false;
       sessionIdRef.current = null;
       unacceptedCountRef.current = 0;
@@ -1479,12 +1392,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           onStatusChange(false, false);
         }
 
-        // Show timeout modal instead of blocking alert
-        setShowTimeoutStopModal(true);
+        if (stopReason === 'inactivity') {
+          setAutoStopReason('inactivity');
+          setShowAutoStopModal(true);
+        } else {
+          setShowTimeoutStopModal(true);
+        }
       } else {
         // Wait for animation to complete before updating UI state
         await animationPromise;
         await new Promise(resolve => setTimeout(resolve, 100));
+
+        if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
+          return;
+        }
 
         // Now update the session state to trigger UI change
         setCurrentOrder(null);
@@ -1505,11 +1426,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           onStatusChange(false, false);
         }
 
-        // Reset processing state immediately for better UX
-        setIsProcessing(false);
-        setIsTransitioning(false);
-        setTransitionType(null);
-
         // Mobile: Show success toast for stop work
         if (isMobile) {
           setTimeout(() => {
@@ -1520,11 +1436,26 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
 
       // Reload today's orders in background (non-blocking for better UX)
-      loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
-    } catch (error: any) {
+      void loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
+    } catch (error: unknown) {
       console.error('Failed to stop work:', error);
-      // Reset processing state even on error
-      if (!timeout) {
+      if (componentMountedRef.current && lifecycleGenerationRef.current === stopGeneration) {
+        showNotification({
+          type: 'error',
+          title: 'Failed to Stop',
+          message: getOrderDispatchErrorMessage(error),
+          duration: 5000,
+        });
+        if (stoppingSessionId && sessionActiveRef.current && sessionIdRef.current === stoppingSessionId) {
+          const selection = selectedDispatchRef.current;
+          if (selection) armDispatchTimer(selection, stopGeneration);
+          else if (dispatchPausedRef.current) pauseDispatch(dispatchPause?.type || 'error', dispatchPause?.message || 'Dispatch is temporarily unavailable.', stoppingSessionId, stopGeneration);
+          else if (!currentOrderRef.current) void scheduleNextOrder();
+        }
+      }
+      throw error;
+    } finally {
+      if (!timeout && componentMountedRef.current) {
         setIsProcessing(false);
         setIsTransitioning(false);
         setTransitionType(null);
@@ -1532,428 +1463,362 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   };
 
-  const scheduleNextOrder = (groupConfig?: DispatchConfig) => {
-    if (!sessionActiveRef.current) {
-      return;
-    }
+  const isCurrentDispatch = (sessionId: string, generation: number) =>
+    componentMountedRef.current && sessionActiveRef.current &&
+    sessionIdRef.current === sessionId && lifecycleGenerationRef.current === generation;
 
-    // Priority: provided config > ref config > state config
-    const currentConfig = groupConfig || currentGroupConfigRef.current || config;
-    const minSeconds = currentConfig.dispatch_interval_min;
-    const maxSeconds = currentConfig.dispatch_interval_max;
-
-    // Generate truly random interval using crypto API for uniform distribution
-    const randomSeconds = getEnhancedRandomSeconds(minSeconds, maxSeconds);
-
-    console.log(`🎲 Scheduling next order in ${randomSeconds} seconds (range: ${minSeconds}-${maxSeconds}s, truly random like lottery)`);
-
-    const nextTime = new Date(Date.now() + randomSeconds * 1000);
-    setNextOrderTime(nextTime);
-
-    if (dispatchTimerRef.current) {
-      clearTimeout(dispatchTimerRef.current);
-    }
-
-    dispatchTimerRef.current = setTimeout(() => {
-      dispatchNewOrder();
-    }, randomSeconds * 1000);
+  const clearDispatchTimer = () => {
+    if (dispatchTimerRef.current) clearTimeout(dispatchTimerRef.current);
+    dispatchTimerRef.current = null;
   };
 
-  const dispatchNewOrder = async () => {
-    console.log('dispatchNewOrder called, sessionActiveRef.current:', sessionActiveRef.current);
+  membershipChangeHandlerRef.current = () => {
+    if (!sessionActiveRef.current || currentOrderRef.current || recoveryInFlightRef.current) return;
+    membershipRevisionRef.current += 1;
+    if (assigningDispatchRef.current) {
+      membershipChangeDuringAssignmentRef.current = true;
+      return;
+    }
+    clearDispatchTimer();
+    selectedDispatchRef.current = null;
+    dispatchPausedRef.current = false;
+    setNextOrderTime(null);
+    setDispatchPause(null);
+    if (!preparingDispatchRef.current) void scheduleNextOrder();
+  };
+
+  const armDispatchTimer = (selection: DispatchSelection, generation: number, minimumDelay = 0) => {
+    if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection) return;
+    clearDispatchTimer();
+    setNextOrderTime(new Date(selection.dueAt));
+    dispatchTimerRef.current = setTimeout(() => {
+      dispatchTimerRef.current = null;
+      void dispatchNewOrder(selection, generation);
+    }, Math.max(minimumDelay, selection.dueAt - Date.now(), 0));
+  };
+
+  const pauseDispatch = (type: 'unavailable' | 'error', message: string, sessionId: string, generation: number) => {
+    if (!isCurrentDispatch(sessionId, generation)) return;
+    clearDispatchTimer();
+    selectedDispatchRef.current = null;
+    dispatchPausedRef.current = true;
+    setNextOrderTime(null);
+    setDispatchPause({ type, message });
+    // No rapid retry when a group/pool is unavailable or a request fails.
+    dispatchTimerRef.current = setTimeout(() => {
+      dispatchTimerRef.current = null;
+      if (!isCurrentDispatch(sessionId, generation)) return;
+      dispatchPausedRef.current = false;
+      if (type === 'error') {
+        // An uncertain assignment result may already have created an order.
+        void checkPendingOrderRef.current?.().catch(error => {
+          console.error('Failed to check dispatch assignment after a network error:', error);
+          pauseDispatch('error', getOrderDispatchErrorMessage(error), sessionId, generation);
+        });
+      } else {
+        void scheduleNextOrder();
+      }
+    }, PAUSED_DISPATCH_CHECK_MS);
+  };
+
+  const scheduleNextOrder = async () => {
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId || !isCurrentDispatch(sessionId, generation) || dispatchPausedRef.current ||
+        (assigningDispatchRef.current?.sessionId === sessionId && assigningDispatchRef.current.generation === generation)) return;
+
+    const selection = selectedDispatchRef.current;
+    if (selection?.sessionId === sessionId) {
+      armDispatchTimer(selection, generation);
+      return;
+    }
+    if (preparingDispatchRef.current?.sessionId === sessionId &&
+        preparingDispatchRef.current.generation === generation) return;
+
+    const preparation = { sessionId, generation };
+    const membershipRevision = membershipRevisionRef.current;
+    preparingDispatchRef.current = preparation;
     try {
-      // Check if session is still active using ref (avoids closure issues)
-      if (!sessionActiveRef.current) {
-        console.log('Dispatch cancelled: work session is not active');
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
+      const { data, error } = await supabase.rpc('prepare_next_dispatch_order_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: sessionId,
+      });
+      if (!isCurrentDispatch(sessionId, generation) || membershipRevision !== membershipRevisionRef.current) return;
+      if (error) throw error;
+      const prepared = data;
+      if (prepared?.auto_stopped) {
+        stopLocalWorkingState(sessionId);
+        setAutoStopReason('missed');
+        setShowAutoStopModal(true);
         return;
       }
-
-      const auth = sessionStorage.getItem('quantum_trader_auth');
-      if (!auth) {
-        console.log('Dispatch cancelled: no auth found');
+      if (!prepared?.available) {
+        const message = prepared?.message || 'No eligible dispatch orders are available.';
+        pauseDispatch(message === 'An active dispatch assignment already exists.' ? 'error' : 'unavailable', message, sessionId, generation);
         return;
       }
-
-      const userId = JSON.parse(auth).user.id;
-      console.log('Dispatching order for user:', userId);
-
-      // Get user's group assignment
-      const { data: membershipData } = await supabase
-        .from('dispatch_group_members')
-        .select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      let userGroupId: string | null = null;
-      let groupConfig: DispatchConfig | null = null;
-
-      if (membershipData && membershipData.dispatch_groups) {
-        const group = membershipData.dispatch_groups as any;
-        if (group.is_active) {
-          userGroupId = membershipData.group_id;
-          groupConfig = {
-            dispatch_interval_min: group.dispatch_interval_min,
-            dispatch_interval_max: group.dispatch_interval_max,
-            session_timeout_minutes: group.session_timeout_minutes,
-            dispatch_order_mode: group.dispatch_order_mode,
-          };
-          console.log('User is in group:', userGroupId, 'with config:', groupConfig);
-        }
+      const dueAt = Date.parse(prepared.due_at || '');
+      if (!prepared.group_id || !prepared.pool_id || !Number.isFinite(dueAt)) {
+        throw new Error('The dispatch server returned an invalid pool selection.');
       }
-
-      // If no group or group inactive, use default group
-      if (!userGroupId) {
-        const { data: defaultGroup } = await supabase
-          .from('dispatch_groups')
-          .select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode')
-          .eq('is_default', true)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (defaultGroup) {
-          userGroupId = defaultGroup.id;
-          groupConfig = {
-            dispatch_interval_min: defaultGroup.dispatch_interval_min,
-            dispatch_interval_max: defaultGroup.dispatch_interval_max,
-            session_timeout_minutes: defaultGroup.session_timeout_minutes,
-            dispatch_order_mode: defaultGroup.dispatch_order_mode,
-          };
-          console.log('User using default group:', userGroupId, 'with config:', groupConfig);
+      const nextSelection = { sessionId, groupId: prepared.group_id, poolId: prepared.pool_id, dueAt };
+      selectedDispatchRef.current = nextSelection;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      armDispatchTimer(nextSelection, generation);
+    } catch (error) {
+      if (isCurrentDispatch(sessionId, generation) && membershipRevision === membershipRevisionRef.current) {
+        const message = getOrderDispatchErrorMessage(error);
+        if (isInvalidDispatchSession(message)) {
+          await handleInvalidDispatchSession(message, sessionId);
         } else {
-          console.log('No active group found, cannot dispatch orders');
-          scheduleNextOrder(config);
-          return;
+          console.error('Failed to prepare dispatch:', message);
+          pauseDispatch('error', message, sessionId, generation);
         }
       }
-
-      // Store group config in ref for immediate access
-      if (groupConfig) {
-        currentGroupConfigRef.current = groupConfig;
+    } finally {
+      if (preparingDispatchRef.current === preparation) {
+        preparingDispatchRef.current = null;
+        if (membershipRevision !== membershipRevisionRef.current && isCurrentDispatch(sessionId, generation))
+          void scheduleNextOrder();
       }
+    }
+  };
 
-      // Update config if different
-      if (groupConfig && (groupConfig.dispatch_interval_min !== config.dispatch_interval_min ||
-          groupConfig.dispatch_interval_max !== config.dispatch_interval_max ||
-          groupConfig.session_timeout_minutes !== config.session_timeout_minutes ||
-          groupConfig.dispatch_order_mode !== config.dispatch_order_mode)) {
-        setConfig(groupConfig);
+  const dispatchNewOrder = async (selection: DispatchSelection, generation: number) => {
+    if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection ||
+        (assigningDispatchRef.current?.sessionId === selection.sessionId && assigningDispatchRef.current.generation === generation)) return;
+    const assignmentAttempt = { sessionId: selection.sessionId, generation };
+    assigningDispatchRef.current = assignmentAttempt;
+    let assignedSuccessfully = false;
+    try {
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
+
+      // The server's sticky selection is authoritative; legacy group/mode arguments are ignored.
+      const { data, error } = await supabase.rpc('assign_next_dispatch_order_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: selection.sessionId,
+        p_group_id: null,
+      });
+      if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection) return;
+      if (error) throw error;
+      const result = data;
+      if (result?.auto_stopped) {
+        stopLocalWorkingState(selection.sessionId);
+        setAutoStopReason('missed');
+        setShowAutoStopModal(true);
+        return;
       }
-
-      // At this point, userGroupId must be valid (either user's group or default group)
-      if (!userGroupId) {
-        console.error('Critical error: userGroupId is null after group resolution');
-        scheduleNextOrder(groupConfig || config);
+      if (!result?.success) {
+        if (result?.retry_selection) {
+          // The selected pool changed or emptied at due time. The next selection
+          // starts a fresh server interval; never assign immediately from another pool.
+          selectedDispatchRef.current = null;
+          setNextOrderTime(null);
+          assigningDispatchRef.current = null;
+          membershipChangeDuringAssignmentRef.current = false;
+          void scheduleNextOrder();
+        } else if (result?.due_at) {
+          const dueAt = Date.parse(result.due_at);
+          if (!Number.isFinite(dueAt)) throw new Error('The dispatch server returned an invalid due time.');
+          const updatedSelection = { ...selection, dueAt };
+          selectedDispatchRef.current = updatedSelection;
+          armDispatchTimer(updatedSelection, generation, 5000);
+        } else if (result?.message === 'An active dispatch assignment already exists.') {
+          pauseDispatch('error', 'An active assignment exists. Checking it again in five minutes.', selection.sessionId, generation);
+        } else {
+          pauseDispatch('unavailable', result?.message || 'No eligible dispatch orders are available.', selection.sessionId, generation);
+        }
         return;
       }
 
-      // Use atomic assignment function to prevent race conditions
-      // This is critical for handling 1000+ concurrent users
-      const currentMode = groupConfig?.dispatch_order_mode || config.dispatch_order_mode;
-
-      const { data: assignmentResult, error: assignError } = await supabase.rpc(
-        'assign_next_dispatch_order',
-        {
-          p_user_id: userId,
-          p_group_id: userGroupId,
-          p_dispatch_mode: currentMode
-        }
-      );
-
-      if (assignError) {
-        console.error('Error assigning order:', assignError);
-        throw assignError;
+      const assignment = result.assignment;
+      if (!assignment?.id || !assignment.session_timeout_minutes) {
+        throw new Error('The dispatch server returned an incomplete assignment.');
       }
-
-      // Check if assignment was successful
-      if (!assignmentResult || !assignmentResult.success) {
-        console.log('No available orders to dispatch in group:', userGroupId);
-        console.log('Reason:', assignmentResult?.message || 'Unknown');
-
-        // 增加连续失败计数
-        const newFailureCount = consecutiveFailures + 1;
-        setConsecutiveFailures(newFailureCount);
-
-        // 根据失败原因显示不同提示
-        const reason = assignmentResult?.message || 'Unknown';
-
-        if (reason === 'No active orders in pool') {
-          // Real order-taking environment: Low order volume
-          if (newFailureCount === 1) {
-            showNotification({
-              type: 'info',
-              title: t.dispatch.lowOrderVolume,
-              message: t.dispatch.lowOrderMsg,
-              duration: 5000
-            });
-          } else if (newFailureCount === 5) {
-            showNotification({
-              type: 'warning',
-              title: t.dispatch.stillNoOrders,
-              message: t.dispatch.stillNoOrdersMsg,
-              duration: 6000
-            });
-          } else if (newFailureCount >= 10) {
-            showNotification({
-              type: 'warning',
-              title: t.dispatch.extendedWait,
-              message: t.dispatch.extendedWaitMsg,
-              duration: 0
-            });
-          }
-        } else if (reason === 'User has completed all available orders') {
-          // User completed all available orders
-          if (newFailureCount === 1) {
-            showNotification({
-              type: 'success',
-              title: t.dispatch.allCompleted,
-              message: t.dispatch.allCompletedMsg,
-              duration: 0
-            });
-          }
-
-          // Auto-stop after 10 consecutive attempts
-          if (newFailureCount >= 10) {
-            console.log('All orders completed for 10 attempts, auto-stopping work');
-            await handleStopWork(false);
-            return;
-          }
-        } else if (reason === 'All available orders currently locked') {
-          // Orders temporarily locked by other workers
-          if (newFailureCount === 1) {
-            showNotification({
-              type: 'info',
-              title: t.dispatch.highDemand,
-              message: t.dispatch.highDemandMsg,
-              duration: 4000
-            });
-          }
-        }
-
-        scheduleNextOrder(groupConfig || config);
-        return;
-      }
-
-      // 成功分配订单，重置失败计数
-      setConsecutiveFailures(0);
-
-      // Extract assignment data
-      const assignmentData = assignmentResult.assignment;
-      const newAssignment = {
-        id: assignmentData.id,
-        dispatch_order_id: assignmentData.dispatch_order_id,
-        user_id: userId,
-        status: assignmentData.status,
-        assigned_at: assignmentData.assigned_at,
-        dispatch_orders: {
-          order_content: assignmentData.order_content
-        }
+      selectedDispatchRef.current = null;
+      setNextOrderTime(null);
+      setDispatchPause(null);
+      const serverUnacceptedCount = Number(result.unaccepted_count || 0);
+      unacceptedCountRef.current = serverUnacceptedCount;
+      setUnacceptedCount(serverUnacceptedCount);
+      const newAssignment: DispatchAssignment = {
+        ...assignment,
+        dispatch_orders: { order_content: assignment.order_content },
+        session_timeout_minutes: assignment.session_timeout_minutes,
       };
-
-      console.log('Order assigned successfully:', newAssignment.id, 'Order:', newAssignment.dispatch_order_id);
-
+      assignedSuccessfully = true;
+      currentOrderRef.current = newAssignment;
       setCurrentOrder(newAssignment);
       setShowOrderDetail(true);
       updateActivity();
-      loadTodayOrders();
-
-      // Play order notification sound
+      void loadTodayOrders();
       playOrderNotificationSound();
 
-      // Start 60-second accept timeout
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-      }
+      // The 60-second accept deadline is server-generated, including for slow responses.
+      if (acceptTimeoutRef.current) clearTimeout(acceptTimeoutRef.current);
       acceptTimeoutRef.current = setTimeout(() => {
-        handleAcceptTimeout(newAssignment.id);
-      }, 60000);
-    } catch (error: any) {
-      console.error('Failed to dispatch order:', error);
-
-      // Show error notifications based on error type
-      if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
-        showNotification({
-          type: 'error',
-          title: t.dispatch.networkFailed,
-          message: t.dispatch.networkFailedMsg,
-          duration: 5000
-        });
-      } else if (error.message === 'Request timeout') {
-        showNotification({
-          type: 'warning',
-          title: t.dispatch.requestTimeout,
-          message: t.dispatch.requestTimeoutMsg,
-          duration: 4000
-        });
-      } else {
-        showNotification({
-          type: 'error',
-          title: t.dispatch.assignmentFailed,
-          message: error.message || 'Unknown error. The system will automatically retry.',
-          duration: 5000
-        });
+        void handleAcceptTimeoutRef.current?.(newAssignment.id);
+      }, newAssignment.accept_deadline_at
+        ? Math.max(0, Date.parse(newAssignment.accept_deadline_at) - Date.now()) : 60000);
+    } catch (error) {
+      if (isCurrentDispatch(selection.sessionId, generation)) {
+        console.error('Failed to dispatch order:', error);
+        pauseDispatch('error', getOrderDispatchErrorMessage(error), selection.sessionId, generation);
       }
-
-      scheduleNextOrder();
+    } finally {
+      if (assigningDispatchRef.current === assignmentAttempt) {
+        assigningDispatchRef.current = null;
+        if (membershipChangeDuringAssignmentRef.current) {
+          membershipChangeDuringAssignmentRef.current = false;
+          if (!assignedSuccessfully && isCurrentDispatch(selection.sessionId, generation))
+            void checkPendingOrderRef.current?.();
+        }
+      }
     }
   };
 
   const handleAcceptTimeout = async (assignmentId: string) => {
-    console.log('⏰ handleAcceptTimeout triggered for assignment:', assignmentId);
+    const auth = getStoredAuth();
+    const currentSessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (auth?.userType !== 'employee' || !currentSessionId ||
+        !isCurrentDispatch(currentSessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
 
     try {
-      // Check if order is still pending
-      const { data: assignment, error: fetchError } = await supabase
-        .from('dispatch_assignments')
-        .select('status')
-        .eq('id', assignmentId)
-        .maybeSingle();
+      const { data: result, error } = await supabase.rpc(
+        'expire_pending_dispatch_assignment_secure',
+        {
+          p_user_id: auth.user.id,
+          p_session_token: auth.financialSessionToken,
+          p_tab_id: auth.tabId,
+          p_session_id: currentSessionId,
+          p_assignment_id: assignmentId,
+        },
+      );
+      if (!isCurrentDispatch(currentSessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
+      if (error) throw error;
 
-      console.log('📊 Assignment status check result:', assignment?.status);
-
-      if (fetchError) {
-        console.error('Failed to check assignment status:', fetchError);
-        // Even if there's an error, clear the current order and schedule next
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        scheduleNextOrder();
+      if (result?.reason === 'deadline_not_reached' && result.accept_deadline_at) {
+        const delay = Math.max(0, new Date(result.accept_deadline_at).getTime() - Date.now());
+        acceptTimeoutRef.current = setTimeout(() => {
+          void handleAcceptTimeoutRef.current?.(assignmentId);
+        }, delay);
         return;
       }
 
-      if (assignment && assignment.status === 'pending') {
-        // Cancel the order
-        await supabase
-          .from('dispatch_assignments')
-          .update({
-            status: 'cancelled',
-            completed_at: getCurrentTimestamp(),
-            remarks: 'Auto-cancelled: Not accepted within 60 seconds',
-          })
-          .eq('id', assignmentId);
-
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        updateActivity();
-        loadTodayOrders();
-
-        // Increment unaccepted count using ref to avoid closure issues
-        unacceptedCountRef.current = unacceptedCountRef.current + 1;
-        const newCount = unacceptedCountRef.current;
-        console.log(`Order not accepted. Unaccepted count: ${newCount}/5`);
-        setUnacceptedCount(newCount);
-
-        // Check if reached 5 unaccepted orders
-        if (newCount >= 5) {
-          console.log('Reached 5 unaccepted orders. Stopping work session...');
-          // Stop work session completely - no more orders
-          await handleStopWork(false);
-          setShowAutoStopModal(true);
-          unacceptedCountRef.current = 0;
-          setUnacceptedCount(0);
-          // Do NOT schedule next order - work session has ended
-          return;
-        } else {
-          console.log(`Continuing work. ${5 - newCount} more unaccepted orders before auto-stop.`);
-          // Schedule next order
-          scheduleNextOrder();
-        }
-      } else if (!assignment || assignment.status !== 'pending') {
-        // Order was already accepted/completed, or doesn't exist anymore
-        // Clear current order display if it's still showing
-        if (currentOrder?.id === assignmentId && currentOrder.status === 'pending') {
-          setCurrentOrder(null);
-          setShowOrderDetail(false);
-        }
-        // Schedule next order anyway to keep the flow going
-        scheduleNextOrder();
+      if (result?.assignment_status === 'accepted') {
+        await recoverDispatchState(currentSessionId, generation);
+        return;
       }
-    } catch (error: any) {
-      console.error('Failed to handle accept timeout:', error);
-      // On error, always try to clear and schedule next
+      if (result?.assignment_status === 'pending') return;
+
+      if (typeof result?.unaccepted_count === 'number') {
+        unacceptedCountRef.current = result.unaccepted_count;
+        setUnacceptedCount(result.unaccepted_count);
+      }
+
       setCurrentOrder(null);
       setShowOrderDetail(false);
-      scheduleNextOrder();
+      updateActivity();
+      void loadTodayOrders();
+
+      if (result?.auto_stopped) {
+        stopLocalWorkingState(currentSessionId);
+        setAutoStopReason('missed');
+        setShowAutoStopModal(true);
+        return;
+      }
+
+      if (result?.schedule_next) void scheduleNextOrder();
+    } catch (error: unknown) {
+      if (!isCurrentDispatch(currentSessionId, generation)) return;
+      console.error('Failed to expire pending assignment:', error);
+      showNotification({
+        type: 'error',
+        title: 'Order Timeout Check Failed',
+        message: getOrderDispatchErrorMessage(error),
+        duration: 5000,
+      });
     }
   };
+  handleAcceptTimeoutRef.current = handleAcceptTimeout;
 
-  const handleProcessTimeout = async (assignmentId: string) => {
-    try {
-      // Check if order is still being processed
-      const { data: assignment, error: fetchError } = await supabase
-        .from('dispatch_assignments')
-        .select('status')
-        .eq('id', assignmentId)
-        .maybeSingle();
+  const handleProcessTimeout = async (assignmentId: string, sessionId: string, generation: number): Promise<boolean> => {
+    const isCurrentOrder = () => isCurrentDispatch(sessionId, generation) && currentOrderRef.current?.id === assignmentId;
+    const auth = getStoredAuth();
+    if (!isCurrentOrder() || auth?.userType !== 'employee') return false;
 
-      if (fetchError) {
-        console.error('Failed to check assignment status:', fetchError);
-        // Clear UI state but DO NOT schedule next order - work session will be stopped
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        setHasTimeout(false);
-        setShowTimeoutAlert(false);
-
-        // Explicitly notify parent component that timeout is cleared
-        if (onStatusChange) {
-          onStatusChange(false, false);
-        }
-
-        return;
-      }
-
-      if (assignment && assignment.status === 'accepted') {
-        // Skip the order
-        await supabase
-          .from('dispatch_assignments')
-          .update({
-            status: 'timeout',
-            completed_at: getCurrentTimestamp(),
-            remarks: 'Auto-skipped: Not completed within 10 minutes',
-          })
-          .eq('id', assignmentId);
-
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        setHasTimeout(false);
-        setShowTimeoutAlert(false);
-
-        // Explicitly notify parent component that timeout is cleared
-        if (onStatusChange) {
-          onStatusChange(false, false);
-        }
-
-        updateActivity();
-        loadTodayOrders();
-
-        // DO NOT schedule next order - work session will be stopped after timeout
-      } else if (!assignment || assignment.status !== 'accepted') {
-        // Order was already completed/cancelled, or doesn't exist anymore
-        // Clear current order display if it's still showing
-        if (currentOrder?.id === assignmentId && currentOrder.status === 'accepted') {
-          setCurrentOrder(null);
-          setShowOrderDetail(false);
-          setHasTimeout(false);
-          setShowTimeoutAlert(false);
-
-          // Explicitly notify parent component that timeout is cleared
-          if (onStatusChange) {
-            onStatusChange(false, false);
-          }
-        }
-        // DO NOT schedule next order - timeout handler will stop work session
-      }
-    } catch (error: any) {
-      console.error('Failed to handle process timeout:', error);
-      // Clear UI state but DO NOT schedule next order - work session will be stopped
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-
-      // Explicitly notify parent component that timeout is cleared
-      if (onStatusChange) {
-        onStatusChange(false, false);
-      }
+    // OrderSubmission can mark this assignment on the server without updating this component.
+    const { data: assignment, error: fetchError } = await supabase
+      .from('dispatch_assignments')
+      .select('status, order_submitted, assignment_id')
+      .eq('id', assignmentId)
+      .eq('user_id', auth.user.id)
+      .maybeSingle();
+    if (!isCurrentOrder()) return false;
+    if (fetchError) throw fetchError;
+    if (!assignment || assignment.status !== 'accepted') {
+      await recoverDispatchState(sessionId, generation);
+      return false;
     }
+
+    let linkedOrder: { id: string; status: string } | null = null;
+    if (assignment.assignment_id) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('user_id', auth.user.id)
+        .eq('assignment_id', assignment.assignment_id)
+        .limit(1)
+        .maybeSingle();
+      if (!isCurrentOrder()) return false;
+      if (error) throw error;
+      linkedOrder = data;
+    }
+
+    if (assignment.order_submitted || linkedOrder) {
+      if (linkedOrder && ['success', 'failure', 'error'].includes(linkedOrder.status)) {
+        await recoverDispatchState(sessionId, generation);
+      } else {
+        setCurrentOrder(prev => prev?.id === assignmentId && !prev.order_submitted ? { ...prev, order_submitted: true } : prev);
+        setHasFiveMinuteWarning(false);
+        setHasTimeout(false);
+        void loadTodayOrders();
+      }
+      return false; // Submitted orders are reconciled on the server's 30-minute window.
+    }
+
+    const { data: timeoutResult, error: timeoutError } = await supabase.rpc('finish_dispatch_assignment_secure', {
+      p_user_id: auth.user.id,
+      p_session_token: auth.financialSessionToken,
+      p_tab_id: auth.tabId,
+      p_assignment_id: assignmentId,
+      p_status: 'timeout',
+      p_remarks: 'Auto-skipped: Not completed within configured time',
+    });
+    if (!isCurrentOrder()) return false;
+    if (timeoutError) throw timeoutError;
+    if (!timeoutResult?.success) {
+      await recoverDispatchState(sessionId, generation);
+      return false;
+    }
+
+    currentOrderRef.current = null;
+    setCurrentOrder(null);
+    setShowOrderDetail(false);
+    setHasTimeout(false);
+    setHasFiveMinuteWarning(false);
+    setShowTimeoutAlert(false);
+    void loadTodayOrders();
+    return true;
   };
 
   const handleCloseGrabFailedModal = () => {
@@ -1980,6 +1845,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
     setIsAccepting(true);
     console.log('✅ Set isAccepting to true');
+    const orderId = currentOrder.id;
+    const acceptSessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
 
     // CRITICAL: Clear 60-second accept timeout IMMEDIATELY to prevent race condition
     // This prevents the timeout from triggering while we're processing the accept
@@ -1992,266 +1860,198 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
 
     try {
-      console.log('⚡ Starting optimized accept flow...');
-      const startTime = performance.now();
-
-      // Generate assignment ID atomically with accept
-      const newAssignmentId = generateAssignmentId();
-
-      // Execute all reads in parallel for faster response
-      const [groupDataResult, updateResult] = await Promise.allSettled([
-        // 1. Get group's dispatch success rate
-        supabase.from('dispatch_group_orders')
-          .select('group_id, dispatch_groups!inner(dispatch_success_rate)')
-          .eq('id', currentOrder.dispatch_order_id)
-          .maybeSingle(),
-        // 2. Optimistically update order status immediately with assignment_id
-        supabase.from('dispatch_assignments')
-          .update({ status: 'accepted', accepted_at: getCurrentTimestamp(), assignment_id: newAssignmentId, order_submitted: false })
-          .eq('id', currentOrder.id)
-          .eq('status', 'pending')
-          .select()
-          .maybeSingle()
-      ]);
-
-      // Check if update was successful (retry once on assignment_id collision)
-      if (updateResult.status === 'rejected' || !updateResult.value.data) {
-        console.log('⚠️ First accept attempt failed, retrying with new assignment ID...');
-        const retryId = generateAssignmentId();
-        const { data: retryData } = await supabase.from('dispatch_assignments')
-          .update({ status: 'accepted', accepted_at: getCurrentTimestamp(), assignment_id: retryId, order_submitted: false })
-          .eq('id', currentOrder.id)
-          .eq('status', 'pending')
-          .select()
-          .maybeSingle();
-        if (!retryData) {
-          console.log('⚠️ Order status changed or update failed after retry');
-          setCurrentOrder(null);
-          setShowOrderDetail(false);
-          setIsAccepting(false);
-          scheduleNextOrder();
-          return;
-        }
-        // Use the retry ID going forward
-        Object.assign(updateResult, { status: 'fulfilled', value: { data: retryData } });
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || !acceptSessionId || !isCurrentDispatch(acceptSessionId, generation)) {
+        throw new Error('Employee work session is unavailable.');
       }
 
-      // Check success rate (after update to ensure fast response)
-      const groupData = groupDataResult.status === 'fulfilled' ? groupDataResult.value.data : null;
-      const successRate = groupData?.dispatch_groups?.dispatch_success_rate || 100;
-      const randomValue = getEnhancedRandomSeconds(1, 100);
+      let assignmentCode = generateAssignmentId();
+      let { data: acceptResult, error: acceptError } = await supabase.rpc(
+        'accept_dispatch_assignment_secure',
+        {
+          p_user_id: auth.user.id,
+          p_session_token: auth.financialSessionToken,
+          p_tab_id: auth.tabId,
+          p_session_id: acceptSessionId,
+          p_assignment_id: orderId,
+          p_assignment_code: assignmentCode,
+        },
+      );
 
-      console.log(`🎲 Success rate check: ${successRate}%, Random: ${randomValue}`);
+      if (!isCurrentDispatch(acceptSessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+      if (!acceptError && acceptResult?.reason === 'assignment_code_conflict') {
+        assignmentCode = generateAssignmentId();
+        const retry = await supabase.rpc('accept_dispatch_assignment_secure', {
+          p_user_id: auth.user.id,
+          p_session_token: auth.financialSessionToken,
+          p_tab_id: auth.tabId,
+          p_session_id: acceptSessionId,
+          p_assignment_id: orderId,
+          p_assignment_code: assignmentCode,
+        });
+        acceptResult = retry.data;
+        acceptError = retry.error;
+      }
 
-      if (randomValue > successRate) {
-        // Failed grab - revert the accept
-        console.log('❌ Order grab failed - reverting...');
+      if (!isCurrentDispatch(acceptSessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+      if (acceptError) throw acceptError;
 
-        await supabase.from('dispatch_assignments')
-          .delete()
-          .eq('id', currentOrder.id);
-
+      if (acceptResult?.reason === 'grab_failed') {
         setShowGrabFailedModal(true);
         setCurrentOrder(null);
         setShowOrderDetail(false);
         setNextOrderTime(null);
-
-        if (dispatchTimerRef.current) {
-          clearTimeout(dispatchTimerRef.current);
-          dispatchTimerRef.current = null;
-        }
-
-        if (grabFailedTimerRef.current) {
-          clearTimeout(grabFailedTimerRef.current);
-          grabFailedTimerRef.current = null;
-        }
-
         grabFailedTimerRef.current = setTimeout(() => {
           setShowGrabFailedModal(false);
           scheduleNextOrder();
           grabFailedTimerRef.current = null;
         }, 10000);
-
         setIsAccepting(false);
         return;
       }
 
-      // Success! Update UI immediately
-      const endTime = performance.now();
-      console.log(`✅ Accept completed in ${(endTime - startTime).toFixed(0)}ms`);
+      if (!acceptResult?.success) {
+        if (acceptResult?.reason === 'accept_deadline_reached') {
+          void handleAcceptTimeoutRef.current?.(orderId);
+        } else {
+          // already_resolved can mean the first accept succeeded but its response was lost.
+          await recoverDispatchState(acceptSessionId, generation);
+        }
+        return;
+      }
 
       unacceptedCountRef.current = 0;
       setUnacceptedCount(0);
-
-      // MOBILE OPTIMIZATION: Batch state updates to prevent jank
-      const acceptedData = updateResult.status === 'fulfilled' ? updateResult.value.data : null;
-      const updatedOrder = { ...currentOrder, status: 'accepted', accepted_at: getCurrentTimestamp(), assignment_id: acceptedData?.assignment_id || newAssignmentId, order_submitted: false };
-
-      // Use a single microtask to batch DOM updates
-      Promise.resolve().then(() => {
-        setCurrentOrder(updatedOrder);
-        setIsAccepting(false);
+      setCurrentOrder({
+        ...currentOrder,
+        status: 'accepted',
+        accepted_at: acceptResult.accepted_at,
+        assignment_id: acceptResult.assignment_code || assignmentCode,
+        order_submitted: false,
       });
+      setIsAccepting(false);
 
-      // Delay success animation to next frame for smooth transition
       if (isMobile) {
-        // Mobile: Use timeout instead of rAF for better compatibility
         setTimeout(() => {
           setShowGrabSuccessAnimation(true);
           setTimeout(() => setShowGrabSuccessAnimation(false), 1200);
         }, 50);
       } else {
-        // Desktop: Use rAF for optimal timing
         requestAnimationFrame(() => {
           setShowGrabSuccessAnimation(true);
           setTimeout(() => setShowGrabSuccessAnimation(false), 1500);
         });
       }
 
-      // Play success sound (non-blocking) - Skip on mobile or low-end devices
-      if (!isMobile && !isLowEnd) {
-        setTimeout(() => {
-          try {
-            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZORQ=');
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
-          } catch (e) {}
-        }, 0);
-      }
-
-      // Background tasks (non-blocking) - Increased delay for mobile
       setTimeout(() => {
+        if (!isCurrentDispatch(acceptSessionId, generation) || currentOrderRef.current?.id !== orderId) return;
         updateActivity();
-        loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
-      }, isMobile ? 200 : 100);
-    } catch (error: any) {
-      console.error('Failed to accept order:', error);
-      setIsAccepting(false);
+        void loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
+      }, 500);
+    } catch (error: unknown) {
+      if (acceptSessionId && isCurrentDispatch(acceptSessionId, generation) && currentOrderRef.current?.id === orderId) {
+        console.error('Failed to confirm order acceptance:', error);
+        try {
+          // The request may have succeeded even when its response failed.
+          await recoverDispatchState(acceptSessionId, generation);
+        } catch (recoveryError) {
+          if (isCurrentDispatch(acceptSessionId, generation) && currentOrderRef.current?.id === orderId) {
+            showNotification({
+              type: 'error', title: 'Order Accept Status Unknown',
+              message: `Could not confirm acceptance: ${getOrderDispatchErrorMessage(recoveryError)}. Please try again before the original deadline.`,
+              duration: 6000,
+            });
+            if (currentOrder.accept_deadline_at) {
+              const remaining = Math.max(0, new Date(currentOrder.accept_deadline_at).getTime() - Date.now());
+              acceptTimeoutRef.current = setTimeout(() => {
+                void handleAcceptTimeoutRef.current?.(orderId);
+              }, remaining);
+            }
+          }
+        }
+      }
+    } finally {
+      if (componentMountedRef.current) setIsAccepting(false);
+    }
+  };
 
-      // Show error notification
+  const reconcileUncertainFinish = async (
+    orderId: string, sessionId: string, generation: number, title: string, failure: unknown,
+  ) => {
+    if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+    try {
+      const outcome = await recoverDispatchState(sessionId, generation);
+      if (outcome.state === 'active' && componentMountedRef.current) {
+        showNotification({
+          type: 'warning', title,
+          message: `${getOrderDispatchErrorMessage(failure)}. This assignment is still ${outcome.assignment.status}; please try again before its timeout.`,
+          duration: 6000,
+        });
+      }
+    } catch (recoveryError) {
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+      console.error('Failed to verify assignment after finish request:', recoveryError);
       showNotification({
-        type: 'error',
-        title: 'Order Accept Failed',
-        message: `Failed to accept order: ${error.message}. The order has been skipped and the next order will be dispatched.`,
-        duration: 6000
+        type: 'error', title,
+        message: `${getOrderDispatchErrorMessage(failure)}. Could not confirm the order status: ${getOrderDispatchErrorMessage(recoveryError)}. The order is still shown; retry or wait for its timeout.`,
+        duration: 0,
       });
-
-      // Clear current order state
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-
-      // Update activity and reload orders
-      updateActivity();
-      loadTodayOrders();
-
-      // Continue dispatching next order
-      scheduleNextOrder();
     }
   };
 
   const handleCompleteOrder = async () => {
-    if (!currentOrder) return;
-
-    // Check if order has been submitted for this assignment
-    if (currentOrder.assignment_id && !currentOrder.order_submitted) {
-      // Re-check from DB in case it was submitted while on this page
-      const { data: freshData } = await supabase
-        .from('dispatch_assignments')
-        .select('order_submitted')
-        .eq('id', currentOrder.id)
-        .maybeSingle();
-      if (!freshData?.order_submitted) {
-        setShowOrderNotSubmittedModal(true);
-        return;
-      }
-      setCurrentOrder(prev => prev ? { ...prev, order_submitted: true } : prev);
-    }
-
-    // Prevent duplicate submissions
-    if (isCompleting) {
-      console.log('⚠️ Already processing complete request, ignoring');
-      return;
-    }
+    if (!currentOrder || isCompleting) return;
+    const orderId = currentOrder.id;
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId || !isCurrentDispatch(sessionId, generation)) return;
     setIsCompleting(true);
 
     try {
-      // Use optimistic locking: only complete if status is 'accepted'
-      const { data: updateResult, error } = await supabase
-        .from('dispatch_assignments')
-        .update({
-          status: 'completed',
-          completed_at: getCurrentTimestamp(),
-        })
-        .eq('id', currentOrder.id)
-        .eq('status', 'accepted')  // ✅ Only complete if currently accepted
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!updateResult) {
-        console.log('⚠️ Order status changed, cannot complete');
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        scheduleNextOrder();
-        setIsCompleting(false);
-        return;
+      if (currentOrder.assignment_id && !currentOrder.order_submitted) {
+        const { data: freshData, error: fetchError } = await supabase
+          .from('dispatch_assignments')
+          .select('order_submitted')
+          .eq('id', orderId)
+          .maybeSingle();
+        if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+        if (fetchError) throw fetchError;
+        if (!freshData?.order_submitted) {
+          setShowOrderNotSubmittedModal(true);
+          return;
+        }
+        setCurrentOrder(prev => prev?.id === orderId ? { ...prev, order_submitted: true } : prev);
       }
 
-      // Clear all timeouts
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-      updateActivity();
-      loadTodayOrders();
-      scheduleNextOrder();
-      setIsCompleting(false);
-    } catch (error: any) {
-      console.error('Failed to complete order:', error);
-      setIsCompleting(false);
-
-      // Show error notification
-      showNotification({
-        type: 'error',
-        title: 'Order Completion Failed',
-        message: `Failed to complete order: ${error.message}. The order has been skipped and the next order will be dispatched.`,
-        duration: 6000
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired.');
+      const { data: result, error } = await supabase.rpc('finish_dispatch_assignment_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_assignment_id: orderId,
+        p_status: 'completed',
+        p_remarks: null,
       });
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+      if (error) throw error;
+      if (!result?.success) throw new Error('Completion was not applied; checking the current assignment status.');
 
-      // Clear all timeouts to avoid memory leaks
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
-      // Clear current order state and continue
+      if (acceptTimeoutRef.current) clearTimeout(acceptTimeoutRef.current);
+      if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
+      currentOrderRef.current = null;
       setCurrentOrder(null);
       setShowOrderDetail(false);
       setHasTimeout(false);
       setShowTimeoutAlert(false);
-
-      // Update activity and reload orders
       updateActivity();
-      loadTodayOrders();
-
-      // Most important: continue dispatching next order
-      scheduleNextOrder();
+      void loadTodayOrders();
+      void scheduleNextOrder();
+    } catch (error: unknown) {
+      console.error('Failed to complete order:', error);
+      await reconcileUncertainFinish(orderId, sessionId, generation, 'Order Completion Status Unknown', error);
+    } finally {
+      if (componentMountedRef.current) setIsCompleting(false);
     }
   };
 
@@ -2260,102 +2060,49 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   const handleSubmitError = async () => {
-    if (!currentOrder) return;
+    if (!currentOrder || isReporting) return;
     if (!errorReason.trim()) {
       alert('Please provide an error reason');
       return;
     }
-
-    // Prevent duplicate submissions
-    if (isReporting) {
-      console.log('⚠️ Already processing error report, ignoring');
-      return;
-    }
+    const orderId = currentOrder.id;
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId || !isCurrentDispatch(sessionId, generation)) return;
     setIsReporting(true);
 
     try {
-      // Use optimistic locking: only report error if status is 'accepted'
-      const { data: updateResult, error } = await supabase
-        .from('dispatch_assignments')
-        .update({
-          status: 'error',
-          completed_at: getCurrentTimestamp(),
-          remarks: errorReason,
-        })
-        .eq('id', currentOrder.id)
-        .eq('status', 'accepted')  // ✅ Only report error if currently accepted
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!updateResult) {
-        console.log('⚠️ Order status changed, cannot report error');
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        setShowErrorModal(false);
-        setErrorReason('');
-        scheduleNextOrder();
-        setIsReporting(false);
-        return;
-      }
-
-      // Clear all timeouts
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-      setShowErrorModal(false);
-      setErrorReason('');
-      updateActivity();
-      loadTodayOrders();
-      scheduleNextOrder();
-      setIsReporting(false);
-    } catch (error: any) {
-      console.error('Failed to submit error report:', error);
-      setIsReporting(false);
-
-      // Show error notification
-      showNotification({
-        type: 'error',
-        title: 'Error Report Failed',
-        message: `Failed to submit error report: ${error.message}. The order has been skipped and the next order will be dispatched.`,
-        duration: 6000
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired.');
+      const { data: result, error } = await supabase.rpc('finish_dispatch_assignment_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_assignment_id: orderId,
+        p_status: 'error',
+        p_remarks: errorReason,
       });
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+      if (error) throw error;
+      if (!result?.success) throw new Error('Error report was not applied; checking the current assignment status.');
 
-      // Clear all timeouts to avoid memory leaks
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
-      // Clear current order state and modal
+      if (acceptTimeoutRef.current) clearTimeout(acceptTimeoutRef.current);
+      if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
+      currentOrderRef.current = null;
       setCurrentOrder(null);
       setShowOrderDetail(false);
       setHasTimeout(false);
       setShowTimeoutAlert(false);
       setShowErrorModal(false);
       setErrorReason('');
-
-      // Update activity and reload orders
       updateActivity();
-      loadTodayOrders();
-
-      // Most important: continue dispatching next order
-      scheduleNextOrder();
+      void loadTodayOrders();
+      void scheduleNextOrder();
+    } catch (error: unknown) {
+      console.error('Failed to submit error report:', error);
+      await reconcileUncertainFinish(orderId, sessionId, generation, 'Error Report Status Unknown', error);
+    } finally {
+      if (componentMountedRef.current) setIsReporting(false);
     }
   };
 
@@ -2364,9 +2111,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     setErrorReason('');
   };
 
+  const waitingPanelActive = session.isWorking && !currentOrder && !(isTransitioning && transitionType === 'start');
+
   const getStatusBadge = (status: string) => {
     const badges = {
-      pending: { text: t.dispatch.statusPending, color: 'bg-white/15 text-white border border-white/25 backdrop-blur-sm' },
+      pending: { text: t.dispatch.statusPending, color: 'bg-orange-50 text-orange-700 border border-orange-200' },
       accepted: { text: t.dispatch.inProgress, color: 'bg-blue-50 text-blue-600 border border-blue-200' },
       completed: { text: t.dispatch.completed, color: 'bg-emerald-50 text-emerald-600 border border-emerald-200' },
       error: { text: t.dispatch.error, color: 'bg-rose-50 text-rose-600 border border-rose-200' },
@@ -2374,7 +2123,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       timeout: { text: t.dispatch.timeout, color: 'bg-orange-50 text-orange-600 border border-orange-200' },
     };
     const badge = badges[status as keyof typeof badges] || badges.pending;
-    return <span className={`px-2 py-1 md:px-4 md:py-1.5 rounded-full text-[10px] md:text-xs font-semibold ${badge.color}`}>{badge.text}</span>;
+    return <span className={`px-2 py-1 md:px-4 md:py-1.5 rounded-full text-[11px] md:text-xs font-semibold ${badge.color}`}>{badge.text}</span>;
   };
 
   const formatTime = (date: Date | null) => {
@@ -2382,34 +2131,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     return date.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const formatWorkDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (hours === 0) {
-      return `${minutes}`;
-    }
-    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-  };
-
-  const getWorkDurationLabel = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    if (hours === 0) {
-      return t.dispatch.minutesSuffix;
-    }
-    return '';
-  };
-
-  const getTimeRemaining = () => {
-    if (!nextOrderTime) return '--';
-    const now = new Date();
-    const diff = Math.max(0, Math.floor((nextOrderTime.getTime() - now.getTime()) / 1000));
-    const minutes = Math.floor(diff / 60);
-    const seconds = diff % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const handleOrderClick = (order: any) => {
+  const handleOrderClick = (order: DispatchAssignment) => {
     // If order is accepted (displayed as "In Progress"), reopen the feedback panel
     if (order.status === 'accepted') {
       setCurrentOrder(order);
@@ -2423,11 +2145,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   // Unified cleanup for all timers on component unmount
-  // Sync currentOrder state to ref for use in intervals/callbacks
-  useEffect(() => {
-    currentOrderRef.current = currentOrder;
-  }, [currentOrder]);
-
   // This prevents memory leaks and ensures proper cleanup
   useEffect(() => {
     return () => {
@@ -2476,9 +2193,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     <div className="space-y-8 pb-12 lg:pb-6">
 
       {/* Timeout Alert Modal */}
-      {showTimeoutAlert && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300" style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
-          <div className="bg-white rounded-2xl max-w-sm w-full shadow-[0_24px_80px_-12px_rgba(0,0,0,0.25)] animate-in zoom-in-95 duration-300 overflow-hidden">
+      {showTimeoutAlert && createPortal(
+        <div className="employee-modal-backdrop fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[10000] p-4" style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
+          <div className="employee-modal-surface bg-white rounded-2xl max-w-sm w-full shadow-[0_24px_80px_-12px_rgba(0,0,0,0.25)] overflow-hidden">
             <div className="relative bg-gradient-to-br from-slate-50 to-amber-50/40 px-6 pt-7 pb-5 border-b border-slate-100">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"></div>
               <div className="flex flex-col items-center">
@@ -2505,51 +2222,54 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Auto-Stop Order Processing Modal */}
       {showAutoStopModal && createPortal(
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/65 p-4"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-stop-title" aria-describedby="dispatch-stop-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-white shadow-[0_28px_90px_-20px_rgba(15,23,42,0.55)]">
+            <div className="relative overflow-hidden bg-[#12356d] px-6 pb-6 pt-8 sm:px-8">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400" />
+              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-amber-200 shadow-inner shadow-white/10">
+                  <AlertTriangle className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-lg font-bold text-white">{t.dispatch.processingEnded}</h3>
+                <div>
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-200">{t.dispatch.autoDispatch}</p>
+                  <h3 id="dispatch-stop-title" className="text-xl font-bold tracking-tight text-white">{autoStopReason === 'missed' ? t.dispatch.processingEnded : t.dispatch.sessionEnded}</h3>
+                </div>
               </div>
             </div>
-
-            <div className="px-6 py-5">
-              {/* Stop reason */}
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {t.dispatch.autoStopMsg} <span className="font-bold text-rose-600">{t.dispatch.fiveOrdersInRow}</span>.
+            <div className="px-6 py-6 sm:px-8 sm:py-7">
+              <p id="dispatch-stop-description" className="text-sm leading-relaxed text-slate-700">
+                {autoStopReason === 'missed' ? (
+                  <>{t.dispatch.autoStopMsg} <strong className="font-bold text-rose-700">{t.dispatch.fiveOrdersInRow}</strong>.</>
+                ) : autoStopReason === 'inactivity' ? (
+                  `Your work session was automatically stopped after ${config.session_timeout_minutes} minutes without an active order.`
+                ) : autoStopReason === 'unverified' ? (
+                  'Your session could not be verified. Check your connection and start work again, or sign in again.'
+                ) : (
+                  'Your work session is no longer active. Start again to resume dispatch.'
+                )}
+              </p>
+              <div className="mt-5 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5">
+                <Play className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
+                <p className="text-xs font-medium leading-relaxed text-slate-600">
+                  {t.dispatch.resumeMsg} <strong className="font-bold text-blue-700">{t.dispatch.start}</strong> {t.dispatch.resumeMsg2}
                 </p>
               </div>
-
-              {/* Resume hint */}
-              <div className="flex items-center gap-3 px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-5">
-                <Play className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                <p className="text-xs text-gray-600 font-medium">
-                  {t.dispatch.resumeMsg} <span className="font-bold text-blue-700">{t.dispatch.start}</span> {t.dispatch.resumeMsg2}
-                </p>
-              </div>
-
-              {/* Button */}
               <button
+                type="button"
+                autoFocus
                 onClick={() => setShowAutoStopModal(false)}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 active:scale-[0.98] text-white rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+                className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-700 hover:shadow-[0_16px_30px_-10px_rgba(37,99,235,0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]"
               >
-                <CheckCircle className="w-4 h-4" />
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 <span>{t.dispatch.iUnderstand}</span>
               </button>
             </div>
@@ -2743,46 +2463,34 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         </>
       )}
 
-      {/* Grab Failed Modal - Premium Design */}
       {showGrabFailedModal && createPortal(
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200"
-          style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-4" style={{ overscrollBehavior: 'contain' }}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-claim-title" aria-describedby="dispatch-claim-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)]">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#12356d] via-[#1b487d] to-[#705348] px-6 py-6 sm:px-8 sm:py-7">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300 via-amber-300 to-orange-400" />
+              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-200/30 bg-amber-200/15 text-amber-200 shadow-inner shadow-white/10">
+                  <Zap className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-lg font-bold text-white">{t.dispatch.orderClaimed}</h3>
+                <div className="min-w-0">
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-amber-200">{t.dispatch.orderAssignment}</p>
+                  <h3 id="dispatch-claim-title" className="text-xl font-bold tracking-tight text-white">{t.dispatch.orderClaimed}</h3>
+                </div>
               </div>
             </div>
-
-            <div className="px-6 py-5">
-              {/* Main message */}
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-600" />
+            <div className="px-6 py-6 sm:px-8 sm:py-7">
+              <p id="dispatch-claim-description" className="text-sm leading-relaxed text-slate-700">{t.dispatch.claimedMsg}</p>
+              <div className="mt-5 flex items-center gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/60 px-4 py-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-amber-600 shadow-sm ring-1 ring-amber-200/70">
+                  <Clock className="h-4 w-4" aria-hidden="true" />
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed">{t.dispatch.claimedMsg}</p>
-              </div>
-
-              {/* Timing info */}
-              <div className="flex items-center gap-3 px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-5">
-                <Clock className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                <p className="text-xs text-gray-600 font-medium">
-                  {t.dispatch.nextDispatching} <span className="font-bold text-blue-700">10 {t.dispatch.seconds}</span>
+                <p className="text-xs font-medium leading-relaxed text-slate-600">
+                  {t.dispatch.nextDispatching} <strong className="font-bold text-amber-800">10 {t.dispatch.seconds}</strong>
                 </p>
               </div>
-
-              {/* Button */}
-              <button
-                onClick={handleCloseGrabFailedModal}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-4 h-4" />
+              <button type="button" autoFocus onClick={handleCloseGrabFailedModal} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]">
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 <span>{t.dispatch.continue}</span>
               </button>
             </div>
@@ -2792,62 +2500,36 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       )}
 
       {showTimeoutStopModal && createPortal(
-        <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-300"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            overflow: 'auto',
-            touchAction: 'none',
-            overscrollBehavior: 'contain'
-          }}
-        >
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-[0_24px_80px_-12px_rgba(0,0,0,0.25)] animate-in zoom-in-95 duration-300 overflow-hidden">
-            {/* Top accent + icon header */}
-            <div className="relative bg-gradient-to-br from-slate-50 to-blue-50/60 px-6 pt-8 pb-6 border-b border-slate-100">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"></div>
-              <div className="flex flex-col items-center">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-xl"></div>
-                  <div className="relative w-16 h-16 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200/80 rounded-2xl flex items-center justify-center shadow-sm">
-                    <Clock className="w-8 h-8 text-amber-600" />
-                  </div>
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-4" style={{ overscrollBehavior: 'contain' }}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-timeout-title" aria-describedby="dispatch-timeout-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)]">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#142b50] via-[#26365e] to-[#62405c] px-6 py-6 sm:px-8 sm:py-7">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400" />
+              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-200/30 bg-amber-200/15 text-amber-200 shadow-inner shadow-white/10">
+                  <Clock className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 text-center tracking-tight" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>
-                  {t.dispatch.orderProcessingEnded}
-                </h3>
+                <div className="min-w-0">
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-amber-200">{t.dispatch.orderAssignment}</p>
+                  <h3 id="dispatch-timeout-title" className="text-xl font-bold tracking-tight text-white">{t.dispatch.orderProcessingEnded}</h3>
+                </div>
               </div>
             </div>
-
-            {/* Body */}
-            <div className="px-6 py-5">
-              {/* Reason card */}
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <XCircle className="w-3.5 h-3.5 text-amber-600" />
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  {t.dispatch.notCompletedWithin} <span className="font-semibold text-slate-800">{t.dispatch.notCompletedMinutes.replace('{min}', String(config.session_timeout_minutes))}</span>. {t.dispatch.orderAutoSkipped}
+            <div className="px-6 py-6 sm:px-8 sm:py-7">
+              <div id="dispatch-timeout-description" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/60 px-4 py-4">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+                <p className="text-sm leading-relaxed text-slate-700">
+                  {t.dispatch.notCompletedWithin} <strong className="font-bold text-amber-900">{t.dispatch.notCompletedMinutes.replace('{min}', String(timeoutStopMinutes))}</strong>. {t.dispatch.orderAutoSkipped}
                 </p>
               </div>
-
-              {/* Resume hint */}
-              <div className="flex items-center gap-3 px-4 py-3 bg-blue-50/80 border border-blue-100 rounded-xl mb-5">
-                <Play className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {t.dispatch.pleaseClickStart} <span className="font-bold text-blue-600">{t.dispatch.startText}</span> {t.dispatch.resumeAccepting}
+              <div className="mt-4 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5">
+                <Play className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
+                <p className="text-xs font-medium leading-relaxed text-slate-600">
+                  {t.dispatch.pleaseClickStart} <strong className="font-bold text-blue-700">{t.dispatch.startText}</strong> {t.dispatch.resumeAccepting}
                 </p>
               </div>
-
-              {/* Button */}
-              <button
-                onClick={() => setShowTimeoutStopModal(false)}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-4 h-4" />
+              <button type="button" autoFocus onClick={() => setShowTimeoutStopModal(false)} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]">
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 <span>{t.dispatch.iUnderstand}</span>
               </button>
             </div>
@@ -2856,33 +2538,94 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         document.body
       )}
 
+      {session.isWorking && dispatchPause && (
+        <div role="status" className={`rounded-xl border px-4 py-3 text-sm font-medium ${dispatchPause.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <strong>Dispatch paused.</strong> {dispatchPause.message} Checking again in five minutes. You can stop work at any time.
+        </div>
+      )}
+
       {/* Work Control Panel - Premium Blue/White Design */}
-      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'accepted' && acceptPhase === 'idle' ? 'p-0' : currentOrder?.status === 'accepted' ? 'p-2 md:p-4' : 'p-5 md:p-10'} overflow-hidden transition-all duration-500 ease-out ${
-        session.isWorking
+      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex h-[420px] flex-col p-0 md:h-[clamp(420px,calc(100vh_-_var(--employee-header-height,76px)_-_var(--employee-bottom-nav-height,0px)_-_48px),575px)]' : 'p-5 md:p-10'} overflow-hidden ${
+        waitingPanelActive
+          ? 'min-h-[420px] md:min-h-0 dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
+          : currentOrder?.status === 'pending'
+          ? 'bg-[linear-gradient(125deg,#164c9b_0%,#2370bd_55%,#167da9_100%)] border-2 border-blue-400/50 shadow-[0_22px_60px_-16px_rgba(12,43,112,0.32)]'
+          : session.isWorking
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
-        {/* Inner gradient background for depth */}
-        <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${
-          session.isWorking
-            ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30'
-            : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'
-        }`}></div>
+        {!waitingPanelActive && currentOrder?.status !== 'pending' && (
+          <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
+        )}
+        {currentOrder?.status === 'pending' && (
+          <>
+            <div className="pointer-events-none absolute -right-28 -top-36 h-80 w-80 rounded-full border-[44px] border-cyan-300/10 md:-right-36 md:-top-60 md:h-[34rem] md:w-[34rem] md:border-[76px]" />
+            <div className="pointer-events-none absolute -right-12 -top-20 h-60 w-60 rounded-full border border-cyan-200/25 md:-right-16 md:-top-32 md:h-[28rem] md:w-[28rem]" />
+            <div className="pointer-events-none absolute -bottom-36 -left-28 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl md:h-96 md:w-96" />
+            <div className="pointer-events-none absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'radial-gradient(circle, rgba(186,230,253,0.65) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-blue-950/5 md:h-32" />
+          </>
+        )}
+        {waitingPanelActive && (
+          <>
+            <div className="dispatch-panel-waves pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+              <span className="dispatch-panel-wave" />
+              <span className="dispatch-panel-wave dispatch-panel-wave-2" />
+              <span className="dispatch-panel-wave dispatch-panel-wave-3" />
+              <span className="dispatch-panel-wave dispatch-panel-wave-4" />
+            </div>
+            <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden="true">
+              <span className="dispatch-panel-arc dispatch-panel-arc-top-left" />
+              <span className="dispatch-panel-arc dispatch-panel-arc-top-right" />
+              <span className="dispatch-panel-arc dispatch-panel-arc-bottom-left" />
+              <span className="dispatch-panel-arc dispatch-panel-arc-bottom-right" />
+            </div>
+            <svg className="dispatch-panel-ship pointer-events-none absolute z-[2]" viewBox="0 0 800 300" fill="none" aria-hidden="true">
+              <path d="M93 180h640l48-18-35 65c-12 26-35 36-68 36H196c-52 0-80-14-92-40L93 180Z" fill="#258dbe" fillOpacity="0.19" />
+              <path d="M102 164h632l-2 17H94l8-17Z" fill="#0891b2" fillOpacity="0.16" />
+              <path d="M176 161v-46c0-7 6-13 13-13h147c7 0 13 6 13 13v46H176Z" fill="#3b9bc6" fillOpacity="0.19" />
+              <path d="M204 102V80c0-7 6-13 13-13h97c7 0 13 6 13 13v22H204Z" fill="#48a9cd" fillOpacity="0.19" />
+              <path d="M223 67V54h85v13h-85ZM377 162v-53h44v53h-44Z" fill="#63b7d6" fillOpacity="0.21" />
+              <path d="M386 109V88h26v21h-26Z" fill="#82c7de" fillOpacity="0.25" />
+              <path d="M445 161v-29h188l24 29H445Z" fill="#52abd0" fillOpacity="0.16" />
+              <path d="M482 132V71m-17 61 17-41 18 41" stroke="#4aa6ce" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M222 85h18m17 0h18m17 0h18M199 125h22m17 0h22m17 0h22m17 0h15" stroke="#e9faff" strokeOpacity="0.7" strokeWidth="7" strokeLinecap="round" />
+            </svg>
+            <svg className="dispatch-panel-sea pointer-events-none absolute z-[2]" aria-hidden="true">
+              <defs>
+                <pattern id="dispatch-panel-sea-mobile" width="128" height="34" patternUnits="userSpaceOnUse">
+                  <path d="M0 11 Q32 7 64 11 T128 11" fill="none" stroke="#38bdf8" strokeOpacity="0.33" strokeWidth="2.5" />
+                  <path d="M0 24 Q32 19 64 24 T128 24" fill="none" stroke="#7dd3fc" strokeOpacity="0.25" strokeWidth="1.75" />
+                </pattern>
+                <pattern id="dispatch-panel-sea-desktop" width="220" height="42" patternUnits="userSpaceOnUse">
+                  <path d="M0 13 Q55 5 110 13 T220 13" fill="none" stroke="#38bdf8" strokeOpacity="0.3" strokeWidth="2.5" />
+                  <path d="M0 30 Q55 22 110 30 T220 30" fill="none" stroke="#7dd3fc" strokeOpacity="0.23" strokeWidth="1.75" />
+                </pattern>
+              </defs>
+              <rect className="md:hidden" width="100%" height="100%" fill="url(#dispatch-panel-sea-mobile)" />
+              <rect className="hidden md:block" width="100%" height="100%" fill="url(#dispatch-panel-sea-desktop)" />
+            </svg>
+            <div className="absolute right-5 top-5 z-20 hidden items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10 md:flex">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
+              <span>{t.dispatch.autoDispatch}</span>
+            </div>
+          </>
+        )}
         {/* Top accent border */}
         <div className={`absolute top-0 left-0 right-0 rounded-t-2xl md:rounded-t-3xl transition-all duration-500 ${
-          session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+          waitingPanelActive ? 'dispatch-waiting-accent z-[2] h-1.5 bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-500 shadow-[0_3px_12px_rgba(14,165,233,0.45)]' : currentOrder?.status === 'pending' ? 'h-1.5 bg-gradient-to-r from-cyan-400 via-sky-300 to-amber-400 shadow-[0_3px_12px_rgba(34,211,238,0.3)]' : session.isWorking ? 'h-1.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500' : 'h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
         }`}></div>
 
         {/* Content */}
-        <div className="relative z-10">
-          <div className={`transition-all duration-400 ease-out overflow-hidden ${
-            currentOrder?.status === 'accepted' ? 'max-h-0 opacity-0 mb-0 pointer-events-none' : 'max-h-[500px] opacity-100 mb-0'
-          }`} style={{ transitionProperty: 'max-height, opacity, margin' }}>
-          {(!(currentOrder?.status === 'accepted') || acceptPhase !== 'idle') && (
+        <div className={`relative z-10 ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+          <div className={`overflow-hidden ${
+            currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'hidden' : ''
+          }`}>
+          {currentOrder?.status !== 'pending' && currentOrder?.status !== 'accepted' && (
           <>{/* Header Section - Tablet optimized horizontal layout */}
           {isTablet ? (
             /* TABLET: Compact horizontal layout */
-            <div className="flex items-center justify-between mb-6 space-x-4">
+            <div className={`flex items-center justify-between space-x-4 ${waitingPanelActive ? 'mb-5 border-b border-white/65 pb-5' : 'mb-6'}`}>
               {/* Left: Logo + Title */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Icon */}
@@ -2896,13 +2639,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
                 {/* Title + Status */}
                 <div>
-                  <h3 className="text-lg font-semibold text-blue-700 tracking-[-0.02em]" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>{t.dispatch.orderProcessing}</h3>
+                  <h3 className={`text-lg font-semibold tracking-[-0.02em] ${waitingPanelActive ? 'text-blue-900' : 'text-blue-700'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>{t.dispatch.orderProcessing}</h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div className={`w-2 h-2 rounded-full ${session.isWorking ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
-                    <p className={`text-xs font-medium ${session.isWorking ? 'text-green-600' : 'text-slate-400'}`}>
+                    <p className={`text-xs font-medium ${waitingPanelActive ? 'text-blue-600' : session.isWorking ? 'text-green-600' : 'text-slate-400'}`}>
                       {session.isWorking ? t.dispatch.active : t.dispatch.readyToStart}
-                      {session.isWorking && <span className="text-slate-300 ml-1.5">|</span>}
-                      {session.isWorking && <span className="text-slate-400 ml-1.5">{formatTime(session.startedAt)}</span>}
+                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-blue-200' : 'text-slate-300'}`}>|</span>}
+                      {session.isWorking && <span className={`ml-1.5 ${waitingPanelActive ? 'text-slate-500' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>}
                     </p>
                   </div>
                 </div>
@@ -2910,18 +2653,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             </div>
           ) : (
             /* DESKTOP & MOBILE: Blue/White premium layout */
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-5 md:mb-10 space-y-4 md:space-y-0">
+            <div className={`flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 ${waitingPanelActive ? 'mb-2 border-b border-white/65 pb-5 md:mb-6 md:pb-6' : 'mb-5 md:mb-10'}`}>
               {/* Mobile: Full-width status banner */}
               <div className="w-full md:w-auto">
                 <div className="flex items-center gap-3 md:gap-4">
                   {/* Icon - Distinct from title */}
                   <div className={`relative p-3.5 md:p-4 rounded-2xl transition-all duration-500 ${
-                    session.isWorking
+                    waitingPanelActive
+                      ? 'bg-gradient-to-br from-blue-500 to-sky-500 border border-blue-400/50 shadow-lg shadow-blue-500/20'
+                      : session.isWorking
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-100'
                       : 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200'
                   }`}>
                     <Timer className={`w-6 h-6 md:w-6 md:h-6 transition-colors duration-500 ${
-                      session.isWorking ? 'text-white' : 'text-blue-600'
+                      waitingPanelActive ? 'text-white' : session.isWorking ? 'text-white' : 'text-blue-600'
                     }`} />
                     {session.isWorking && (
                       <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
@@ -2929,12 +2674,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   </div>
 
                   <div className="flex-1">
-                    <h3 className="text-lg md:text-xl font-bold text-blue-800 tracking-[-0.02em]" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>
+                    <h3 className={`text-lg md:text-xl font-bold tracking-[-0.02em] ${waitingPanelActive ? 'text-blue-900' : 'text-blue-800'}`} style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif" }}>
                       {t.dispatch.orderProcessing}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 ${
-                        session.isWorking
+                        waitingPanelActive
+                          ? 'bg-white/70 border border-white/90 shadow-sm shadow-blue-300/20'
+                          : session.isWorking
                           ? 'bg-green-50 border border-green-200'
                           : 'bg-slate-50 border border-slate-200'
                       }`}>
@@ -2942,13 +2689,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           session.isWorking ? 'bg-green-500 animate-pulse' : 'bg-slate-300'
                         }`}></div>
                         <span className={`text-[11px] font-semibold transition-colors duration-300 ${
-                          session.isWorking ? 'text-green-700' : 'text-slate-500'
+                          waitingPanelActive ? 'text-blue-700' : session.isWorking ? 'text-green-700' : 'text-slate-500'
                         }`}>
                           {session.isWorking ? t.dispatch.active : t.dispatch.standby}
                         </span>
                       </div>
                       {session.isWorking && (
-                        <span className="text-[11px] text-slate-400 font-medium">{formatTime(session.startedAt)}</span>
+                        <span className={`text-[11px] font-medium ${waitingPanelActive ? 'text-slate-500' : 'text-slate-400'}`}>{formatTime(session.startedAt)}</span>
                       )}
                     </div>
                   </div>
@@ -2962,75 +2709,36 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           {/* Main Action Area - Balanced Display */}
           {currentOrder ? (
             /* ORDER DISPLAY - Advanced Blockchain Design */
-            <div className={`relative backdrop-blur-sm overflow-hidden transition-all duration-700 ease-out ${currentOrder.status === 'accepted' ? (isTablet ? 'border-0 rounded-none shadow-none' : 'border-0 rounded-none shadow-none flex flex-col') : 'border md:border-2 rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl'} ${
+            <div className={`relative ${
               currentOrder.status === 'pending'
-                ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 border-blue-400/40 shadow-blue-900/50'
-                : hasTimeout
-                ? 'bg-gradient-to-br from-rose-900/80 to-red-900/80 border-rose-500/50 shadow-rose-500/30'
-                : 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 border-blue-300/60 shadow-blue-200/50'
+                ? 'flex flex-1 flex-col'
+                : `backdrop-blur-sm overflow-hidden ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col border-0 rounded-none shadow-none' : 'border md:border-2 rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl'} ${hasTimeout ? 'bg-gradient-to-br from-rose-900/80 to-red-900/80 border-rose-500/50 shadow-rose-500/30' : 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 border-blue-300/60 shadow-blue-200/50'}`
             }`}>
-              {/* Background pattern for pending */}
-              {currentOrder.status === 'pending' && (
-                <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{
-                  backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)',
-                  backgroundSize: '24px 24px'
-                }}></div>
-              )}
-
-              {/* Gradient overlay */}
-              <div className={`absolute inset-0 pointer-events-none ${
-                currentOrder.status === 'pending'
-                  ? 'bg-gradient-to-br from-blue-500/20 via-transparent to-blue-900/30'
-                  : hasTimeout
-                  ? ''
-                  : 'bg-gradient-to-br from-sky-100/40 via-transparent to-blue-100/30'
-              }`}></div>
-
-              {/* Corner accents */}
-              <div className={`absolute top-2 left-2 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-l-2 rounded-tl-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-              <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-r-2 rounded-tr-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-              <div className={`absolute bottom-2 left-2 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-l-2 rounded-bl-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-              <div className={`absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-r-2 rounded-br-md transition-all duration-500 ${
-                currentOrder.status === 'pending' ? 'border-blue-300/50' : hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'
-              }`}></div>
-
-              {/* Scanning Lines */}
-              {currentOrder.status === 'pending' && (
+              {currentOrder.status !== 'pending' && (
                 <>
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/60 to-transparent animate-scan"></div>
-                  <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-300/60 to-transparent animate-scan" style={{animationDelay: '1s'}}></div>
+                  <div className={`absolute inset-0 pointer-events-none ${hasTimeout ? '' : 'bg-gradient-to-br from-sky-100/40 via-transparent to-blue-100/30'}`} />
+                  <div className={`absolute top-2 left-2 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-l-2 rounded-tl-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-t-2 border-r-2 rounded-tr-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  <div className={`absolute bottom-2 left-2 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-l-2 rounded-bl-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  <div className={`absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-2 border-r-2 rounded-br-md transition-all duration-500 ${hasTimeout ? 'border-rose-400/60' : 'border-blue-400/60'}`} />
+                  {currentOrder.status === 'accepted' && !hasTimeout && (
+                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400/50 to-transparent" />
+                  )}
+                  <div className={`absolute top-1/4 -left-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${hasTimeout ? 'bg-rose-400/15' : 'bg-sky-300/20'}`} />
+                  <div className={`absolute bottom-1/4 -right-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${hasTimeout ? 'bg-red-400/15' : 'bg-blue-300/15'}`} style={{animationDelay: '1s'}} />
                 </>
               )}
-              {currentOrder.status === 'accepted' && !hasTimeout && (
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400/50 to-transparent"></div>
-              )}
 
-              {/* Ambient glow orbs */}
-              <div className={`absolute top-1/4 -left-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
-                currentOrder.status === 'pending' ? 'bg-blue-400/20' : hasTimeout ? 'bg-rose-400/15' : 'bg-sky-300/20'
-              }`}></div>
-              <div className={`absolute bottom-1/4 -right-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
-                currentOrder.status === 'pending' ? 'bg-sky-300/15' : hasTimeout ? 'bg-red-400/15' : 'bg-blue-300/15'
-              }`} style={{animationDelay: '1s'}}></div>
-
-              <div className={`relative p-3 md:p-8 z-10 ${currentOrder.status === 'accepted' ? (isTablet ? 'flex flex-col' : 'flex-1 flex flex-col') : ''} transition-all duration-500 ease-out ${
-                acceptPhase === 'fade-out' ? 'opacity-0 scale-[0.98] translate-y-1' : acceptPhase === 'fade-in' ? 'animate-[acceptFadeIn_0.5s_ease-out_forwards]' : ''
-              }`}>
+              <div className={`relative z-10 ${currentOrder.status === 'pending' ? 'flex min-h-0 flex-1 flex-col p-5 md:p-6 lg:p-10' : 'p-3 md:p-8'} ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col motion-safe:animate-[fadeIn_0.28s_ease-out_both]' : ''}`}>
                 {/* Premium Header with Blockchain Aesthetic */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-3 md:mb-6 space-y-2 md:space-y-0">
+                <div className={`flex flex-col md:flex-row items-start md:items-center justify-between mb-3 space-y-2 md:space-y-0 ${currentOrder.status === 'pending' ? 'border-b border-white/20 pb-4 md:mb-4 md:pb-4 lg:mb-6 lg:pb-6' : 'md:mb-6'}`}>
                   <div className="flex items-center space-x-2 md:space-x-4">
                     {/* Enhanced Icon Container */}
                     <div className="relative">
                       {/* Glow effect */}
                       <div className={`absolute inset-0 rounded-xl md:rounded-2xl blur-lg ${
                         currentOrder.status === 'pending'
-                          ? 'bg-amber-400/30 animate-pulse'
+                          ? 'bg-cyan-300/25'
                           : hasTimeout
                           ? 'bg-rose-500/50 animate-pulse'
                           : 'bg-blue-500/20'
@@ -3039,90 +2747,78 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       {/* Icon container */}
                       <div className={`relative w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center border-2 ${
                         currentOrder.status === 'pending'
-                          ? 'bg-gradient-to-br from-amber-400 to-amber-500 border-amber-300/60 shadow-lg shadow-amber-500/30'
+                          ? 'bg-white/10 border-white/25 shadow-lg shadow-blue-950/15'
                           : hasTimeout
                           ? 'bg-gradient-to-br from-rose-500/30 to-red-500/30 border-rose-400/60'
                           : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300/50 shadow-lg shadow-blue-500/20'
                       }`}>
                         <Package className={`w-5 h-5 md:w-9 md:h-9 ${
                           currentOrder.status === 'pending'
-                            ? 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.7)]'
+                            ? 'text-cyan-100'
                             : hasTimeout
                             ? 'text-rose-300 drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]'
                             : 'text-white'
-                        } ${currentOrder.status === 'pending' ? 'animate-pulse' : ''}`} />
+                        }`} />
                       </div>
                     </div>
 
                     {/* Title Section */}
                     <div>
-                      <div className="flex items-center space-x-2 md:space-x-3">
+                      <div className={currentOrder.status === 'accepted' ? 'flex flex-wrap items-center gap-x-2 gap-y-1 md:gap-x-3' : 'flex items-center space-x-2 md:space-x-3'}>
                         <h3 className={`text-base md:text-3xl font-black tracking-tight ${
                           currentOrder.status === 'pending' ? 'text-white' : hasTimeout ? 'text-rose-100 drop-shadow-lg' : 'text-gray-800'
                         }`}>
                           {currentOrder.status === 'pending' ? t.dispatch.newOrderHeading : hasTimeout ? t.dispatch.timeout : t.dispatch.inProgress}
                         </h3>
                         {currentOrder.status === 'pending' && (
-                          <div className="flex items-center space-x-1 px-2 py-0.5 md:px-3 md:py-1 bg-white/10 border border-white/25 rounded-md md:rounded-lg backdrop-blur-sm">
-                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                            <span className="text-[9px] md:text-xs font-bold text-emerald-300 uppercase tracking-wide">{t.dispatch.verified}</span>
+                          <div className="flex items-center space-x-1 px-2 py-0.5 md:px-3 md:py-1 bg-cyan-300/15 border border-cyan-200/25 rounded-md md:rounded-lg">
+                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-cyan-300 rounded-full animate-pulse"></div>
+                            <span className="text-[11px] md:text-xs font-bold text-cyan-100 uppercase tracking-wide">{t.dispatch.verified}</span>
                           </div>
                         )}
-                        {currentOrder.status === 'accepted' && !hasTimeout && (
-                          <div className="flex items-center space-x-1 px-2 py-0.5 md:px-3 md:py-1 bg-emerald-50 border border-emerald-200 rounded-md md:rounded-lg">
-                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                            <span className="text-[9px] md:text-xs font-bold text-emerald-600 uppercase tracking-wide">{t.dispatch.inProgress}</span>
+                        {currentOrder.status === 'accepted' && currentOrder.assignment_id && (
+                          <div className="flex max-w-full min-w-0 items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-2 py-0.5 shadow-sm md:gap-1.5 md:px-3 md:py-1">
+                            <span className="hidden text-[11px] font-bold uppercase tracking-wider text-blue-600 md:inline">{t.dispatch.assignmentIdLabel}</span>
+                            <span className="min-w-0 break-all font-mono text-[11px] font-black tracking-wide text-blue-700 md:text-xs">{currentOrder.assignment_id}</span>
+                            {currentOrder.order_submitted && <CheckCircle className="h-3 w-3 shrink-0 text-emerald-600" />}
                           </div>
                         )}
                       </div>
-                      <p className={`text-[10px] md:text-sm font-semibold mt-1 md:mt-1.5 flex items-center space-x-2 ${
-                        currentOrder.status === 'pending' ? 'text-blue-200/80' : hasTimeout ? 'text-rose-200' : 'text-gray-500'
+                      <p className={`text-[11px] md:text-sm font-semibold mt-1 md:mt-1.5 flex items-center space-x-2 ${
+                        currentOrder.status === 'pending' ? 'text-blue-100' : hasTimeout ? 'text-rose-200' : 'text-gray-500'
                       }`}>
                         <Clock className="w-3 h-3 md:w-4 md:h-4" />
                         <span>{currentOrder.status === 'pending' ? t.dispatch.acceptWithin : hasTimeout ? t.dispatch.completeNow : t.dispatch.completeTask}</span>
                       </p>
                     </div>
                   </div>
-                  {currentOrder.status === 'accepted' && currentOrder.assignment_id ? (
-                    <div className="flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-4 md:py-1.5 bg-blue-50 border md:border-2 border-blue-300 rounded-full shadow-sm">
-                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                      <span className="hidden md:inline text-[10px] font-bold text-blue-600 uppercase tracking-wider">{t.dispatch.assignmentIdLabel}</span>
-                      <span className="text-[10px] md:text-xs font-black text-blue-700 font-mono tracking-widest">{currentOrder.assignment_id}</span>
-                      {currentOrder.order_submitted && (
-                        <CheckCircle className="w-3 h-3 text-emerald-600" />
-                      )}
-                    </div>
-                  ) : (
-                    getStatusBadge(currentOrder.status)
-                  )}
+                  {currentOrder.status === 'pending' ? (
+                    <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm shadow-orange-950/20 md:px-4 md:py-1.5 md:text-xs">{t.dispatch.statusPending}</span>
+                  ) : currentOrder.status !== 'accepted' ? getStatusBadge(currentOrder.status) : null}
                 </div>
 
                 {/* Timeout Alert - Compact */}
                 {hasTimeout && (
                   <div className="mb-2 md:mb-5 p-1.5 md:p-3 bg-rose-500/15 border border-rose-500/40 rounded-lg md:rounded-xl flex items-center space-x-1.5 md:space-x-3">
                     <AlertTriangle className="w-3.5 h-3.5 md:w-5 md:h-5 text-rose-300 animate-pulse flex-shrink-0" />
-                    <div className="text-rose-200 text-[10px] md:text-sm font-semibold">{t.dispatch.exceededTimeout.replace('{min}', String(config.session_timeout_minutes))}</div>
+                    <div className="text-rose-200 text-[11px] md:text-sm font-semibold">{t.dispatch.exceededTimeout.replace('{min}', String(currentOrder.session_timeout_minutes ?? currentOrder.session_timeout_minutes_snapshot ?? config.session_timeout_minutes))}</div>
                   </div>
                 )}
 
                 {/* Order Content - Compact Blockchain Design */}
                 {/* MOBILE: Full Width Order Details First */}
-                <div className="md:hidden mb-2.5">
-                  <div className={`relative backdrop-blur-md rounded-lg p-2.5 border overflow-hidden shadow-sm ${
-                    currentOrder.status === 'pending'
-                      ? 'bg-white/10 border-white/20'
-                      : 'bg-white/90 border-gray-200'
-                  }`}>
-                    <div className="relative z-10">
+                <div className={`md:hidden mb-2.5 ${currentOrder.status === 'pending' ? 'flex flex-1 flex-col justify-center' : currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+                  <div className={`relative ${currentOrder.status === 'pending' ? 'py-3' : 'overflow-hidden rounded-lg border border-gray-200 bg-white/90 p-2.5 shadow-sm backdrop-blur-md'} ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+                    <div className={`relative z-10 ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center space-x-1.5">
-                          <div className={`w-1 h-1 rounded-full animate-pulse ${currentOrder.status === 'pending' ? 'bg-blue-300' : 'bg-blue-500'}`}></div>
-                          <FileText className={`w-3 h-3 ${currentOrder.status === 'pending' ? 'text-blue-300' : 'text-blue-500'}`} />
-                          <h4 className={`text-[10px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-white/90' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
+                          <div className={`w-1 h-1 rounded-full animate-pulse ${currentOrder.status === 'pending' ? 'bg-cyan-300' : 'bg-blue-500'}`}></div>
+                          <FileText className={`w-3 h-3 ${currentOrder.status === 'pending' ? 'text-cyan-200' : 'text-blue-500'}`} />
+                          <h4 className={`text-[11px] font-bold uppercase tracking-wide ${currentOrder.status === 'pending' ? 'text-blue-50' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
                         </div>
                         {currentOrder.status === 'pending' && (
-                          <div className="px-1.5 py-0.5 bg-white/10 border border-white/20 rounded">
-                            <span className="text-[8px] font-bold text-blue-200 uppercase">{t.dispatch.locked}</span>
+                          <div className="rounded border border-amber-200/30 bg-amber-300/15 px-1.5 py-0.5">
+                            <span className="text-[11px] font-bold uppercase text-amber-100">{t.dispatch.locked}</span>
                           </div>
                         )}
                       </div>
@@ -3130,24 +2826,24 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
 
                       {currentOrder.status === 'pending' ? (
-                        <div className="text-center py-4 relative">
+                        <div className="relative py-4 text-center">
+                          <div className="pointer-events-none absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
                           <div className="relative">
-                            <div className="inline-flex items-center justify-center mb-2">
+                            <div className="mb-3 inline-flex items-center justify-center">
                               <div className="relative">
-                                <div className="absolute inset-0 bg-amber-400/20 rounded-xl blur-md animate-pulse"></div>
-                                <div className="relative w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
-                                  <Package className="w-6 h-6 text-white animate-pulse" />
+                                <div className="absolute -inset-3 rounded-[1.35rem] border border-cyan-200/20" />
+                                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_12px_28px_-8px_rgba(249,115,22,0.6)]">
+                                  <Package className="h-7 w-7 text-white" />
                                 </div>
                               </div>
                             </div>
-
-                            <p className="text-white font-bold text-xs mb-0.5 tracking-wide">{t.dispatch.newOrderAvailable}</p>
-                            <p className="text-emerald-300 text-[9px] font-semibold mb-1">{t.dispatch.secured}</p>
-                            <p className="text-blue-200/60 text-[8px]">{t.dispatch.acceptToUnlock}</p>
+                            <p className="mb-1 text-base font-bold tracking-tight text-white">{t.dispatch.newOrderAvailable}</p>
+                            <p className="mb-1 text-[11px] font-semibold text-cyan-200">{t.dispatch.secured}</p>
+                            <p className="text-[11px] text-blue-100/80">{t.dispatch.acceptToUnlock}</p>
                           </div>
                         </div>
                       ) : (
-                        <div className={`text-gray-800 text-xs leading-[1.6] font-medium whitespace-pre-wrap overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'max-h-none' : 'max-h-[140px]'}`}>
+                        <div className={`order-details-scrollbar text-gray-800 leading-[1.6] font-medium whitespace-pre-wrap break-words overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'min-h-0 flex-1 text-[13px]' : 'max-h-[140px] text-xs'}`}>
                           {currentOrder.dispatch_orders.order_content}
                         </div>
                       )}
@@ -3156,50 +2852,33 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 </div>
 
                 {/* DESKTOP: Side-by-side layout */}
-                <div className={`hidden md:grid gap-4 md:gap-6 ${currentOrder.status === 'accepted' ? (isTablet ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-5 flex-1') : 'grid-cols-1 lg:grid-cols-5'}`}>
-                  <div className="lg:col-span-3">
-                    <div className={`relative backdrop-blur-xl rounded-2xl p-8 border overflow-hidden shadow-xl transition-all duration-500 ${
-                      currentOrder.status === 'pending'
-                        ? 'bg-white/10 border-white/20 shadow-blue-900/20'
-                        : 'bg-white/90 border-gray-200 shadow-sm'
-                    }`}>
-                      {/* Subtle dot pattern */}
-                      <div className={`absolute inset-0 ${currentOrder.status === 'pending' ? 'opacity-[0.04]' : 'opacity-[0.02]'}`} style={{
-                        backgroundImage: currentOrder.status === 'pending'
-                          ? 'radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)'
-                          : 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)',
-                        backgroundSize: '20px 20px'
-                      }}></div>
+                <div className={`hidden md:grid gap-4 lg:gap-6 ${currentOrder.status === 'accepted' ? (isTablet ? 'min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto]' : 'min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-5 lg:grid-rows-1') : 'min-h-0 grid-cols-1 md:flex-1 md:grid-rows-[minmax(0,1fr)_auto] md:items-stretch lg:grid-cols-5 lg:grid-rows-1 lg:items-center'}`}>
+                  <div className={`${currentOrder.status === 'accepted' && isTablet ? '' : 'lg:col-span-3'} ${currentOrder.status === 'pending' || currentOrder.status === 'accepted' ? 'min-h-0' : ''}`}>
+                    <div className={`relative transition-all duration-500 ${currentOrder.status === 'pending' ? 'h-full min-h-0 overflow-y-auto py-4 lg:h-auto lg:overflow-visible lg:py-6' : 'overflow-hidden rounded-2xl border border-gray-200 bg-white/90 p-8 shadow-sm backdrop-blur-xl'} ${currentOrder.status === 'accepted' ? 'flex h-full min-h-0 flex-col' : ''}`}>
+                      {currentOrder.status !== 'pending' && (
+                        <>
+                          <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                          <div className="absolute left-3 top-3 h-5 w-5 rounded-tl-sm border-l border-t border-blue-300/40" />
+                          <div className="absolute right-3 top-3 h-5 w-5 rounded-tr-sm border-r border-t border-blue-300/40" />
+                          <div className="absolute bottom-3 left-3 h-5 w-5 rounded-bl-sm border-b border-l border-blue-300/40" />
+                          <div className="absolute bottom-3 right-3 h-5 w-5 rounded-br-sm border-b border-r border-blue-300/40" />
+                        </>
+                      )}
 
-                      {/* Soft corner accents */}
-                      <div className={`absolute top-3 left-3 w-5 h-5 border-t border-l rounded-tl-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
-                      }`}></div>
-                      <div className={`absolute top-3 right-3 w-5 h-5 border-t border-r rounded-tr-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
-                      }`}></div>
-                      <div className={`absolute bottom-3 left-3 w-5 h-5 border-b border-l rounded-bl-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
-                      }`}></div>
-                      <div className={`absolute bottom-3 right-3 w-5 h-5 border-b border-r rounded-br-sm transition-all duration-500 ${
-                        currentOrder.status === 'pending' ? 'border-white/30' : 'border-blue-300/40'
-                      }`}></div>
-
-                      <div className="relative z-10">
+                      <div className={`relative z-10 ${currentOrder.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center space-x-3">
                             <div className="relative">
-                              <div className={`absolute inset-0 rounded-full blur-sm animate-pulse ${currentOrder.status === 'pending' ? 'bg-cyan-300/40' : 'bg-blue-400/30'}`}></div>
+                              <div className={`absolute inset-0 rounded-full blur-sm animate-pulse ${currentOrder.status === 'pending' ? 'bg-cyan-200/60' : 'bg-blue-400/30'}`}></div>
                               <div className={`relative w-2 h-2 rounded-full ${currentOrder.status === 'pending' ? 'bg-cyan-300' : 'bg-blue-500'}`}></div>
                             </div>
-                            <FileText className={`w-5 h-5 ${currentOrder.status === 'pending' ? 'text-cyan-300' : 'text-blue-500'}`} />
-                            <h4 className={`text-sm font-bold uppercase tracking-widest ${currentOrder.status === 'pending' ? 'text-white' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
+                            <FileText className={`w-5 h-5 ${currentOrder.status === 'pending' ? 'text-cyan-200' : 'text-blue-500'}`} />
+                            <h4 className={`text-sm font-bold uppercase tracking-widest ${currentOrder.status === 'pending' ? 'text-blue-50' : 'text-gray-700'}`}>{t.dispatch.orderDetails}</h4>
                           </div>
                           {currentOrder.status === 'pending' && (
-                            <div className="relative flex items-center space-x-2 px-4 py-1.5 bg-amber-400/15 border border-amber-400/30 rounded-lg overflow-hidden backdrop-blur-sm">
-                              <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/10 to-amber-400/0 animate-shimmer"></div>
-                              <div className="relative w-2 h-2 bg-amber-400 rounded-full animate-pulse shadow-sm shadow-amber-400/50"></div>
-                              <span className="relative text-xs font-bold text-amber-300 uppercase tracking-wider">{t.dispatch.encryptedLabel}</span>
+                            <div className="flex items-center space-x-2 rounded-lg border border-amber-200/30 bg-amber-300/15 px-4 py-1.5">
+                              <div className="h-2 w-2 rounded-full bg-amber-300" />
+                              <span className="text-xs font-bold uppercase tracking-wider text-amber-100">{t.dispatch.encryptedLabel}</span>
                             </div>
                           )}
                         </div>
@@ -3207,67 +2886,67 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
 
                         {currentOrder.status === 'pending' ? (
-                          <div className="text-center relative min-h-[180px] max-h-[180px] flex flex-col justify-center">
+                          <div className="relative flex min-h-[180px] flex-col justify-center text-center lg:min-h-[250px]">
                             {/* Floating particles */}
                             <div className="absolute inset-0 overflow-hidden">
-                              <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-amber-300/30 rounded-full animate-float-particle-1"></div>
-                              <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-white/15 rounded-full animate-float-particle-2"></div>
-                              <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-cyan-300/25 rounded-full animate-float-particle-3"></div>
+                              <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-orange-300/40 rounded-full animate-float-particle-1"></div>
+                              <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-blue-300/40 rounded-full animate-float-particle-2"></div>
+                              <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-cyan-300/40 rounded-full animate-float-particle-3"></div>
                             </div>
 
                             <div className="relative">
                               {/* Icon - amber/gold for contrast */}
                               <div className="inline-flex items-center justify-center mb-5">
                                 <div className="relative">
-                                  <div className="absolute -inset-4 bg-amber-400/15 rounded-full blur-xl animate-pulse"></div>
-                                  <div className="absolute -inset-2 bg-amber-500/10 rounded-full blur-md animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                                  <div className="absolute -inset-8 rounded-full bg-cyan-300/15 blur-xl" />
+                                  <div className="absolute -inset-4 rounded-[1.75rem] border border-cyan-200/20" />
 
-                                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 shadow-xl shadow-amber-500/25 flex items-center justify-center">
+                                  <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_16px_36px_-10px_rgba(249,115,22,0.65)]">
                                     <Package className="w-10 h-10 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
-                                    <div className="absolute inset-0 rounded-2xl border border-amber-300/40"></div>
+                                    <div className="absolute inset-0 rounded-2xl border border-orange-300/40"></div>
                                   </div>
                                 </div>
                               </div>
 
-                              <h3 className="text-xl font-bold mb-3 tracking-tight text-white">
+                              <h3 className="mb-3 text-2xl font-bold tracking-tight text-white">
                                 {t.dispatch.newOrderAvailable}
                               </h3>
 
                               {/* Security badge */}
                               <div className="flex items-center justify-center space-x-3 mb-3">
-                                <div className="w-10 h-px bg-gradient-to-r from-transparent to-white/25"></div>
-                                <div className="flex items-center space-x-2 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full backdrop-blur-sm">
-                                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                                  <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">{t.dispatch.secured}</span>
+                                <div className="h-px w-10 bg-cyan-200/35" />
+                                <div className="flex items-center space-x-2 rounded-full border border-cyan-200/25 bg-cyan-300/15 px-3 py-1">
+                                  <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
+                                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-100">{t.dispatch.secured}</span>
                                 </div>
-                                <div className="w-10 h-px bg-gradient-to-l from-transparent to-white/25"></div>
+                                <div className="h-px w-10 bg-cyan-200/35" />
                               </div>
 
-                              <p className="text-blue-100/80 text-sm font-medium mb-3 max-w-sm mx-auto">
+                              <p className="mx-auto mb-3 max-w-sm text-sm font-medium text-blue-100">
                                 {t.dispatch.clickAcceptToUnlock}
                               </p>
 
                               {/* Status indicators */}
-                              <div className="flex items-center justify-center space-x-4 pt-3 border-t border-white/10">
+                              <div className="flex items-center justify-center space-x-4 border-t border-white/20 pt-3">
                                 <div className="flex items-center space-x-1.5">
-                                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                                  <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wide">{t.dispatch.verified}</span>
+                                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300" />
+                                  <span className="text-[11px] font-bold uppercase tracking-wide text-cyan-100">{t.dispatch.verified}</span>
                                 </div>
-                                <div className="w-px h-3 bg-white/15"></div>
+                                <div className="h-3 w-px bg-white/25" />
                                 <div className="flex items-center space-x-1.5">
-                                  <div className="w-1.5 h-1.5 bg-cyan-300 rounded-full animate-pulse" style={{animationDelay: '0.3s'}}></div>
-                                  <span className="text-[10px] text-cyan-200 font-bold uppercase tracking-wide">{t.dispatch.blockchain}</span>
+                                  <div className="h-1.5 w-1.5 rounded-full bg-sky-200" />
+                                  <span className="text-[11px] font-bold uppercase tracking-wide text-blue-100">{t.dispatch.blockchain}</span>
                                 </div>
-                                <div className="w-px h-3 bg-white/15"></div>
+                                <div className="h-3 w-px bg-white/25" />
                                 <div className="flex items-center space-x-1.5">
-                                  <div className="w-1.5 h-1.5 bg-amber-300 rounded-full animate-pulse" style={{animationDelay: '0.6s'}}></div>
-                                  <span className="text-[10px] text-amber-200 font-bold uppercase tracking-wide">{t.dispatch.encryptedLabel}</span>
+                                  <div className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+                                  <span className="text-[11px] font-bold uppercase tracking-wide text-amber-100">{t.dispatch.encryptedLabel}</span>
                                 </div>
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className={`text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap overflow-y-auto pr-2 custom-scrollbar ${currentOrder.status === 'accepted' ? 'max-h-none flex-1' : 'max-h-[180px]'}`}>
+                          <div className={`order-details-scrollbar text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words overflow-y-auto pr-2 md:-mr-4 md:pr-6 custom-scrollbar ${currentOrder.status === 'accepted' ? 'min-h-0 flex-1' : 'max-h-[180px]'}`}>
                             {currentOrder.dispatch_orders.order_content}
                           </div>
                         )}
@@ -3281,19 +2960,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       <button
                         onClick={handleAcceptOrder}
                         disabled={isAccepting}
-                        className={`group relative w-full px-4 py-3 md:px-6 md:py-4 bg-white text-blue-700 rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-xl shadow-white/20 disabled:cursor-not-allowed touch-manipulation ${
+                        className={`group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-[0_16px_36px_-12px_rgba(3,25,73,0.65)] touch-manipulation disabled:cursor-not-allowed md:px-6 md:py-4 md:text-base ${
                           performanceSettings.reduceTransitions
                             ? 'transition-opacity duration-150 active:opacity-80'
-                            : 'hover:shadow-white/40 transition-all duration-200 hover:scale-105 active:scale-[0.98]'
+                            : 'transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_20px_40px_-12px_rgba(3,25,73,0.75)] active:scale-[0.98]'
                         }`}
                       >
                         {!performanceSettings.reduceTransitions && (
-                          <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="absolute inset-0 bg-amber-950/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                         )}
                         <div className="relative flex items-center justify-center space-x-2">
                           {isAccepting ? (
                             <>
-                              <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin keep-animation"></div>
+                              <div className="keep-animation h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white md:h-5 md:w-5" />
                               <span>{t.dispatch.accepting}</span>
                             </>
                           ) : (
@@ -3354,18 +3033,18 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   </div>
                 </div>
 
-                {/* MOBILE: Action Buttons - Full Width Below Content */}
-                <div className="md:hidden space-y-2 mt-2.5">
+                {/* MOBILE: Action Buttons Below Content */}
+                <div className={`md:hidden mt-2.5 ${currentOrder.status === 'accepted' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}`}>
                   {currentOrder.status === 'pending' && (
                     <button
                       onClick={handleAcceptOrder}
                       disabled={isAccepting}
-                      className="w-full bg-white text-blue-700 py-3 px-4 rounded-lg font-bold text-sm shadow-lg shadow-white/20 flex items-center justify-center space-x-1.5 disabled:cursor-not-allowed touch-manipulation active:bg-blue-50 active:scale-[0.97] transition-transform duration-75"
+                      className="flex min-h-12 w-full touch-manipulation items-center justify-center space-x-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-[0_14px_28px_-10px_rgba(3,25,73,0.6)] transition-all duration-150 active:scale-[0.98] active:brightness-90 disabled:cursor-not-allowed"
                       style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       {isAccepting ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin keep-animation flex-shrink-0"></div>
+                          <div className="keep-animation h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                           <span>{t.dispatch.accepting}</span>
                         </>
                       ) : (
@@ -3381,7 +3060,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       <button
                         onClick={handleCompleteOrder}
                         disabled={isCompleting}
-                        className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-4 rounded-lg font-bold text-sm shadow-lg flex items-center justify-center space-x-1.5 disabled:cursor-not-allowed touch-manipulation active:from-emerald-600 active:to-green-700 active:scale-[0.97] transition-transform duration-75"
+                        className="w-full min-w-0 bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 disabled:cursor-not-allowed touch-manipulation active:from-emerald-600 active:to-green-700 active:scale-[0.97] transition-transform duration-75"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         {isCompleting ? (
@@ -3398,7 +3077,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       </button>
                       <button
                         onClick={handleErrorOrder}
-                        className="w-full bg-gradient-to-r from-rose-500 to-red-600 text-white py-3 px-4 rounded-lg font-bold text-sm shadow-lg flex items-center justify-center space-x-1.5 touch-manipulation active:from-rose-600 active:to-red-700 active:scale-[0.97] transition-transform duration-75"
+                        className="w-full min-w-0 bg-gradient-to-r from-rose-500 to-red-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 touch-manipulation active:from-rose-600 active:to-red-700 active:scale-[0.97] transition-transform duration-75"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         <XCircle className="w-4 h-4 flex-shrink-0" />
@@ -3410,123 +3089,66 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               </div>
             </div>
           ) : (
-            /* Countdown Timer and Start/Stop Button Layout */
             <>
-            {/* DESKTOP LAYOUT */}
-            <div className={`hidden md:grid grid-cols-1 gap-4 md:gap-10 transition-all duration-500`}>
-              {/* Integrated Waiting State - flows naturally within the panel */}
-              {session.isWorking && !(isTransitioning && transitionType === 'start') && (
-                <div className="relative -mx-10 -mb-2 px-10 py-10 overflow-hidden">
-                  {/* Gradient transition - seamless from panel bg into deep blue */}
-                  <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(15,23,60,0.98) 0%, rgba(20,35,80,0.95) 10%, rgba(23,37,84,0.9) 18%, rgba(28,50,120,0.82) 26%, rgba(30,58,138,0.72) 34%, rgba(37,80,190,0.55) 42%, rgba(50,110,220,0.38) 50%, rgba(70,140,240,0.22) 58%, rgba(100,165,250,0.12) 66%, rgba(140,190,255,0.05) 75%, transparent 88%)' }}></div>
-                  {/* Animated color-shifting overlay */}
-                  <div className="absolute inset-0 pointer-events-none animate-[colorShiftBg_8s_ease-in-out_infinite]" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(6,182,212,0.15) 0%, rgba(56,189,248,0.08) 40%, transparent 70%)' }}></div>
-                  {/* Breathing Light Waves */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="absolute w-44 h-44 md:w-56 md:h-56 rounded-full bg-blue-400/60 blur-xl animate-breath-ripple animate-color-shift-glow"></div>
-                    <div className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full bg-cyan-500/45 blur-2xl animate-breath-ripple" style={{ animationDelay: '1.2s' }}></div>
-                    <div className="absolute w-80 h-80 md:w-[26rem] md:h-[26rem] rounded-full bg-sky-600/30 blur-3xl animate-breath-ripple" style={{ animationDelay: '2.4s' }}></div>
-                    <div className="absolute w-[30rem] h-[30rem] md:w-[32rem] md:h-[32rem] rounded-full border-2 border-sky-400/20 animate-breath-pulse-ring"></div>
-                    <div className="absolute w-[34rem] h-[34rem] md:w-[36rem] md:h-[36rem] rounded-full border border-blue-300/10 animate-breath-pulse-ring" style={{ animationDelay: '1s' }}></div>
+            {waitingPanelActive && (
+              <div>
+                <div className="relative min-h-[240px] overflow-visible py-7 md:overflow-hidden md:py-10">
+                  <div className="absolute -top-4 right-0 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:hidden">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
+                    <span>{t.dispatch.autoDispatch}</span>
                   </div>
-
-                  {/* Orbit ring around timer */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-72 h-72 md:w-80 md:h-80 rounded-full border border-sky-300/20 animate-[spin_20s_linear_infinite]">
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-sky-300 rounded-full shadow-[0_0_12px_rgba(125,211,252,0.8),0_0_24px_rgba(125,211,252,0.4)]"></div>
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-cyan-300/70 rounded-full shadow-[0_0_10px_rgba(103,232,249,0.6)]"></div>
-                      <div className="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-blue-300/60 rounded-full shadow-[0_0_8px_rgba(147,197,253,0.5)]"></div>
+                  <div className="relative z-10 text-center">
+                    <div className="mb-7 flex items-center justify-center gap-2 md:mb-6">
+                      <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.38)] animate-pulse" />
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-800 md:text-sm md:tracking-[0.2em]">{t.dispatch.waitingForOrders}</p>
+                      <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-cyan-700">{t.dispatch.live}</span>
                     </div>
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-[22rem] h-[22rem] md:w-[26rem] md:h-[26rem] rounded-full border border-blue-300/[0.12] animate-[spin_30s_linear_infinite_reverse]">
-                      <div className="absolute top-1/4 right-0 translate-x-1/2 w-2 h-2 bg-cyan-300/70 rounded-full shadow-[0_0_10px_rgba(103,232,249,0.6)]"></div>
-                      <div className="absolute bottom-1/3 left-0 -translate-x-1/2 w-1.5 h-1.5 bg-sky-300/50 rounded-full shadow-[0_0_8px_rgba(125,211,252,0.5)]"></div>
-                    </div>
-                  </div>
-
-                  {/* Floating particles */}
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div className="absolute top-[20%] left-[15%] w-1.5 h-1.5 bg-sky-300/60 rounded-full animate-[float-up_6s_ease-in-out_infinite] shadow-[0_0_6px_rgba(125,211,252,0.5)]"></div>
-                    <div className="absolute top-[60%] left-[25%] w-1 h-1 bg-cyan-200/70 rounded-full animate-[float-up_8s_ease-in-out_infinite_1s] shadow-[0_0_5px_rgba(103,232,249,0.4)]"></div>
-                    <div className="absolute top-[40%] right-[20%] w-1.5 h-1.5 bg-cyan-300/50 rounded-full animate-[float-up_7s_ease-in-out_infinite_2s] shadow-[0_0_6px_rgba(103,232,249,0.4)]"></div>
-                    <div className="absolute top-[70%] right-[30%] w-1 h-1 bg-sky-200/60 rounded-full animate-[float-up_9s_ease-in-out_infinite_3s] shadow-[0_0_5px_rgba(125,211,252,0.4)]"></div>
-                    <div className="absolute top-[50%] left-[40%] w-1 h-1 bg-blue-300/55 rounded-full animate-[float-up_7.5s_ease-in-out_infinite_4s] shadow-[0_0_5px_rgba(147,197,253,0.4)]"></div>
-                    <div className="absolute top-[30%] right-[15%] w-1.5 h-1.5 bg-sky-400/45 rounded-full animate-[float-up_10s_ease-in-out_infinite_2.5s] shadow-[0_0_6px_rgba(56,189,248,0.4)]"></div>
-                    <div className="absolute top-[80%] left-[60%] w-1 h-1 bg-cyan-400/50 rounded-full animate-[float-up_6.5s_ease-in-out_infinite_1.5s] shadow-[0_0_5px_rgba(34,211,238,0.4)]"></div>
-                    <div className="absolute top-[15%] right-[40%] w-1 h-1 bg-blue-200/60 rounded-full animate-[float-up_8.5s_ease-in-out_infinite_5s] shadow-[0_0_5px_rgba(191,219,254,0.4)]"></div>
-                  </div>
-
-                  {/* Subtle scanning line */}
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-300/20 to-transparent animate-[scan-line_5s_ease-in-out_infinite]"></div>
-                  </div>
-
-                  {/* Subtle hex grid */}
-                  <div className="absolute inset-0 opacity-[0.025] pointer-events-none">
-                    <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <pattern id="hex-wait" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-                          <path d="M28 0 L42 8 L42 24 L28 32 L14 24 L14 8 Z" fill="none" stroke="rgba(96,165,250,1)" strokeWidth="0.5" />
-                        </pattern>
-                      </defs>
-                      <rect width="100%" height="100%" fill="url(#hex-wait)" />
-                    </svg>
-                  </div>
-
-                  <div className="relative z-10">
-                    {/* Status indicator */}
-                    <div className="flex items-center justify-center gap-3 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-white/40 rounded-full blur-md animate-pulse"></div>
-                        <div className="relative w-2.5 h-2.5 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.7)]"></div>
-                      </div>
-                      <p className="text-sm font-bold text-white uppercase tracking-[0.2em]">{t.dispatch.waitingForOrder}</p>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/25 rounded-full ml-2">
-                        <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">{t.dispatch.live}</span>
-                      </div>
-                    </div>
-
-                    {/* Timer Display */}
-                    {/* Timer display */}
-                    <div className="relative mb-8">
-                      <div className="flex items-center justify-center gap-5">
+                    <div className="mx-auto mb-7 w-fit max-w-full md:mb-6">
+                      <div className="flex items-start justify-center gap-2.5 md:gap-5">
                         <div className="text-center">
-                          <div className="text-7xl lg:text-8xl font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif", textShadow: '0 0 20px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(Math.floor(waitingTime / 60)).padStart(2, '0')}
+                          <div className="dispatch-timer-surface rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
+                            <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
+                              <span key={Math.floor(waitingTime / 60)} className="dispatch-timer-tick">{String(Math.floor(waitingTime / 60)).padStart(2, '0')}</span>
+                            </div>
                           </div>
-                          <div className="text-xs text-blue-200 font-semibold mt-3 uppercase tracking-[0.25em]">{t.dispatch.min}</div>
+                          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70 md:mt-3 md:text-xs">{t.dispatch.min}</div>
                         </div>
-                        <div className="flex flex-col items-center gap-2.5 -mt-6">
-                          <div className="w-2.5 h-2.5 bg-sky-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(125,211,252,0.8)]"></div>
-                          <div className="w-2.5 h-2.5 bg-sky-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(125,211,252,0.8)]" style={{ animationDelay: '0.5s' }}></div>
+                        <div aria-hidden="true" className="flex self-center flex-col items-center justify-center gap-2 pb-5 md:gap-3 md:pb-6">
+                          <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
+                          <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.36)] animate-pulse md:h-2.5 md:w-2.5" />
                         </div>
                         <div className="text-center">
-                          <div className="text-7xl lg:text-8xl font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif", textShadow: '0 0 20px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(waitingTime % 60).padStart(2, '0')}
+                          <div className="dispatch-timer-surface dispatch-timer-surface-cyan rounded-2xl px-3 py-2 md:rounded-3xl md:px-6 md:py-2.5">
+                            <div className="dispatch-waiting-digits text-5xl font-black tabular-nums leading-none tracking-tight md:text-7xl lg:text-8xl">
+                              <span key={waitingTime % 60} className="dispatch-timer-tick">{String(waitingTime % 60).padStart(2, '0')}</span>
+                            </div>
                           </div>
-                          <div className="text-xs text-blue-200 font-semibold mt-3 uppercase tracking-[0.25em]">{t.dispatch.sec}</div>
+                          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-800/70 md:mt-3 md:text-xs">{t.dispatch.sec}</div>
                         </div>
                       </div>
                     </div>
-
-                    {/* Stats row */}
-                    <div className="flex items-center justify-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-3.5 h-3.5 text-sky-300" />
-                        <span className="text-xs text-blue-100"><span className="text-white font-bold">{stats.completed}</span> {t.dispatch.completedToday}</span>
-                      </div>
-                      <div className="w-px h-4 bg-blue-300/30"></div>
-                      <div className="flex items-center gap-1.5">
-                        <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
-                        <span className="text-xs text-emerald-300 font-semibold">{t.dispatch.online}</span>
-                      </div>
-                    </div>
+                    <p className="text-xs font-medium text-slate-600 md:text-sm">{dispatchPause ? dispatchPause.message : nextOrderTime ? t.dispatch.readyToAcceptOrders : t.dispatch.preparingQueue}</p>
                   </div>
                 </div>
-              )}
-
+                <div className="-mx-5 -mb-5 flex items-center justify-center border-t border-white/70 px-4 py-4 md:-mx-10 md:-mb-10 md:px-10 md:py-6">
+                  <button
+                    type="button"
+                    onClick={() => void handleStopWork(false).catch(() => undefined)}
+                    disabled={isProcessing}
+                    className={`group flex min-h-[60px] w-full max-w-[460px] items-center justify-center gap-3 rounded-2xl border border-orange-200/80 bg-gradient-to-r from-[#ef8835] via-[#e8692a] to-[#d74a37] px-5 py-3 text-white shadow-[0_14px_32px_-12px_rgba(83,35,21,0.7),inset_0_1px_0_rgba(255,255,255,0.32)] transition-all duration-200 hover:from-[#f59a4b] hover:via-[#ee7b39] hover:to-[#e05a47] hover:shadow-[0_18px_36px_-12px_rgba(83,35,21,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 md:min-h-[68px] md:gap-4 md:px-8 md:py-3.5 ${isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : ''}`}
+                    style={{ WebkitTapHighlightColor: 'transparent', textShadow: '0 1px 2px rgba(90, 30, 11, 0.75)' }}
+                  >
+                    {isProcessing ? (
+                      <><span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" /><span className="text-xs font-bold md:text-sm">{t.dispatch.endingSession}</span></>
+                    ) : (
+                      <><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/20 text-white shadow-inner shadow-white/10 transition-colors group-hover:bg-white/30 md:h-10 md:w-10"><Square className="h-4 w-4" fill="currentColor" aria-hidden="true" /></span><span className="min-w-0 text-left"><span className="block text-sm font-bold md:text-base">{t.dispatch.endSession}</span><span className="block text-[11px] font-semibold text-white/95 md:text-xs">{t.dispatch.stopAccepting}</span></span></>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* DESKTOP LAYOUT */}
+            <div className={`hidden md:grid grid-cols-1 gap-4 md:gap-10 transition-all duration-500`}>
               {/* Action Button */}
               <div className="flex items-center justify-center">
               {(!session.isWorking || (isTransitioning && transitionType === 'start')) ? (
@@ -3784,53 +3406,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     </div>
                   </div>
                 </button>
-              ) : (session.isWorking && !(isTransitioning && transitionType === 'end')) || (isTransitioning && transitionType === 'end') ? (
-                <button
-                  onClick={() => handleStopWork(false)}
-                  disabled={isProcessing}
-                  className={`group/btn relative w-full py-5 px-8 bg-gradient-to-r from-red-500/90 via-red-600/90 to-red-500/90 backdrop-blur-sm border border-red-400/30 rounded-2xl overflow-hidden disabled:cursor-not-allowed shadow-lg shadow-red-900/20 ${
-                    performanceSettings.reduceTransitions
-                      ? 'transition-all duration-200 active:scale-[0.98] active:from-red-700 active:via-red-800 active:to-red-700'
-                      : 'transition-all duration-300 hover:from-red-600 hover:via-red-700 hover:to-red-600 hover:border-red-400/50 hover:shadow-xl hover:shadow-red-900/30 active:scale-[0.98] active:from-red-700 active:via-red-800 active:to-red-700'
-                  } ${
-                    isTransitioning && transitionType === 'end' ? 'scale-95 opacity-70' : 'scale-100 opacity-100'
-                  }`}
-                >
-                  {/* Subtle inner glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/10 rounded-2xl pointer-events-none"></div>
-
-                  {/* Transition overlay */}
-                  {isTransitioning && transitionType === 'end' && (
-                    <div className="absolute inset-0 bg-red-800/95 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl keep-animation">
-                      <div className="flex items-center gap-3">
-                        <div className="w-5 h-5 border-2 border-red-300/50 border-t-white rounded-full animate-spin keep-animation"></div>
-                        <span className="text-white font-semibold">{t.dispatch.endingSession}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className={`relative flex items-center justify-center gap-4 z-10 transition-all duration-300 ${
-                    isTransitioning && transitionType === 'end' ? 'opacity-0' : 'opacity-100'
-                  }`}>
-                    <div className="p-2.5 bg-white/10 border border-white/15 rounded-xl group-hover/btn:bg-white/15 transition-colors duration-300">
-                      <Square className="w-5 h-5 text-white drop-shadow-sm" fill="currentColor" />
-                    </div>
-                    <div className="text-left">
-                      <span className="block text-base font-bold text-white drop-shadow-sm">
-                        {t.dispatch.endSession}
-                      </span>
-                      <span className="block text-xs text-red-100/70">
-                        {t.dispatch.stopAccepting}
-                      </span>
-                    </div>
-                  </div>
-                </button>
               ) : null}
               </div>
             </div>
 
             {/* MOBILE-ONLY COMPACT LAYOUT */}
-            <div className="md:hidden space-y-3 min-h-[320px]">
+            <div className={session.isWorking && !(isTransitioning && transitionType === 'start') ? 'hidden' : 'md:hidden space-y-3 min-h-[320px]'}>
               {isTransitioning && transitionType === 'start' ? (
                 /* Mobile Transition Loading View - Soft edge gradients blend into panel */
                 <div className="animate-[fadeIn_0.3s_ease-out] min-h-[320px] -mx-4 relative overflow-hidden flex flex-col items-center justify-center">
@@ -3870,7 +3451,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     {/* Text */}
                     <div className="text-center space-y-1.5">
                       <p className="text-lg font-bold text-emerald-900 drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">{t.dispatch.startingSession}</p>
-                      <p className="text-sm text-emerald-700/60 font-medium">{t.dispatch.preparingOrderQueue}</p>
+                      <p className="text-sm text-emerald-700/60 font-medium">{t.dispatch.preparingQueue}</p>
                     </div>
 
                     {/* Shimmer progress bar - wider and more visible */}
@@ -3879,111 +3460,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     </div>
                   </div>
                 </div>
-              ) : session.isWorking ? (
-                /* Mobile Active Session View */
-                <div className="space-y-3 animate-[fadeIn_0.4s_ease-out]">
-                  {/* Timer section with blue gradient */}
-                  <div className="relative -mx-4 px-4 py-12 min-h-[220px] overflow-hidden flex flex-col items-center justify-center">
-                    {/* Seamless gradient from panel bg into deep blue */}
-                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 90% 75% at 50% 50%, rgba(15,23,60,0.98) 0%, rgba(20,35,80,0.95) 10%, rgba(23,37,84,0.9) 18%, rgba(28,50,120,0.82) 26%, rgba(30,58,138,0.72) 34%, rgba(37,80,190,0.55) 42%, rgba(50,110,220,0.38) 50%, rgba(70,140,240,0.22) 58%, rgba(100,165,250,0.12) 66%, rgba(140,190,255,0.05) 75%, transparent 88%)' }}></div>
-                    {/* Animated color-shifting overlay */}
-                    <div className={`absolute inset-0 pointer-events-none ${suppressAnimations ? '' : 'animate-[colorShiftBg_8s_ease-in-out_infinite]'}`} style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(6,182,212,0.15) 0%, rgba(56,189,248,0.08) 40%, transparent 70%)' }}></div>
-                    {/* Breathing Light Waves */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className={`absolute w-32 h-32 rounded-full bg-blue-400/60 blur-lg ${suppressAnimations ? '' : 'animate-breath-ripple animate-color-shift-glow'}`}></div>
-                      <div className={`absolute w-48 h-48 rounded-full bg-cyan-500/45 blur-xl ${suppressAnimations ? '' : 'animate-breath-ripple'}`} style={{ animationDelay: '1.2s' }}></div>
-                      <div className={`absolute w-64 h-64 rounded-full bg-sky-600/30 blur-2xl ${suppressAnimations ? '' : 'animate-breath-ripple'}`} style={{ animationDelay: '2.4s' }}></div>
-                      <div className={`absolute w-72 h-72 rounded-full border-2 border-sky-400/20 ${suppressAnimations ? '' : 'animate-breath-pulse-ring'}`}></div>
-                      <div className={`absolute w-80 h-80 rounded-full border border-blue-300/10 ${suppressAnimations ? '' : 'animate-breath-pulse-ring'}`} style={{ animationDelay: '1s' }}></div>
-                    </div>
-                    {/* Orbit ring - mobile */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className={`w-48 h-48 rounded-full border border-sky-300/10 ${suppressAnimations ? '' : 'animate-[spin_20s_linear_infinite]'}`}>
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-sky-300/50 rounded-full shadow-[0_0_6px_rgba(125,211,252,0.5)]"></div>
-                      </div>
-                    </div>
-                    {/* Floating particles - mobile */}
-                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                      <div className={`absolute top-[25%] left-[18%] w-0.5 h-0.5 bg-sky-300/40 rounded-full ${suppressAnimations ? '' : 'animate-[float-up_6s_ease-in-out_infinite]'}`}></div>
-                      <div className={`absolute top-[55%] right-[22%] w-0.5 h-0.5 bg-cyan-300/30 rounded-full ${suppressAnimations ? '' : 'animate-[float-up_7s_ease-in-out_infinite_2s]'}`}></div>
-                      <div className={`absolute top-[65%] left-[35%] w-0.5 h-0.5 bg-blue-200/40 rounded-full ${suppressAnimations ? '' : 'animate-[float-up_8s_ease-in-out_infinite_3.5s]'}`}></div>
-                    </div>
-
-                    <div className="relative z-10 w-full">
-                      {/* Status */}
-                      <div className="flex items-center justify-center gap-2 mb-4">
-                        <div className="relative">
-                          <div className={`absolute inset-0 bg-white/30 rounded-full blur-sm ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
-                          <div className="relative w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.6)]"></div>
-                        </div>
-                        <span className="text-[11px] font-bold text-white uppercase tracking-[0.12em]">{t.dispatch.waitingForOrder}</span>
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-white/15 border border-white/25 rounded-md ml-1">
-                          <div className={`w-1.5 h-1.5 bg-emerald-300 rounded-full ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
-                          <span className="text-[9px] font-bold text-emerald-300 uppercase">{t.dispatch.live}</span>
-                        </div>
-                      </div>
-
-                      {/* Timer */}
-                      <div className="flex items-center justify-center gap-2.5 mb-4">
-                        <div className="text-center">
-                          <div className="text-[2.75rem] font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', -apple-system, system-ui, sans-serif", textShadow: '0 0 16px rgba(56,189,248,0.5), 0 0 32px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(Math.floor(waitingTime / 60)).padStart(2, '0')}
-                          </div>
-                          <div className="text-[8px] text-blue-200 font-semibold uppercase tracking-[0.2em] mt-1">{t.dispatch.min}</div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1.5 -mt-3">
-                          <div className={`w-1.5 h-1.5 bg-sky-300 rounded-full shadow-[0_0_6px_rgba(125,211,252,0.7)] ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
-                          <div className={`w-1.5 h-1.5 bg-sky-300 rounded-full shadow-[0_0_6px_rgba(125,211,252,0.7)] ${suppressAnimations ? '' : 'animate-pulse'}`} style={{ animationDelay: '0.5s' }}></div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-[2.75rem] font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', -apple-system, system-ui, sans-serif", textShadow: '0 0 16px rgba(56,189,248,0.5), 0 0 32px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(waitingTime % 60).padStart(2, '0')}
-                          </div>
-                          <div className="text-[8px] text-blue-200 font-semibold uppercase tracking-[0.2em] mt-1">{t.dispatch.sec}</div>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="flex items-center justify-center gap-4 text-[10px]">
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-sky-300" />
-                          <span className="text-blue-100"><span className="text-white font-bold">{stats.completed}</span> {t.dispatch.completedToday}</span>
-                        </div>
-                        <div className="w-px h-3 bg-blue-300/30"></div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3 text-emerald-300" />
-                          <span className="text-emerald-300 font-semibold">{t.dispatch.onlineStatus}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stop Button */}
-                  <button
-                    onClick={() => handleStopWork(false)}
-                    disabled={isProcessing}
-                    className={`relative w-full py-4 px-4 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center space-x-2.5 overflow-hidden shadow-lg shadow-red-900/20 ${
-                      isProcessing
-                        ? 'bg-gradient-to-r from-red-700 via-red-800 to-red-700 cursor-wait border border-red-600/50'
-                        : 'bg-gradient-to-r from-red-500/90 via-red-600/90 to-red-500/90 active:scale-[0.98] active:from-red-700 active:via-red-800 active:to-red-700 border border-red-400/30 backdrop-blur-sm'
-                    }`}
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/10 rounded-xl pointer-events-none"></div>
-                    {isProcessing ? (
-                      <>
-                        <div className="relative w-4 h-4 border-2 border-red-300/50 border-t-white rounded-full animate-spin keep-animation"></div>
-                        <span className="relative text-white font-bold">{t.dispatch.stopping}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Square className="relative w-4 h-4 text-white drop-shadow-sm" fill="currentColor" />
-                        <span className="relative text-white font-bold drop-shadow-sm">{t.dispatch.endSession}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
+              ) : !session.isWorking ? (
                 /* Mobile Start View - Enriched */
                 <div className="space-y-3">
                   {/* Standby visual area */}
@@ -4040,18 +3517,18 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                             <div className="w-4 h-4 rounded-md bg-blue-50 flex items-center justify-center">
                               <Package className="w-2.5 h-2.5 text-blue-500" />
                             </div>
-                            <span className="text-[9px] font-semibold text-blue-600 uppercase tracking-wider">{t.dispatch.autoDispatch}</span>
+                            <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">{t.dispatch.autoDispatch}</span>
                           </div>
-                          <p className="text-[10px] text-slate-500 leading-tight">{t.dispatch.ordersByPriority}</p>
+                          <p className="text-[11px] text-slate-500 leading-tight">{t.dispatch.ordersByPriority}</p>
                         </div>
                         <div className="bg-white/80 border border-blue-100 rounded-lg px-2.5 py-2 shadow-sm">
                           <div className="flex items-center gap-1.5 mb-1">
                             <div className="w-4 h-4 rounded-md bg-emerald-50 flex items-center justify-center">
                               <TrendingUp className="w-2.5 h-2.5 text-emerald-500" />
                             </div>
-                            <span className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider">{t.dispatch.realTime}</span>
+                            <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">{t.dispatch.realTime}</span>
                           </div>
-                          <p className="text-[10px] text-slate-500 leading-tight">{t.dispatch.instantNotifications}</p>
+                          <p className="text-[11px] text-slate-500 leading-tight">{t.dispatch.instantNotifications}</p>
                         </div>
                       </div>
                     </div>
@@ -4087,78 +3564,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     )}
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
             </>
           )}
 
-          {/* Enhanced Session Stats Bar */}
-          {session.isWorking && !(currentOrder?.status === 'accepted') && (
-            <>
-              {/* DESKTOP: 3-column stats */}
-              <div className="mt-8 relative hidden md:block">
-                <div className="relative bg-slate-50 border border-slate-100 rounded-2xl p-6 overflow-hidden">
-                  <div className="relative grid grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-1.5">{t.dispatch.status}</p>
-                      <p className="text-base font-bold text-green-600 flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        <span>{t.dispatch.active}</span>
-                      </p>
-                    </div>
-
-                    <div className="text-center border-x border-slate-200">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-1.5">{t.dispatch.started}</p>
-                      <p className="text-base font-bold text-slate-700">
-                        {formatTime(session.startedAt)}
-                      </p>
-                    </div>
-
-                    <div className="text-center">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-1.5">{t.dispatch.mode}</p>
-                      <p className="text-base font-bold text-blue-600">
-                        {t.dispatch.autoDispatch}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* MOBILE: Compact single-row layout */}
-              <div className="mt-3 md:hidden">
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                  <div className="flex items-center justify-between">
-                    {/* Status */}
-                    <div className="flex items-center space-x-1.5">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                      <div>
-                        <p className="text-[9px] text-slate-400 uppercase font-medium">{t.dispatch.status}</p>
-                        <p className="text-xs font-semibold text-green-600">{t.dispatch.active}</p>
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-8 w-px bg-slate-200"></div>
-
-                    {/* Started Time */}
-                    <div>
-                      <p className="text-[9px] text-slate-400 uppercase font-medium">{t.dispatch.started}</p>
-                      <p className="text-xs font-semibold text-slate-700">{formatTime(session.startedAt)}</p>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-8 w-px bg-slate-200"></div>
-
-                    {/* Mode */}
-                    <div>
-                      <p className="text-[9px] text-slate-400 uppercase font-medium">{t.dispatch.mode}</p>
-                      <p className="text-xs font-semibold text-blue-600">{t.dispatch.auto}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
 
@@ -4210,7 +3620,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
             </div>
             <div>
-              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.networkStatus}</div>
+              <div className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.networkStatus}</div>
               <div className="text-sm font-black text-emerald-600 tracking-wide">{t.dispatch.networkOnline}</div>
             </div>
           </div>
@@ -4252,7 +3662,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
             </div>
             <div>
-              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.statusLabel}</div>
+              <div className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.statusLabel}</div>
               <div className="text-sm font-black text-emerald-600 leading-tight">{t.dispatch.onlineUpper}</div>
             </div>
           </div>
@@ -4266,12 +3676,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-transparent pointer-events-none"></div>
           <div className="relative flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20">
+              <div className="w-9 h-9 shrink-0 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20">
                 <Package className="w-4.5 h-4.5 text-white" />
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-800">{t.dispatch.orderAssignment}</h2>
-                <div className="flex items-center space-x-1.5 text-[9px] mt-0.5">
+                <div className="flex items-center space-x-1.5 text-[11px] mt-0.5">
                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 rounded-full">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                     <span className="text-emerald-700 font-semibold">{t.dispatch.onlineUpper}</span>
@@ -4291,72 +3701,72 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             {/* Today Total */}
             <div className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white border border-blue-100/80 rounded-xl p-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
-                <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="w-7 h-7 shrink-0 bg-blue-100 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
                 </div>
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-blue-700 tabular-nums">{stats.total}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.totalSmall}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.totalSmall}</div>
               </div>
             </div>
 
             {/* Completed */}
             <div className="relative overflow-hidden bg-gradient-to-b from-emerald-50 to-white border border-emerald-100/80 rounded-xl p-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
-                <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <div className="w-7 h-7 shrink-0 bg-emerald-100 rounded-lg flex items-center justify-center">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-emerald-700 tabular-nums">{stats.completed}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.doneSmall}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.doneSmall}</div>
               </div>
             </div>
 
             {/* Error Orders */}
             <div className="relative overflow-hidden bg-gradient-to-b from-rose-50 to-white border border-rose-100/80 rounded-xl p-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
-                <div className="w-7 h-7 bg-rose-100 rounded-lg flex items-center justify-center">
+                <div className="w-7 h-7 shrink-0 bg-rose-100 rounded-lg flex items-center justify-center">
                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
                 </div>
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-rose-700 tabular-nums">{stats.error}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.errorsLabel}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.errorsLabel}</div>
               </div>
             </div>
 
             {/* Submitted Orders */}
             <div className="relative overflow-hidden bg-gradient-to-b from-cyan-50 to-white border border-cyan-100/80 rounded-xl p-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
-                <div className="w-7 h-7 bg-cyan-100 rounded-lg flex items-center justify-center">
+                <div className="w-7 h-7 shrink-0 bg-cyan-100 rounded-lg flex items-center justify-center">
                   <Send className="w-3.5 h-3.5 text-cyan-600" />
                 </div>
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-cyan-700 tabular-nums">{todaySubmittedOrders}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.submittedSmall}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.submittedSmall}</div>
               </div>
             </div>
 
             {/* Timeout Orders */}
             <div className="relative overflow-hidden bg-gradient-to-b from-orange-50 to-white border border-orange-100/80 rounded-xl p-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
-                <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
+                <div className="w-7 h-7 shrink-0 bg-orange-100 rounded-lg flex items-center justify-center">
                   <Clock className="w-3.5 h-3.5 text-orange-600" />
                 </div>
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-orange-700 tabular-nums">{stats.timeout}</div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.timeoutSmallLabel}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.timeoutSmallLabel}</div>
               </div>
             </div>
 
             {/* Success Rate */}
             <div className="relative overflow-hidden bg-gradient-to-b from-amber-50 to-white border border-amber-100/80 rounded-xl p-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
-                <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
+                <div className="w-7 h-7 shrink-0 bg-amber-100 rounded-lg flex items-center justify-center">
                   <Zap className="w-3.5 h-3.5 text-amber-600" />
                 </div>
               </div>
@@ -4364,7 +3774,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 <div className="text-xl font-black text-amber-700 tabular-nums">
                   {(stats.completed + stats.error + stats.timeout) > 0 ? Math.round((stats.completed / (stats.completed + stats.error + stats.timeout)) * 100) : 0}%
                 </div>
-                <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.successRateLabel}</div>
+                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.successRateLabel}</div>
               </div>
             </div>
           </div>
@@ -4374,15 +3784,15 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       {/* Stats Cards - Premium Light Theme */}
       <div className="relative">
         {/* DESKTOP: Full cards in grid (desktop only - lg and up) */}
-        <div className="hidden lg:grid relative grid-cols-6 gap-4" style={{ zIndex: 1 }}>
+        <div className="hidden lg:grid relative grid-cols-3 xl:grid-cols-6 gap-4" style={{ zIndex: 1 }}>
         {/* TODAY TOTAL */}
         <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/50 hover:-translate-y-1">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.todayTotal}</span>
-              <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-100 transition-colors">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.todayTotal}</span>
+              <div className="w-9 h-9 shrink-0 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-100 transition-colors">
                 <TrendingUp className="w-4.5 h-4.5 text-blue-600" />
               </div>
             </div>
@@ -4396,9 +3806,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.completedLabel}</span>
-              <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.completedLabel}</span>
+              <div className="w-9 h-9 shrink-0 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
                 <CheckCircle className="w-4.5 h-4.5 text-emerald-600" />
               </div>
             </div>
@@ -4412,9 +3822,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-rose-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-rose-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.errorOrders}</span>
-              <div className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-100 group-hover:bg-rose-100 transition-colors">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.errorOrders}</span>
+              <div className="w-9 h-9 shrink-0 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-100 group-hover:bg-rose-100 transition-colors">
                 <XCircle className="w-4.5 h-4.5 text-rose-600" />
               </div>
             </div>
@@ -4428,9 +3838,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.submittedLabel}</span>
-              <div className="w-9 h-9 bg-cyan-50 rounded-xl flex items-center justify-center border border-cyan-100 group-hover:bg-cyan-100 transition-colors">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.submittedLabel}</span>
+              <div className="w-9 h-9 shrink-0 bg-cyan-50 rounded-xl flex items-center justify-center border border-cyan-100 group-hover:bg-cyan-100 transition-colors">
                 <Send className="w-4.5 h-4.5 text-cyan-600" />
               </div>
             </div>
@@ -4444,9 +3854,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.timeoutOrders}</span>
-              <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center border border-orange-100 group-hover:bg-orange-100 transition-colors">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.timeoutOrders}</span>
+              <div className="w-9 h-9 shrink-0 bg-orange-50 rounded-xl flex items-center justify-center border border-orange-100 group-hover:bg-orange-100 transition-colors">
                 <Clock className="w-4.5 h-4.5 text-orange-600" />
               </div>
             </div>
@@ -4460,9 +3870,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-amber-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t.dispatch.successRateLabel}</span>
-              <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100 group-hover:bg-amber-100 transition-colors">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.successRateLabel}</span>
+              <div className="w-9 h-9 shrink-0 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100 group-hover:bg-amber-100 transition-colors">
                 <Zap className="w-4.5 h-4.5 text-amber-600" />
               </div>
             </div>
@@ -4475,19 +3885,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         </div>
 
         {/* TABLET: Compact 5-column layout optimized for tablets */}
-        <div className="hidden md:grid lg:hidden relative grid-cols-6 gap-2.5" style={{ zIndex: 1 }}>
+        <div className="hidden md:grid lg:hidden relative grid-cols-3 gap-2.5" style={{ zIndex: 1 }}>
           {/* TODAY TOTAL */}
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-blue-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.totalLabel}</span>
-                <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.totalLabel}</span>
+                <div className="w-7 h-7 shrink-0 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
                   <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.total}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.assignmentsLabel}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.assignmentsLabel}</div>
             </div>
           </div>
 
@@ -4495,14 +3905,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-emerald-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.doneLabel}</span>
-                <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.doneLabel}</span>
+                <div className="w-7 h-7 shrink-0 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.completed}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.completedSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.completedSmall}</div>
             </div>
           </div>
 
@@ -4510,14 +3920,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-rose-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.errorLabel}</span>
-                <div className="w-7 h-7 bg-rose-50 rounded-lg flex items-center justify-center border border-rose-100">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.errorLabel}</span>
+                <div className="w-7 h-7 shrink-0 bg-rose-50 rounded-lg flex items-center justify-center border border-rose-100">
                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.error}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.errorsSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.errorsSmall}</div>
             </div>
           </div>
 
@@ -4525,14 +3935,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-cyan-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.submittedLabel}</span>
-                <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center border border-cyan-100">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.submittedLabel}</span>
+                <div className="w-7 h-7 shrink-0 bg-cyan-50 rounded-lg flex items-center justify-center border border-cyan-100">
                   <Send className="w-3.5 h-3.5 text-cyan-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{todaySubmittedOrders}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.submittedSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.submittedSmall}</div>
             </div>
           </div>
 
@@ -4540,14 +3950,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-orange-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.timeoutLabel}</span>
-                <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-100">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.timeoutLabel}</span>
+                <div className="w-7 h-7 shrink-0 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-100">
                   <Clock className="w-3.5 h-3.5 text-orange-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.timeout}</div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.timeoutSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.timeoutSmall}</div>
             </div>
           </div>
 
@@ -4555,16 +3965,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-amber-100/50 hover:-translate-y-0.5">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 to-amber-400 rounded-t-xl"></div>
             <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{t.dispatch.successRateLabel}</span>
-                <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.successRateLabel}</span>
+                <div className="w-7 h-7 shrink-0 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
                   <Zap className="w-3.5 h-3.5 text-amber-600" />
                 </div>
               </div>
               <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">
                 {(stats.completed + stats.error + stats.timeout) > 0 ? Math.round((stats.completed / (stats.completed + stats.error + stats.timeout)) * 100) : 0}%
               </div>
-              <div className="text-[10px] text-gray-400 font-medium">{t.dispatch.successSmall}</div>
+              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.successSmall}</div>
             </div>
           </div>
         </div>
@@ -4670,14 +4080,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         <span className="md:hidden">{t.dispatch.todayRecords}</span>
                       </h3>
                       {todayOrders.length > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[10px] md:text-xs font-semibold text-blue-100 tabular-nums flex-shrink-0 lg:hidden">
+                        <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[11px] md:text-xs font-semibold text-blue-100 tabular-nums flex-shrink-0 lg:hidden">
                           {todayOrders.length}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <div className="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></div>
-                      <span className="text-[10px] md:text-xs text-blue-100 font-medium tracking-wider uppercase">
+                      <span className="text-[11px] md:text-xs text-blue-100 font-medium tracking-wider uppercase">
                         {todayOrders.length > 0
                           ? `${todayOrders.length} ${t.dispatch.assignmentsToday}`
                           : t.dispatch.noAssignmentsYet}
@@ -4693,7 +4103,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     <div className="text-2xl font-black text-white tabular-nums leading-none">
                       {todayOrders.length}
                     </div>
-                    <div className="text-[10px] text-blue-200 uppercase tracking-wider font-bold mt-0.5">
+                    <div className="text-[11px] text-blue-200 uppercase tracking-wider font-bold mt-0.5">
                       {t.dispatch.totalLabel}
                     </div>
                   </div>
@@ -4790,7 +4200,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-4 mb-2">
-                            <div className="text-sm text-slate-700 leading-relaxed line-clamp-2 break-all flex-1 group-hover:text-slate-800 transition-colors">
+                            <div className="text-sm text-slate-700 leading-relaxed line-clamp-2 break-words flex-1 group-hover:text-slate-800 transition-colors">
                               {order.dispatch_orders.order_content}
                             </div>
                             <div className="flex-shrink-0">
@@ -4801,13 +4211,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           {order.remarks && (
                             <div className="inline-flex items-start space-x-2 px-3 py-1.5 bg-rose-50 border border-rose-200/80 rounded-lg max-w-full mb-2">
                               <AlertTriangle className="w-3.5 h-3.5 text-rose-500 flex-shrink-0 mt-0.5" />
-                              <span className="text-xs text-rose-600 font-medium break-all min-w-0">{order.remarks}</span>
+                              <span className="text-xs text-rose-600 font-medium break-words min-w-0">{order.remarks}</span>
                             </div>
                           )}
 
                           {/* Time info row */}
                           <div className="flex items-center gap-3 flex-wrap">
-                            <span className="inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
                               <Clock className="w-3 h-3" />
                               {new Date(order.assigned_at).toLocaleString(dateLocale, {
                                 year: 'numeric',
@@ -4819,7 +4229,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                               })}
                             </span>
                             {order.completed_at && (
-                              <span className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
+                              <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
                                 order.status === 'error' ? 'ring-rose-100 text-rose-600' :
                                 order.status === 'timeout' || order.status === 'timeout_cancelled' ? 'ring-amber-100 text-amber-600' :
                                 'ring-emerald-100 text-emerald-600'
@@ -4846,10 +4256,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         {/* Top row: number + time + status */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${statusStyle.iconBg}`}>
-                              <span className="text-[9px] font-bold text-white">#{actualIndex + 1}</span>
+                            <div className={`min-w-6 h-6 px-1 rounded-lg flex items-center justify-center ${statusStyle.iconBg}`}>
+                              <span className="text-[10px] font-bold text-white">#{actualIndex + 1}</span>
                             </div>
-                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-slate-200/80 text-slate-500">
+                            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-slate-200/80 text-slate-500">
                               <Clock className="w-2.5 h-2.5" />
                               {new Date(order.assigned_at).toLocaleString(dateLocale, {
                                 month: '2-digit',
@@ -4864,20 +4274,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         </div>
 
                         {/* Content */}
-                        <div className="text-xs text-slate-700 leading-relaxed line-clamp-2 break-all">
+                        <div className="text-xs text-slate-700 leading-relaxed line-clamp-2 break-words">
                           {order.dispatch_orders.order_content}
                         </div>
 
                         {order.remarks && (
                           <div className="flex items-start space-x-1.5 px-2 py-1 bg-rose-50 border border-rose-100 rounded-lg overflow-hidden">
                             <AlertTriangle className="w-3 h-3 text-rose-500 flex-shrink-0 mt-0.5" />
-                            <span className="text-[10px] text-rose-600 font-medium leading-tight break-all min-w-0">{order.remarks}</span>
+                            <span className="text-[11px] text-rose-600 font-medium leading-tight break-words min-w-0">{order.remarks}</span>
                           </div>
                         )}
 
                         {order.completed_at && (
                           <div className="flex items-center gap-1.5">
-                            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
+                            <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-medium bg-white/80 ring-1 ${
                               order.status === 'error' ? 'ring-rose-100 text-rose-600' :
                               order.status === 'timeout' || order.status === 'timeout_cancelled' ? 'ring-amber-100 text-amber-600' :
                               'ring-emerald-100 text-emerald-600'
@@ -4915,32 +4325,38 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         )}
       </div>
 
-      {/* Order Not Submitted Warning Modal */}
       {showOrderNotSubmittedModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 overflow-hidden" onClick={() => setShowOrderNotSubmittedModal(false)} style={{ touchAction: 'none', overscrollBehavior: 'contain' }}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-4" onClick={() => setShowOrderNotSubmittedModal(false)} style={{ overscrollBehavior: 'contain' }}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="dispatch-not-submitted-title" aria-describedby="dispatch-not-submitted-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-[24px] bg-white shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)]" onClick={e => e.stopPropagation()}>
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#12356d] via-[#1b4b84] to-[#28638c] px-6 py-6 sm:px-8 sm:py-7">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-300 via-white to-amber-300" />
+              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-cyan-100 shadow-inner shadow-white/10">
+                  <FileText className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-lg font-bold text-white">{t.dispatch.orderNotSubmitted}</h3>
+                <div className="min-w-0">
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-200">{t.dispatch.orderAssignment}</p>
+                  <h3 id="dispatch-not-submitted-title" className="text-xl font-bold tracking-tight text-white">{t.dispatch.orderNotSubmitted}</h3>
+                </div>
               </div>
             </div>
-            <div className="px-6 py-5">
-              <p className="text-sm text-gray-600 leading-relaxed mb-5">{t.dispatch.orderNotSubmittedMessage}</p>
+            <div className="px-6 py-6 sm:px-8 sm:py-7">
+              <div id="dispatch-not-submitted-description" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-4">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+                <p className="text-sm leading-relaxed text-slate-700">{t.dispatch.orderNotSubmittedMessage}</p>
+              </div>
               {currentOrder?.assignment_id && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg mb-5">
-                  <span className="text-xs font-bold text-blue-600 uppercase">{t.dispatch.assignmentIdLabel}</span>
-                  <span className="text-sm font-black text-blue-700 font-mono">{currentOrder.assignment_id}</span>
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-blue-600">{t.dispatch.assignmentIdLabel}</span>
+                  <span className="break-all font-mono text-sm font-bold text-blue-800">{currentOrder.assignment_id}</span>
                 </div>
               )}
-              <div className="flex gap-3">
-                <button onClick={() => setShowOrderNotSubmittedModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors">
-                  {t.dispatch.close || 'Close'}
-                </button>
-                <button onClick={() => { setShowOrderNotSubmittedModal(false); onNavigateToOrders?.(); }} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all">
-                  {t.dispatch.goToOrders}
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
+                <button type="button" onClick={() => setShowOrderNotSubmittedModal(false)} className="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-400 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">{t.dispatch.cancel}</button>
+                <button type="button" autoFocus onClick={() => { setShowOrderNotSubmittedModal(false); onNavigateToOrders?.(); }} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-10px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]">
+                  <FileText className="h-4 w-4" aria-hidden="true" />
+                  <span>{t.dispatch.goToOrders}</span>
                 </button>
               </div>
             </div>
@@ -4967,7 +4383,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
         return createPortal(
           <div
-            className="fixed inset-0 z-[9999] flex bg-black/50 animate-in fade-in duration-200
+            className="employee-modal-backdrop fixed inset-0 z-[10000] flex bg-black/50
             md:items-stretch md:justify-stretch md:p-0
             lg:items-stretch lg:justify-stretch lg:p-0
             xl:items-center xl:justify-center xl:p-4"
@@ -4982,7 +4398,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           >
             <div
               ref={modalContentRef}
-              className={`relative bg-white shadow-2xl shadow-gray-300/50 flex flex-col overflow-hidden animate-in duration-200
+              className={`employee-modal-surface relative bg-white shadow-2xl shadow-gray-300/50 flex flex-col overflow-hidden
                 md:max-w-full md:h-screen md:rounded-none md:max-h-screen
                 xl:max-w-2xl xl:rounded-2xl xl:max-h-[85vh] xl:h-auto
                 ${isMobile ? 'fixed inset-0 w-full h-full rounded-none slide-in-from-bottom' : ''}`}
@@ -5041,11 +4457,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 {/* Status, Assignment ID & Time Cards */}
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className={`${accent.bg} border ${accent.border} rounded-xl p-3 sm:p-4`}>
-                    <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.statusLabel}</div>
+                    <div className="text-[11px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.statusLabel}</div>
                     <div className="scale-90 sm:scale-100 origin-left">{getStatusBadge(selectedOrderDetail.status)}</div>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.assignedLabel}</div>
+                    <div className="text-[11px] sm:text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1.5">{t.dispatch.assignedLabel}</div>
                     <div className="text-xs sm:text-sm text-gray-800 font-semibold font-mono leading-tight">
                       {new Date(selectedOrderDetail.assigned_at).toLocaleString(dateLocale, {
                         year: 'numeric',
@@ -5136,12 +4552,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 sm:p-4">
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-semibold">{t.dispatch.assignmentIdLabel}</span>
+                      <span className="text-gray-400 uppercase tracking-wider text-[11px] font-semibold">{t.dispatch.assignmentIdLabel}</span>
                       <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.assignment_id || selectedOrderDetail.id.slice(0, 8) + '...'}</div>
                     </div>
                     <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-semibold">{t.dispatch.orderId}</span>
-                      <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.dispatch_orders.id.slice(0, 8)}...</div>
+                      <span className="text-gray-400 uppercase tracking-wider text-[11px] font-semibold">{t.dispatch.orderId}</span>
+                      <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.dispatch_orders.id?.slice(0, 8) || selectedOrderDetail.dispatch_order_id?.slice(0, 8) || selectedOrderDetail.id.slice(0, 8)}...</div>
                     </div>
                   </div>
                 </div>
@@ -5173,7 +4589,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       {/* Verification Required Modal */}
       {showVerificationModal && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4"
           style={{
             position: 'fixed',
             top: 0,
@@ -5185,7 +4601,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             overscrollBehavior: 'contain'
           }}
         >
-          <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-2xl shadow-2xl shadow-amber-500/20 w-full max-w-md overflow-hidden">
+          <div className="employee-modal-surface relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-2xl shadow-2xl shadow-amber-500/20 w-full max-w-md overflow-hidden">
             {/* Decorative Elements */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500"></div>
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl"></div>
@@ -5260,67 +4676,51 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         document.body
       )}
 
-      {/* Error Report Modal - Compact Design */}
       {showErrorModal && createPortal(
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            overflow: 'auto',
-            touchAction: 'none',
-            overscrollBehavior: 'contain'
-          }}
-        >
-          <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 border border-rose-500/40 rounded-xl shadow-2xl shadow-rose-500/20 w-full max-w-md mx-4">
-            <div className="p-6">
-              {/* Compact Header */}
-              <div className="flex items-center space-x-3 mb-5">
-                <div className="w-10 h-10 bg-rose-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <XCircle className="w-5 h-5 text-rose-400" />
+        <div className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 p-3 sm:p-4" style={{ overscrollBehavior: 'contain' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-report-title" aria-describedby="dispatch-report-description" className="employee-modal-surface w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl bg-slate-50 shadow-[0_32px_90px_-20px_rgba(15,23,42,0.55)] sm:max-h-[calc(100dvh-2rem)]">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#311f43] via-[#593050] to-[#91445d] px-5 py-4 sm:px-8 sm:py-7">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300" />
+              <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full border-[32px] border-white/5" />
+              <div className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full border-[24px] border-rose-200/10" />
+              <div className="pointer-events-none absolute inset-y-0 right-12 w-16 -skew-x-12 bg-white/[0.04]" />
+              <div className="relative flex items-center gap-3 sm:gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-200/40 bg-rose-200/15 text-rose-100 shadow-inner shadow-white/10 sm:h-12 sm:w-12 sm:rounded-2xl">
+                  <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">{t.dispatch.reportErrorTitle}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{t.dispatch.describeTheIssue}</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-rose-200 sm:mb-1">{t.dispatch.orderAssignment}</p>
+                  <h3 id="dispatch-report-title" className="text-lg font-bold tracking-tight text-white sm:text-xl">{t.dispatch.reportErrorTitle}</h3>
                 </div>
               </div>
-
-              {/* Input Field */}
-              <div className="mb-5">
-                <label className="block text-xs font-semibold text-gray-600 mb-2">
-                  {t.dispatch.errorReasonLabel} <span className="text-rose-400">*</span>
-                </label>
+            </div>
+            <div className="bg-slate-50 px-5 py-4 sm:px-8 sm:py-6">
+              <div className="overflow-hidden rounded-xl border border-[#ded2e3] bg-white shadow-sm shadow-[#593050]/10 focus-within:border-[#91445d] focus-within:ring-2 focus-within:ring-[#91445d]/20">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-[#ded2e3] bg-[#eee7f1] px-3 py-2.5 sm:gap-x-3 sm:px-3.5 sm:py-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#593050]/10 text-[#593050]">
+                    <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <p id="dispatch-report-description" className="min-w-0 text-[13px] font-bold leading-5 text-[#593050] sm:text-sm">{t.dispatch.describeTheIssue}</p>
+                  <label htmlFor="dispatch-report-reason" className="ml-auto shrink-0 rounded-md border border-[#91445d]/20 bg-white/60 px-2 py-0.5 text-[11px] font-bold text-[#91445d]">
+                    {t.dispatch.errorReasonLabel} <span aria-hidden="true">*</span>
+                  </label>
+                </div>
                 <textarea
+                  id="dispatch-report-reason"
                   value={errorReason}
                   onChange={(e) => setErrorReason(e.target.value)}
                   placeholder={t.dispatch.whatWentWrong}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 transition-all resize-none"
-                  rows={3}
-                  autoFocus
+                  className="block h-32 w-full resize-none border-0 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0 sm:h-40 sm:px-4"
+                  rows={4}
                   maxLength={500}
                 />
-                <div className="mt-1.5 text-xs text-gray-500">
-                  {errorReason.length}/500
-                </div>
+                <div className="border-t border-slate-100 bg-white px-3.5 py-1 text-right text-xs font-medium text-slate-500">{errorReason.length}/500</div>
               </div>
-
-              {/* Compact Action Buttons */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleCancelError}
-                  className="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded-lg font-medium transition-colors"
-                >
-                  {t.dispatch.cancelButton}
-                </button>
-                <button
-                  onClick={handleSubmitError}
-                  disabled={!errorReason.trim() || isReporting}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white text-sm rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-500/30"
-                >
-                  {t.dispatch.submitButton}
+              <div className="mt-3 grid grid-cols-2 gap-2.5 border-t border-slate-200 pt-3 sm:mt-5 sm:gap-3 sm:pt-5">
+                <button type="button" onClick={handleCancelError} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:min-h-12">{t.dispatch.cancelButton}</button>
+                <button type="button" onClick={handleSubmitError} disabled={!errorReason.trim() || isReporting} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rose-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm shadow-rose-900/20 enabled:hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none sm:min-h-12">
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                  <span>{t.dispatch.submitButton}</span>
                 </button>
               </div>
             </div>

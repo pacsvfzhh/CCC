@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Wallet, Employee, AdminConfig, VerificationRequest } from '../../types';
+import { Wallet, Employee, VerificationRequest } from '../../types';
 import VerificationForm from './VerificationForm';
 import WithdrawalHistory from './WithdrawalHistory';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
+import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
 
 interface WalletOverviewProps {
   employeeId: string;
@@ -30,18 +31,12 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const [verificationRequest, setVerificationRequest] = useState<VerificationRequest | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const { deviceType } = useDeviceOptimization();
+  const loadWalletRef = useRef<(() => Promise<void>) | null>(null);
+  const loadEmployeeDataRef = useRef<(() => Promise<void>) | null>(null);
+  const loadVerificationRequestRef = useRef<(() => Promise<void>) | null>(null);
+  const withdrawalOperationIdRef = useRef<string | null>(null);
 
   const isTabletDevice = deviceType === 'tablet';
-
-  // Format large numbers to K/M format
-  const formatAmount = (amount: number) => {
-    if (amount >= 1000000) {
-      return (amount / 1000000).toFixed(1) + 'M';
-    } else if (amount >= 1000) {
-      return (amount / 1000).toFixed(1) + 'K';
-    }
-    return amount.toFixed(2);
-  };
 
   // Dynamic font size calculation for tablet to prevent overflow
   const getTabletFontSize = (amount: number) => {
@@ -65,9 +60,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   };
 
   useEffect(() => {
-    loadWallet();
-    loadEmployeeData();
-    loadVerificationRequest();
+    void loadWalletRef.current?.();
+    void loadEmployeeDataRef.current?.();
+    void loadVerificationRequestRef.current?.();
 
     // Set up real-time subscription for employee verification status changes
     const userChannel = supabase
@@ -96,7 +91,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           if (payload.eventType === 'DELETE') {
             setVerificationRequest(null);
           } else {
-            loadVerificationRequest();
+            void loadVerificationRequestRef.current?.();
           }
         }
       )
@@ -125,16 +120,16 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${employeeId}` },
         () => {
-          loadWallet();
+          void loadWalletRef.current?.();
         }
       )
       .subscribe();
 
     // Fallback polling for redundancy
     const interval = setInterval(() => {
-      loadWallet();
-      loadEmployeeData();
-      loadVerificationRequest();
+      void loadWalletRef.current?.();
+    void loadEmployeeDataRef.current?.();
+    void loadVerificationRequestRef.current?.();
     }, 15000);
 
     return () => {
@@ -153,26 +148,26 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     }
   }, [message]);
 
-  useEffect(() => {
-    if (showConfirmModal) {
-      const body = document.body;
-      const html = document.documentElement;
-      const originalBodyOverflow = body.style.overflow;
-      const originalHtmlOverflow = html.style.overflow;
-      body.style.overflow = 'hidden';
-      html.style.overflow = 'hidden';
-      return () => {
-        body.style.overflow = originalBodyOverflow;
-        html.style.overflow = originalHtmlOverflow;
-      };
-    }
+  useLayoutEffect(() => {
+    if (!showConfirmModal) return;
+
+    const body = document.body;
+    const html = document.documentElement;
+    const originalBodyOverflow = body.style.overflow;
+    const originalHtmlOverflow = html.style.overflow;
+    body.style.overflow = 'hidden';
+    html.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = originalBodyOverflow;
+      html.style.overflow = originalHtmlOverflow;
+    };
   }, [showConfirmModal]);
 
   const loadEmployeeData = async () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
         .eq('id', employeeId)
         .single();
 
@@ -204,24 +199,14 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
   const loadWallet = async () => {
     try {
-      let { data: walletData, error: walletError } = await supabase
+      const walletResult = await supabase
         .from('wallets')
         .select('*')
         .eq('user_id', employeeId)
         .maybeSingle();
-
-      if (walletError) throw walletError;
-
-      if (!walletData) {
-        const { data: newWallet, error: createError } = await supabase
-          .from('wallets')
-          .insert({ user_id: employeeId })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        walletData = newWallet;
-      }
+      const walletData = walletResult.data;
+      if (walletResult.error) throw walletResult.error;
+      if (!walletData) throw new Error('Employee wallet was not found.');
 
       setWallet(walletData);
     } catch (error) {
@@ -230,6 +215,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       setLoading(false);
     }
   };
+  loadWalletRef.current = loadWallet;
+  loadEmployeeDataRef.current = loadEmployeeData;
+  loadVerificationRequestRef.current = loadVerificationRequest;
 
   const handleVerificationComplete = () => {
     setShowVerificationForm(false);
@@ -247,67 +235,33 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     console.log('Starting withdrawal eligibility check...');
     console.log('Employee verified:', localEmployee.is_verified);
     console.log('Wallet balance:', wallet?.available_balance);
-    console.log('Employee created_by:', localEmployee.created_by);
-
-    if (!localEmployee.is_verified) {
-      return { eligible: false, message: t.wallet.verificationNeeded };
+    const financialSession = getEmployeeFinancialSession();
+    const { data: policy, error } = await supabase.rpc('get_employee_withdrawal_policy_secure', {
+      p_user_id: employeeId,
+      p_session_token: financialSession.token,
+      p_tab_id: financialSession.tabId,
+    });
+    if (error) throw error;
+    if (!policy) throw new Error(t.wallet.eligibilityFailed);
+    if (!policy.available) {
+      return { eligible: false, message: policy.message || t.wallet.eligibilityFailed };
     }
-
-    if (!wallet || wallet.available_balance <= 0) {
+    if (!policy.verified) return { eligible: false, message: t.wallet.verificationNeeded };
+    if (!policy.available_balance || policy.available_balance <= 0) {
       return { eligible: false, message: t.wallet.insufficientBalance };
     }
-
-    const { data: adminConfigs, error: configError } = await supabase
-      .from('admin_configs')
-      .select('*')
-      .or(`admin_id.eq.${localEmployee.created_by},admin_id.is.null`);
-
-    console.log('Admin configs query error:', configError);
-    console.log('Admin configs data:', adminConfigs);
-
-    const configs = adminConfigs || [];
-
-    const getConfigValue = (type: string) => {
-      const adminConfig = configs.find(c => c.admin_id === localEmployee.created_by && c.config_type === type);
-      const globalConfig = configs.find(c => c.admin_id === null && c.config_type === type);
-      const value = adminConfig?.config_value || globalConfig?.config_value;
-      console.log(`Config ${type}: admin=${adminConfig?.config_value}, global=${globalConfig?.config_value}, final=${value}`);
-      return value;
-    };
-
-    const amountThreshold = parseFloat(getConfigValue('withdrawal_amount_threshold') || '100');
-    const ordersThreshold = parseInt(getConfigValue('withdrawal_days_threshold') || '1000');
-    const conditionMode = (getConfigValue('withdrawal_condition_mode') || 'OR').toUpperCase();
-
-    console.log('Amount threshold:', amountThreshold);
-    console.log('Orders threshold:', ordersThreshold);
-    console.log('Condition mode:', conditionMode);
-    console.log('Current balance:', wallet.available_balance);
-
-    const amountMet = wallet.available_balance >= amountThreshold;
-    let ordersMet = false;
-    let completedOrdersCount = 0;
-
-    // Get the total number of orders for this user
-    try {
-      const { data: ordersData, error: ordersError } = await supabase.rpc('get_user_completed_orders_count', {
-        p_user_id: employeeId
-      });
-
-      if (ordersError) {
-        console.error('Error getting orders count:', ordersError);
-      } else {
-        completedOrdersCount = ordersData || 0;
-        ordersMet = completedOrdersCount >= ordersThreshold;
-        console.log('Completed orders count:', completedOrdersCount);
-        console.log('Orders threshold:', ordersThreshold);
-      }
-    } catch (error) {
-      console.error('Failed to get orders count:', error);
+    if (policy.amount_threshold === undefined || policy.orders_threshold === undefined ||
+        policy.completed_orders_count === undefined || !policy.condition_mode) {
+      throw new Error(t.wallet.eligibilityFailed);
     }
 
-    console.log('Amount met:', amountMet);
-    console.log('Orders met:', ordersMet);
+    const amountThreshold = policy.amount_threshold;
+    const ordersThreshold = policy.orders_threshold;
+    const completedOrdersCount = policy.completed_orders_count;
+    const availableBalance = policy.available_balance;
+    const amountMet = availableBalance >= amountThreshold;
+    const ordersMet = completedOrdersCount >= ordersThreshold;
+    const conditionMode = policy.condition_mode.toUpperCase();
 
     let eligible = false;
     let message = '';
@@ -316,7 +270,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       case 'AMOUNT_ONLY':
         eligible = amountMet;
         if (!eligible) {
-          message = t.wallet.eligibilityAmountOnly(String(amountThreshold), wallet.available_balance.toFixed(2));
+          message = t.wallet.eligibilityAmountOnly(String(amountThreshold), availableBalance.toFixed(2));
         }
         break;
 
@@ -333,7 +287,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         if (!eligible) {
           const reasons = [];
           if (!amountMet) {
-            reasons.push(t.wallet.eligibilityBalanceReason(String(amountThreshold), wallet.available_balance.toFixed(2)));
+            reasons.push(t.wallet.eligibilityBalanceReason(String(amountThreshold), availableBalance.toFixed(2)));
           }
           if (!ordersMet) {
             reasons.push(t.wallet.eligibilityOrdersReason(ordersThreshold, completedOrdersCount));
@@ -347,13 +301,12 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       default:
         eligible = amountMet || ordersMet;
         if (!eligible) {
-          message = t.wallet.eligibilityEitherPrefix + t.wallet.eligibilityBalanceReason(String(amountThreshold), wallet.available_balance.toFixed(2)) + t.wallet.eligibilityOr + t.wallet.eligibilityOrdersReason(ordersThreshold, completedOrdersCount);
+          message = t.wallet.eligibilityEitherPrefix + t.wallet.eligibilityBalanceReason(String(amountThreshold), availableBalance.toFixed(2)) + t.wallet.eligibilityOr + t.wallet.eligibilityOrdersReason(ordersThreshold, completedOrdersCount);
         }
         break;
     }
 
-    console.log(eligible ? '✓ Eligible' : '✗ Not eligible');
-    return { eligible, message };
+    return { eligible: policy.eligible === true, message: policy.eligible ? '' : message || t.wallet.eligibilityFailed };
   };
 
   const handleRequestWithdrawal = async () => {
@@ -410,45 +363,24 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         return;
       }
 
-      const amount = wallet.available_balance;
-      const newFrozen = wallet.frozen_balance + amount;
+      const financialSession = getEmployeeFinancialSession();
+      withdrawalOperationIdRef.current ||= createFinancialOperationId();
+      const { data: result, error: withdrawalError } = await supabase.rpc(
+        'request_employee_withdrawal',
+        {
+          p_user_id: employeeId,
+          p_session_token: financialSession.token,
+          p_tab_id: financialSession.tabId,
+          p_operation_id: withdrawalOperationIdRef.current,
+        },
+      );
 
-      console.log('Creating withdrawal request first (before updating wallet)...');
-
-      // Insert withdrawal record FIRST (RLS checks available_balance > 0)
-      const { error: insertError } = await supabase.from('withdrawals').insert({
-        user_id: employeeId,
-        amount: amount,
-        status: 'pending',
-      });
-
-      if (insertError) {
-        console.error('Withdrawal insert error:', insertError);
-        throw insertError;
+      if (withdrawalError) throw withdrawalError;
+      if (!result?.success) {
+        throw new Error(result?.error || t.wallet.eligibilityFailed);
       }
 
-      console.log('Withdrawal created, now freezing funds in wallet...');
-
-      // Then update wallet to freeze the funds
-      const { error: updateError } = await supabase.from('wallets').update({
-        available_balance: 0,
-        frozen_balance: newFrozen,
-      }).eq('user_id', employeeId);
-
-      if (updateError) {
-        console.error('Wallet update error:', updateError);
-        // Rollback: delete the withdrawal record we just created
-        await supabase.from('withdrawals')
-          .delete()
-          .eq('user_id', employeeId)
-          .eq('amount', amount)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        throw updateError;
-      }
-
-      console.log('Withdrawal submitted successfully');
+      withdrawalOperationIdRef.current = null;
       setMessage({ type: 'success', text: t.wallet.withdrawalSuccess });
       setShowConfirmModal(false);
 
@@ -458,9 +390,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       }, 3000);
 
       loadWallet();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in handleConfirmWithdrawal:', error);
-      setMessage({ type: 'error', text: t.wallet.withdrawalRequestFailed(error.message || t.wallet.unknownError) });
+      setMessage({ type: 'error', text: t.wallet.withdrawalRequestFailed(error instanceof Error ? error.message : t.wallet.unknownError) });
       setShowConfirmModal(false);
     } finally {
       setSubmitting(false);
@@ -1173,14 +1105,14 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         }
       `}</style>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4">
         {/* Total Assets Card */}
         <div className="rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-amber-50 to-white border border-amber-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 group">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 md:mb-4">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
               <WalletIcon className="w-4 h-4 text-amber-600" />
             </div>
-            <span className="text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-amber-600 font-bold flex-shrink-0 ${
@@ -1204,7 +1136,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
               <DollarSign className="w-4 h-4 text-emerald-600" />
             </div>
-            <span className="text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-emerald-600 font-bold flex-shrink-0 ${
@@ -1228,7 +1160,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
               <Lock className="w-4 h-4 text-orange-600" />
             </div>
-            <span className="text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-orange-600 font-bold flex-shrink-0 ${
@@ -1252,7 +1184,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
               <TrendingUp className="w-4 h-4 text-blue-600" />
             </div>
-            <span className="text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-blue-600 font-bold flex-shrink-0 ${
@@ -1462,7 +1394,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               <h2 className="text-base sm:text-xl md:text-2xl font-bold text-blue-600 leading-tight">
                 {t.wallet.withdraw}
               </h2>
-              <p className="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight">{t.wallet.transferSubtitle}</p>
+              <p className="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight">{t.wallet.transferSubtitle}</p>
             </div>
           </div>
           <button
@@ -1473,7 +1405,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             className="flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg sm:rounded-xl font-semibold transition-all duration-200 text-xs sm:text-sm shadow-sm hover:shadow-md group"
           >
             <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:rotate-[-15deg] transition-transform duration-200" />
-            <span className="tracking-wide text-[10px] sm:text-xs md:text-sm font-bold">{t.wallet.withdrawalHistory}</span>
+            <span className="tracking-wide text-[11px] sm:text-xs md:text-sm font-bold">{t.wallet.withdrawalHistory}</span>
           </button>
         </div>
 
@@ -1560,7 +1492,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                     <h3 className="text-sm sm:text-base md:text-lg font-bold text-white leading-tight">
                       {t.wallet.submitWithdrawal}
                     </h3>
-                    <p className="text-blue-100 text-[10px] sm:text-xs mt-0.5">
+                    <p className="text-blue-100 text-[11px] sm:text-xs mt-0.5">
                       {t.wallet.withdrawFullBalance}
                     </p>
                   </div>
@@ -1573,7 +1505,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                 <div className="bg-gradient-to-br from-gray-50 to-blue-50/50 rounded-xl p-4 sm:p-5 md:p-6 border border-gray-200">
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <span className="text-gray-600 text-xs sm:text-sm font-medium">{t.wallet.withdrawalAmount}</span>
-                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-100 border border-blue-200 rounded-md text-[10px] sm:text-xs text-blue-700 font-bold uppercase tracking-wide">
+                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-100 border border-blue-200 rounded-md text-[11px] sm:text-xs text-blue-700 font-bold uppercase tracking-wide">
                       {t.wallet.submitWithdrawal}
                     </span>
                   </div>
@@ -1642,7 +1574,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             </div>
 
             <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-100">
-              <p className="text-blue-700 text-[10px] sm:text-xs leading-relaxed">
+              <p className="text-blue-700 text-[11px] sm:text-xs leading-relaxed">
                 <span className="font-semibold">{t.wallet.importantNotice}:</span> {t.wallet.withdrawalNote}
               </p>
             </div>
@@ -1653,9 +1585,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       </div>
 
       {showConfirmModal && createPortal(
-        <div className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center" style={{ zIndex: 9999 }}>
-          <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/50"></div>
-          <div className="relative bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
+        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 10000 }}>
+          <div className="employee-modal-backdrop absolute inset-0 bg-black/50"></div>
+          <div className="employee-modal-surface relative bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
             {/* Blue Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-4 sm:px-6 py-3.5 sm:py-4">
               <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
@@ -1701,7 +1633,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                     <p className="text-amber-800 text-xs sm:text-sm font-semibold mb-1.5 sm:mb-2">
                       {t.wallet.importantNotice}
                     </p>
-                    <div className="text-amber-700 text-[10px] sm:text-xs space-y-2 leading-relaxed">
+                    <div className="text-amber-700 text-[11px] sm:text-xs space-y-2 leading-relaxed">
                       <p>{t.wallet.noticeSubmitted}</p>
                       <p>{t.wallet.noticeFrozen}</p>
                       <p>{t.wallet.noticeContact}</p>

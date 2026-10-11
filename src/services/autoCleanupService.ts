@@ -5,7 +5,8 @@
  * 每天自动执行数据清理任务
  */
 
-import { supabase } from '../lib/supabase';
+import { formatSupabaseError, isSupabaseAbortError, supabase } from '../lib/supabase';
+import { getAdminFinancialSessionToken } from '../lib/auth';
 
 export interface CleanupSchedule {
   table_name: string;
@@ -50,20 +51,20 @@ class AutoCleanupService {
       // 启动时先检查并执行昨天错过的清理任务
       await this.checkAndRunMissedCleanups();
     } catch (error) {
-      console.error('[AutoCleanup] Failed to check missed cleanups on startup:', error);
+      console.error('[AutoCleanup] Failed to check missed cleanups on startup:', formatSupabaseError(error));
       // 不抛出错误，让服务继续运行
     }
 
     // 每小时检查一次是否需要执行清理
     this.intervalId = setInterval(() => {
       this.checkAndRunCleanup().catch(error => {
-        console.error('[AutoCleanup] Error in periodic cleanup check:', error);
+        console.error('[AutoCleanup] Error in periodic cleanup check:', formatSupabaseError(error));
       });
     }, 60 * 60 * 1000); // 1小时
 
     // 立即执行一次检查（今天的任务）
     this.checkAndRunCleanup().catch(error => {
-      console.error('[AutoCleanup] Error in initial cleanup check:', error);
+      console.error('[AutoCleanup] Error in initial cleanup check:', formatSupabaseError(error));
     });
   }
 
@@ -121,7 +122,7 @@ class AutoCleanupService {
         console.log('[AutoCleanup] No missed cleanups detected');
       }
     } catch (error) {
-      console.error('[AutoCleanup] Error checking missed cleanups:', error);
+      console.error('[AutoCleanup] Error checking missed cleanups:', formatSupabaseError(error));
     }
   }
 
@@ -169,7 +170,7 @@ class AutoCleanupService {
 
       this.lastCheckDate = this.getTodayDate();
     } catch (error) {
-      console.error('[AutoCleanup] Error checking cleanup schedule:', error);
+      console.error('[AutoCleanup] Error checking cleanup schedule:', formatSupabaseError(error));
     }
   }
 
@@ -348,22 +349,24 @@ class AutoCleanupService {
       const startTime = Date.now();
 
       const { data, error } = await supabase.rpc('execute_cleanup', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: config.table_name,
-        p_days_to_keep: config.days_to_keep,
-        p_admin_id: this.adminId
+        p_days_to_keep: config.days_to_keep
       });
 
       const executionTime = Date.now() - startTime;
 
       if (error) {
-        console.error(`[AutoCleanup] Failed to cleanup ${config.table_name}:`, error);
+        if (isSupabaseAbortError(error)) return;
+
+        console.error(`[AutoCleanup] Failed to cleanup ${config.table_name}:`, formatSupabaseError(error));
         await this.logCleanupResult({
           table_name: config.table_name,
           success: false,
           records_deleted: 0,
           space_freed: '0 bytes',
           execution_time_ms: executionTime,
-          message: isCompensation ? `[Compensation] ${error.message}` : error.message,
+          message: isCompensation ? `[Compensation] ${formatSupabaseError(error)}` : formatSupabaseError(error),
           timestamp: new Date().toISOString()
         });
         return;
@@ -388,7 +391,9 @@ class AutoCleanupService {
         await this.updateLastRunTime(config.table_name);
       }
     } catch (error) {
-      console.error(`[AutoCleanup] Error executing cleanup for ${config.table_name}:`, error);
+      if (!isSupabaseAbortError(error)) {
+        console.error(`[AutoCleanup] Error executing cleanup for ${config.table_name}:`, formatSupabaseError(error));
+      }
     }
   }
 
@@ -427,7 +432,7 @@ class AutoCleanupService {
           }
         );
     } catch (error) {
-      console.error('[AutoCleanup] Failed to log cleanup result:', error);
+      console.error('[AutoCleanup] Failed to log cleanup result:', formatSupabaseError(error));
     }
   }
 
@@ -466,7 +471,7 @@ class AutoCleanupService {
           );
       }
     } catch (error) {
-      console.error('[AutoCleanup] Failed to update last run time:', error);
+      console.error('[AutoCleanup] Failed to update last run time:', formatSupabaseError(error));
     }
   }
 
@@ -500,9 +505,9 @@ class AutoCleanupService {
       const startTime = Date.now();
 
       const { data, error } = await supabase.rpc('execute_cleanup', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: tableName,
-        p_days_to_keep: daysToKeep,
-        p_admin_id: this.adminId
+        p_days_to_keep: daysToKeep
       });
 
       const executionTime = Date.now() - startTime;
@@ -534,7 +539,7 @@ class AutoCleanupService {
 
       return null;
     } catch (error) {
-      console.error('[AutoCleanup] Manual cleanup error:', error);
+      console.error('[AutoCleanup] Manual cleanup error:', formatSupabaseError(error));
       return null;
     }
   }
@@ -552,7 +557,7 @@ class AutoCleanupService {
 
       return (data?.value as CleanupResult[]) || [];
     } catch (error) {
-      console.error('[AutoCleanup] Failed to get cleanup history:', error);
+      console.error('[AutoCleanup] Failed to get cleanup history:', formatSupabaseError(error));
       return [];
     }
   }
@@ -577,14 +582,14 @@ class AutoCleanupService {
         );
 
       if (error) {
-        console.error('[AutoCleanup] Failed to update schedule:', error);
+        console.error('[AutoCleanup] Failed to update schedule:', formatSupabaseError(error));
         return false;
       }
 
       console.log('[AutoCleanup] Schedule updated successfully');
       return true;
     } catch (error) {
-      console.error('[AutoCleanup] Failed to update schedule:', error);
+      console.error('[AutoCleanup] Failed to update schedule:', formatSupabaseError(error));
       return false;
     }
   }
@@ -617,14 +622,14 @@ class AutoCleanupService {
         );
 
       if (error) {
-        console.error('[AutoCleanup] Failed to reset to default schedule:', error);
+        console.error('[AutoCleanup] Failed to reset to default schedule:', formatSupabaseError(error));
         return false;
       }
 
       console.log('[AutoCleanup] Reset to default schedule successfully');
       return true;
     } catch (error) {
-      console.error('[AutoCleanup] Failed to reset to default schedule:', error);
+      console.error('[AutoCleanup] Failed to reset to default schedule:', formatSupabaseError(error));
       return false;
     }
   }

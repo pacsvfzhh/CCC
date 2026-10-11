@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { Pin, Calendar, Bell, Sparkles, Radio, ChevronRight, X, Zap, Star, Eye, TrendingUp, Lock, Shield, Layers, Database } from 'lucide-react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { Pin, Calendar, Bell, Sparkles, Radio, ChevronRight, Zap, Star, Eye, TrendingUp, Lock, Shield, Layers, Database } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Announcement, AnnouncementListItem } from '../../types';
-import { marked } from 'marked';
-import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
+import AnnouncementDetailModal from '../AnnouncementDetailModal';
 
 interface AnnouncementBoardProps {
   userId: string;
@@ -26,8 +25,13 @@ const CACHE_KEYS = {
 // Cache duration: 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
 
+const normalizeCarouselSpeed = (value: unknown) => {
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value));
+  return Number.isFinite(parsed) ? Math.min(5, Math.max(0.1, parsed)) : 0.6;
+};
+
 export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
-  const { isMobile, isTablet, deviceType, shouldReduceAnimations } = useDeviceOptimization();
+  const { deviceType } = useDeviceOptimization();
   const { t, dateLocale } = useLanguage();
 
   const translateCategory = (category: string) => {
@@ -51,6 +55,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
   // Tablet-specific detection for optimized layout
   const isTabletDevice = deviceType === 'tablet';
+  const supportsHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const [announcements, setAnnouncements] = useState<AnnouncementListItem[]>(() => {
     try {
@@ -71,12 +76,17 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           return JSON.parse(cached);
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore cache errors
     }
     return [];
   });
   const [loading, setLoading] = useState(false);
+  const [announcementsPending, setAnnouncementsPending] = useState(true);
+  const loadUserAdminRef = useRef<(() => Promise<string | null>) | null>(null);
+  const loadCategoriesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadInitialAnnouncementsRef = useRef<(() => Promise<void>) | null>(null);
+  const loadAnnouncementsRef = useRef<((skipLoadingState?: boolean) => Promise<void>) | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const contentCacheRef = useRef<Map<string, string>>(new Map());
@@ -91,34 +101,21 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     const cachedUserId = sessionStorage.getItem(CACHE_KEYS.CACHE_USER_ID);
     return cachedUserId === userId && sessionStorage.getItem(CACHE_KEYS.ADMIN_ID) !== null;
   });
-  const [isHovering, setIsHovering] = useState(false);
-  const isHoveringRef = useRef(false);
+  const isCarouselPausedRef = useRef(false);
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Keep ref in sync with state for use in closures
-  useEffect(() => {
-    isHoveringRef.current = isHovering;
-  }, [isHovering]);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const carouselLoopMarkerRef = useRef<HTMLDivElement | null>(null);
+  const lastAutoScrollAtRef = useRef(0);
   const isLoadingRef = useRef(false);
   const backgroundRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [isPageVisible, setIsPageVisible] = useState(() => {
-    // Initialize with actual visibility state
-    return typeof document !== 'undefined' ? !document.hidden : true;
-  });
-  const isPageVisibleRef = useRef(isPageVisible);
-
-  // Keep ref in sync with state for use in closures
-  useEffect(() => {
-    isPageVisibleRef.current = isPageVisible;
-  }, [isPageVisible]);
+  const isPageVisibleRef = useRef(typeof document !== 'undefined' ? !document.hidden : true);
   const [carouselEnabled, setCarouselEnabled] = useState(() => {
     const cached = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_ENABLED);
     return cached !== null ? cached === 'true' : true;
   });
   const [carouselSpeed, setCarouselSpeed] = useState(() => {
     const cached = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_SPEED);
-    return cached ? parseFloat(cached) : 0.6;
+    return normalizeCarouselSpeed(cached);
   });
   const [categories, setCategories] = useState<Map<string, { icon_name: string; color_scheme: string }>>(() => {
     // Load from cache
@@ -128,19 +125,14 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         const parsed = JSON.parse(cached);
         return new Map(Object.entries(parsed));
       }
-    } catch (e) {
+    } catch {
       // Ignore cache errors
     }
     return new Map();
   });
 
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-  });
-
   const getCategoryIcon = (announcement: AnnouncementListItem | Announcement) => {
-    const iconMap: { [key: string]: any } = {
+    const iconMap: Record<string, LucideIcon> = {
       'bell': Bell,
       'sparkles': Sparkles,
       'radio': Radio,
@@ -176,21 +168,6 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     return colorMap[colorScheme] || '#22d3ee';
   };
 
-  const renderContent = (content: string) => {
-    // Check if content is already HTML (starts with < tag)
-    if (content.trim().startsWith('<')) {
-      return content;
-    }
-    // Otherwise, treat as markdown
-    return marked(content);
-  };
-
-  // Memoize the rendered and sanitized content for the selected announcement
-  const sanitizedSelectedContent = useMemo(() => {
-    if (!selectedAnnouncement) return '';
-    return sanitizeAnnouncementContent(renderContent(selectedAnnouncement.content));
-  }, [selectedAnnouncement?.id, selectedAnnouncement?.content]);
-
   const handleAnnouncementClick = useCallback(async (item: AnnouncementListItem) => {
     const cachedContent = contentCacheRef.current.get(item.id);
     if (cachedContent) {
@@ -223,9 +200,9 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   useEffect(() => {
     // Parallel loading for better performance
     Promise.all([
-      loadUserAdmin(),
-      loadCategories(),
-      loadInitialAnnouncements()
+      loadUserAdminRef.current?.(),
+      loadCategoriesRef.current?.(),
+      loadInitialAnnouncementsRef.current?.()
     ]);
 
     // Cleanup on unmount
@@ -242,22 +219,16 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, [userId]);
 
-  // iOS optimization: Pause animations when page is not visible
   useEffect(() => {
-    if (!isIOS) return;
-
     const handleVisibilityChange = () => {
-      setIsPageVisible(!document.hidden);
+      isPageVisibleRef.current = !document.hidden;
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isIOS]);
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       // Check cache first
       const cached = sessionStorage.getItem(CACHE_KEYS.CATEGORIES);
@@ -284,258 +255,103 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
       // Cache the result
       try {
-        const cacheObj: Record<string, any> = {};
+        const cacheObj: Record<string, { icon_name: string; color_scheme: string }> = {};
         categoryMap.forEach((value, key) => {
           cacheObj[key] = value;
         });
         sessionStorage.setItem(CACHE_KEYS.CATEGORIES, JSON.stringify(cacheObj));
-      } catch (e) {
-        // Ignore cache errors
-      }
+      } catch {
+      // Ignore cache errors
+    }
     } catch (error) {
       console.error('Error loading categories:', error);
     }
-  };
+  }, [categories.size]);
 
-  // Load and subscribe to carousel settings
+  loadCategoriesRef.current = loadCategories;
+
   useEffect(() => {
+    let realtimeVersion = 0;
+
     const setupCarouselSettings = async () => {
+      const requestVersion = realtimeVersion;
       try {
-        // Check if we already have cached values
-        const cachedEnabled = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_ENABLED);
-        const cachedSpeed = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_SPEED);
+        const [{ data: enabledData, error: enabledError }, { data: speedData, error: speedError }] = await Promise.all([
+          supabase.from('system_configs').select('value').eq('key', 'announcement_carousel_enabled').maybeSingle(),
+          supabase.from('system_configs').select('value').eq('key', 'announcement_carousel_speed').maybeSingle(),
+        ]);
 
-        // Only fetch if we don't have cached values
-        if (cachedEnabled === null) {
-          // Load carousel enabled setting
-          const { data: enabledData, error: enabledError } = await supabase
-            .from('system_configs')
-            .select('value')
-            .eq('key', 'announcement_carousel_enabled')
-            .maybeSingle();
+        if (enabledError) throw enabledError;
+        if (speedError) throw speedError;
+        if (requestVersion !== realtimeVersion) return;
 
-          if (enabledError) throw enabledError;
-          if (enabledData?.value !== undefined) {
-            const enabled = enabledData.value === true;
-            setCarouselEnabled(enabled);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, enabled.toString());
-          }
+        if (enabledData?.value !== undefined) {
+          const enabled = enabledData.value === true;
+          setCarouselEnabled(enabled);
+          sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, enabled.toString());
         }
-
-        if (cachedSpeed === null) {
-          // Load carousel speed setting
-          const { data: speedData, error: speedError } = await supabase
-          .from('system_configs')
-          .select('value')
-          .eq('key', 'announcement_carousel_speed')
-          .maybeSingle();
-
-          if (speedError) throw speedError;
-          if (speedData?.value !== undefined) {
-            const speed = typeof speedData.value === 'number' ? speedData.value : 0.6;
-            setCarouselSpeed(speed);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, speed.toString());
-          }
+        if (speedData?.value !== undefined) {
+          const speed = normalizeCarouselSpeed(speedData.value);
+          setCarouselSpeed(speed);
+          sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, speed.toString());
         }
       } catch (error) {
         console.error('Error loading carousel settings:', error);
       }
     };
 
-    setupCarouselSettings();
-
-    // Subscribe to real-time updates for carousel settings
     const channel = supabase
       .channel('carousel_settings_changes')
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'system_configs',
-          filter: 'key=in.(announcement_carousel_enabled,announcement_carousel_speed)'
-        },
+        { event: 'UPDATE', schema: 'public', table: 'system_configs' },
         (payload) => {
-          const newRecord = payload.new as any;
-
+          realtimeVersion += 1;
+          const newRecord = payload.new as { key?: string; value?: unknown };
           if (newRecord.key === 'announcement_carousel_enabled') {
-            const newValue = newRecord.value === true;
-            setCarouselEnabled(newValue);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, newValue.toString());
+            const enabled = newRecord.value === true;
+            setCarouselEnabled(enabled);
+            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, enabled.toString());
           } else if (newRecord.key === 'announcement_carousel_speed') {
-            const newSpeed = typeof newRecord.value === 'number' ? newRecord.value : 0.6;
-            setCarouselSpeed(newSpeed);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, newSpeed.toString());
+            const speed = normalizeCarouselSpeed(newRecord.value);
+            setCarouselSpeed(speed);
+            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, speed.toString());
           }
         }
       )
-      .subscribe();
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED' || status === 'CHANNEL_ERROR') void setupCarouselSettings();
+      });
 
     return () => {
-      console.log('[Carousel] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, []);
 
-  // iOS-compatible scroll lock when modal is open
-  useEffect(() => {
-    if (selectedAnnouncement) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+  const isAnnouncementDetailOpen = Boolean(selectedAnnouncement);
+  useLayoutEffect(() => {
+    if (!isAnnouncementDetailOpen) return;
 
-      return () => {
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [selectedAnnouncement]);
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
 
-  // Detect device performance level
-  const [isLowEndDevice, setIsLowEndDevice] = useState(false);
-
-  useEffect(() => {
-    // Check if device is low-end based on hardware concurrency and memory
-    const hardwareConcurrency = navigator.hardwareConcurrency || 2;
-    const deviceMemory = (navigator as any).deviceMemory || 4;
-
-    // Low-end if: <= 4 CPU cores OR <= 2GB RAM
-    const isLowEnd = hardwareConcurrency <= 4 || deviceMemory <= 2;
-    setIsLowEndDevice(isLowEnd);
-  }, []);
-
-  // Ultimate zero-flicker optimization - Minimal DOM manipulation
-  useEffect(() => {
-    if (!selectedAnnouncement) return;
-
-    // Immediate synchronous execution - no delay, no flicker
-    const videos = document.querySelectorAll('.announcement-content video');
-
-    videos.forEach((video) => {
-      const videoEl = video as HTMLVideoElement;
-
-      // Skip if already processed
-      if (videoEl.dataset.videoProcessed === 'true') {
-        return;
-      }
-      videoEl.dataset.videoProcessed = 'true';
-
-      // Critical: Set attributes immediately before any DOM manipulation
-      videoEl.removeAttribute('controls');
-      videoEl.setAttribute('preload', 'auto'); // Load entire video for instant poster
-      videoEl.setAttribute('playsinline', 'true');
-
-      // Force video to load and seek to a visible frame (not black screen)
-      const loadPoster = () => {
-        // Seek to 0.1 second to avoid black first frame
-        videoEl.currentTime = 0.1;
-
-        // Capture frame once seeked
-        const captureFrame = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            canvas.width = videoEl.videoWidth || 640;
-            canvas.height = videoEl.videoHeight || 360;
-            const ctx = canvas.getContext('2d');
-            if (ctx && videoEl.videoWidth > 0) {
-              ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-              const posterUrl = canvas.toDataURL('image/jpeg', 0.85);
-              videoEl.setAttribute('poster', posterUrl);
-              videoEl.style.backgroundImage = `url(${posterUrl})`;
-              videoEl.style.backgroundSize = 'cover';
-              videoEl.style.backgroundPosition = 'center';
-            }
-          } catch (err) {
-            console.warn('Failed to capture video frame:', err);
-          }
-          // Reset to beginning
-          videoEl.currentTime = 0;
-        };
-
-        videoEl.addEventListener('seeked', captureFrame, { once: true });
-      };
-
-      // Load poster when metadata is available
-      if (videoEl.readyState >= 1) {
-        loadPoster();
-      } else {
-        videoEl.addEventListener('loadedmetadata', loadPoster, { once: true });
-      }
-
-      // Minimal styling - avoid layout shifts
-      videoEl.style.display = 'block';
-      videoEl.style.width = '100%';
-      videoEl.style.height = 'auto';
-      videoEl.style.borderRadius = '1rem';
-      videoEl.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
-
-      // Skip wrapper if already exists
-      if (videoEl.parentElement?.classList.contains('video-wrapper')) {
-        return;
-      }
-
-      // Minimal wrapper - single container only
-      const wrapper = document.createElement('div');
-      wrapper.className = 'video-wrapper';
-      // Only set essential inline styles - let CSS handle layout
-      wrapper.style.position = 'relative';
-
-      // Create play button only (no extra decorations)
-      const playBtn = document.createElement('div');
-      playBtn.className = 'video-play-btn';
-      playBtn.innerHTML = '<svg width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="28" fill="rgba(15, 23, 42, 0.9)" stroke="rgba(96, 165, 250, 0.8)" stroke-width="2"/><path d="M25 20 L25 40 L40 30 Z" fill="rgb(96, 165, 250)"/></svg>';
-      playBtn.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); cursor: pointer; z-index: 10; opacity: 1; transition: opacity 0.15s ease, transform 0.15s ease;';
-
-      // Wrap video
-      if (videoEl.parentNode) {
-        videoEl.parentNode.insertBefore(wrapper, videoEl);
-        wrapper.appendChild(videoEl);
-        wrapper.appendChild(playBtn);
-
-        // Play/pause handlers
-        const togglePlay = (e: Event) => {
-          e.stopPropagation();
-          if (videoEl.paused) {
-            videoEl.play();
-          } else {
-            videoEl.pause();
-          }
-        };
-
-        playBtn.addEventListener('click', togglePlay);
-        videoEl.addEventListener('click', togglePlay);
-
-        // Show/hide play button
-        videoEl.addEventListener('play', () => {
-          playBtn.style.opacity = '0';
-          playBtn.style.pointerEvents = 'none';
-        }, { passive: true });
-
-        videoEl.addEventListener('pause', () => {
-          playBtn.style.opacity = '1';
-          playBtn.style.pointerEvents = 'auto';
-        }, { passive: true });
-
-        // Hover effect (desktop only)
-        if (window.matchMedia('(hover: hover)').matches) {
-          playBtn.addEventListener('mouseenter', () => {
-            playBtn.style.transform = 'translate(-50%, -50%) scale(1.1)';
-          });
-          playBtn.addEventListener('mouseleave', () => {
-            playBtn.style.transform = 'translate(-50%, -50%) scale(1)';
-          });
-        }
-      }
-    });
-  }, [selectedAnnouncement]);
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isAnnouncementDetailOpen]);
 
   useEffect(() => {
     if (!adminResolved) return;
@@ -552,7 +368,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           schema: 'public',
           table: 'announcements'
         },
-        (payload) => {
+        () => {
           if (reloadTimeout) {
             clearTimeout(reloadTimeout);
           }
@@ -561,11 +377,11 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
             try {
               sessionStorage.removeItem(CACHE_KEYS.ANNOUNCEMENTS);
               sessionStorage.removeItem(CACHE_KEYS.CACHE_TIME);
-            } catch (e) {
+            } catch {
               // Ignore storage errors
             }
 
-            loadAnnouncements(true);
+            void loadAnnouncementsRef.current?.(true);
           }, 300);
         }
       )
@@ -579,189 +395,52 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, [adminResolved, userAdminId]);
 
-  // Auto-scroll functionality - Controlled by database configuration
   useEffect(() => {
     const container = scrollContainerRef.current;
+    if (!container || announcements.length <= 1 || !carouselEnabled || selectedAnnouncement) return;
 
-    // Don't start scrolling if carousel is disabled, no announcements, or only one announcement
-    if (!container || announcements.length <= 1 || !carouselEnabled || selectedAnnouncement) {
-      return;
-    }
+    let animationFrameId = 0;
+    let lastTimestamp: number | null = null;
+    let scrollPosition = container.scrollTop;
+    let loopStart = 0;
+    let canScroll = false;
 
-    // iOS-specific optimization: Use CSS-based smooth scrolling instead of RAF
-    if (isIOS) {
-      console.log('[AnnouncementBoard] iOS carousel starting:', {
-        announcementsCount: announcements.length,
-        carouselEnabled,
-        isPageVisible,
-        isPageVisibleRef: isPageVisibleRef.current,
-        isHovering,
-        isHoveringRef: isHoveringRef.current
-      });
-
-      let scrollInterval: NodeJS.Timeout | null = null;
-
-      const startScroll = () => {
-        if (scrollInterval) return; // Already running
-
-        console.log('[AnnouncementBoard] iOS carousel interval started', {
-          initialIsPageVisible: isPageVisibleRef.current,
-          initialIsHovering: isHoveringRef.current
-        });
-
-        let tickCount = 0;
-        scrollInterval = setInterval(() => {
-          // Use refs to get current values (avoid closure trap)
-          const currentIsHovering = isHoveringRef.current;
-          const currentIsPageVisible = isPageVisibleRef.current;
-
-          // Pause scrolling when hovering or page not visible
-          if (currentIsHovering || !currentIsPageVisible) {
-            if (tickCount % 60 === 0) { // Log every ~1 second
-              console.log('[AnnouncementBoard] iOS carousel paused:', {
-                isHovering: currentIsHovering,
-                isPageVisible: currentIsPageVisible
-              });
-            }
-            tickCount++;
-            return;
-          }
-
-          tickCount++;
-
-          const { scrollTop, scrollHeight, clientHeight } = container;
-
-          // Only scroll if content is actually scrollable
-          if (scrollHeight <= clientHeight) {
-            console.log('[AnnouncementBoard] iOS carousel: content not scrollable', {
-              scrollHeight,
-              clientHeight
-            });
-            return;
-          }
-
-          const contentHeight = scrollHeight / 2;
-          const scrollStep = carouselSpeed * 0.5; // Slower, smoother on iOS
-          const newScrollTop = scrollTop + scrollStep;
-
-          // Log first scroll and every 3 seconds after
-          if (tickCount === 1 || tickCount % 180 === 0) {
-            console.log('[AnnouncementBoard] iOS carousel scrolling:', {
-              tick: tickCount,
-              scrollTop: Math.round(scrollTop),
-              scrollHeight,
-              clientHeight,
-              contentHeight,
-              scrollStep,
-              newScrollTop: Math.round(newScrollTop)
-            });
-          }
-
-          // Seamless loop
-          if (newScrollTop >= contentHeight) {
-            container.scrollTop = newScrollTop - contentHeight;
-          } else {
-            container.scrollTop = newScrollTop;
-          }
-        }, 16); // ~60fps
-      };
-
-      // Start scrolling after a short delay to allow content to render
-      const startTimer = setTimeout(startScroll, 500);
-
-      return () => {
-        console.log('[AnnouncementBoard] iOS carousel cleanup');
-        clearTimeout(startTimer);
-        if (scrollInterval) {
-          clearInterval(scrollInterval);
-          scrollInterval = null;
-        }
-      };
-    }
-
-    // Standard RAF-based scrolling for non-iOS devices
-    let animationFrameId: number;
-    let lastScrollHeight = 0;
-    let isScrolling = false;
-    let startTime = 0;
-    let startScrollTop = 0;
-    let lastFrameTime = 0;
+    const updateLoopBoundary = () => {
+      loopStart = carouselLoopMarkerRef.current?.offsetTop ?? container.scrollHeight / 2;
+      canScroll = loopStart > 0 && container.scrollHeight > container.clientHeight;
+    };
 
     const autoScroll = (timestamp: number) => {
-      // Use ref to get current value (avoid closure trap)
-      const currentIsHovering = isHoveringRef.current;
-
-      // Pause scrolling when hovering
-      if (currentIsHovering) {
-        startTime = 0;
-        lastFrameTime = 0;
+      if (!canScroll || isCarouselPausedRef.current || !isPageVisibleRef.current) {
+        scrollPosition = container.scrollTop;
+        lastTimestamp = timestamp;
         animationFrameId = requestAnimationFrame(autoScroll);
         return;
       }
 
-      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (lastTimestamp === null) lastTimestamp = timestamp;
+      const deltaSeconds = Math.min((timestamp - lastTimestamp) / 1000, 1 / 30);
+      lastTimestamp = timestamp;
+      scrollPosition += carouselSpeed * 48 * deltaSeconds;
 
-      // Check if content height changed
-      if (scrollHeight !== lastScrollHeight) {
-        lastScrollHeight = scrollHeight;
-        startTime = 0;
-        lastFrameTime = 0;
-      }
-
-      // Only scroll if content is actually scrollable
-      if (scrollHeight <= clientHeight) {
-        animationFrameId = requestAnimationFrame(autoScroll);
-        return;
-      }
-
-      if (!isScrolling) {
-        isScrolling = true;
-      }
-
-      // Initialize start time and position
-      if (!startTime) {
-        startTime = timestamp;
-        startScrollTop = scrollTop;
-        lastFrameTime = timestamp;
-      }
-
-      // Throttle updates to ~60fps max
-      const deltaTime = timestamp - lastFrameTime;
-      if (deltaTime < 16) {
-        animationFrameId = requestAnimationFrame(autoScroll);
-        return;
-      }
-      lastFrameTime = timestamp;
-
-      const elapsedTime = (timestamp - startTime) / 1000;
-      const pixelsPerSecond = carouselSpeed * 60;
-      const newScrollTop = startScrollTop + (elapsedTime * pixelsPerSecond);
-      const contentHeight = scrollHeight / 2;
-
-      // Seamless loop
-      if (newScrollTop >= contentHeight) {
-        const overflow = newScrollTop - contentHeight;
-        container.scrollTop = overflow;
-        startTime = timestamp;
-        startScrollTop = overflow;
-      } else {
-        container.scrollTop = Math.round(newScrollTop * 100) / 100;
-      }
-
+      if (scrollPosition >= loopStart) scrollPosition -= loopStart;
+      lastAutoScrollAtRef.current = performance.now();
+      container.scrollTop = scrollPosition;
       animationFrameId = requestAnimationFrame(autoScroll);
     };
 
-    const startTimer = setTimeout(() => {
-      animationFrameId = requestAnimationFrame(autoScroll);
-    }, 500);
+    const resizeObserver = new ResizeObserver(updateLoopBoundary);
+    resizeObserver.observe(container);
+    if (carouselLoopMarkerRef.current) resizeObserver.observe(carouselLoopMarkerRef.current);
+
+    updateLoopBoundary();
+    animationFrameId = requestAnimationFrame(autoScroll);
 
     return () => {
-      clearTimeout(startTimer);
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      resizeObserver.disconnect();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [announcements.length, carouselEnabled, carouselSpeed, selectedAnnouncement, isIOS]);
+  }, [announcements.length, carouselEnabled, carouselSpeed, selectedAnnouncement]);
 
   // Detect manual scrolling and add class to disable animations
   useEffect(() => {
@@ -772,9 +451,18 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     let isScrolling = false;
 
     const handleScrollStart = () => {
+      if (performance.now() - lastAutoScrollAtRef.current < 80) return;
+
       if (!isScrolling) {
         isScrolling = true;
         container.classList.add('scrolling');
+      }
+
+      if (isCarouselPausedRef.current) {
+        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+        touchTimeoutRef.current = setTimeout(() => {
+          isCarouselPausedRef.current = false;
+        }, 700);
       }
 
       // Clear existing timeout
@@ -801,7 +489,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, []);
 
-  const loadUserAdmin = async () => {
+  const loadUserAdmin = useCallback(async () => {
     try {
       // Check cache first
       const cached = sessionStorage.getItem(CACHE_KEYS.ADMIN_ID);
@@ -834,7 +522,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       setAdminResolved(true);
       return null;
     }
-  };
+  }, [userId]);
+  loadUserAdminRef.current = loadUserAdmin;
 
   // Initial load with user lookup embedded in query
   const loadInitialAnnouncements = async () => {
@@ -858,6 +547,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           // Use cached data immediately - already loaded in state initializer
           // No need to call setAnnouncements again
           setLoading(false);
+          setAnnouncementsPending(false);
 
           // Clear any pending background refresh
           if (backgroundRefreshTimeoutRef.current) {
@@ -866,7 +556,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
           // Background refresh after 500ms to ensure data is up-to-date
           backgroundRefreshTimeoutRef.current = setTimeout(() => {
-            loadAnnouncementsFromServer();
+            void loadAnnouncementsFromServer();
             backgroundRefreshTimeoutRef.current = null;
           }, 500);
           return;
@@ -880,9 +570,11 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     } catch (error) {
       console.error('Error loading initial announcements:', error);
       setLoading(false);
+      setAnnouncementsPending(false);
       isLoadingRef.current = false;
     }
   };
+  loadInitialAnnouncementsRef.current = loadInitialAnnouncements;
 
   const loadAnnouncementsFromServer = async () => {
     try {
@@ -931,7 +623,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         sessionStorage.setItem(CACHE_KEYS.ANNOUNCEMENTS, JSON.stringify(newData));
         sessionStorage.setItem(CACHE_KEYS.CACHE_TIME, Date.now().toString());
         sessionStorage.setItem(CACHE_KEYS.CACHE_USER_ID, userId);
-      } catch (e) {
+      } catch {
         // Ignore cache errors (quota exceeded, etc.)
       }
 
@@ -946,6 +638,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     } catch (error) {
       console.error('Error loading announcements from server:', error);
       setLoading(false);
+    } finally {
+      setAnnouncementsPending(false);
     }
   };
 
@@ -979,9 +673,9 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         sessionStorage.setItem(CACHE_KEYS.ANNOUNCEMENTS, JSON.stringify(newData));
         sessionStorage.setItem(CACHE_KEYS.CACHE_TIME, Date.now().toString());
         sessionStorage.setItem(CACHE_KEYS.CACHE_USER_ID, userId);
-      } catch (e) {
-        // Ignore cache errors
-      }
+      } catch {
+      // Ignore cache errors
+    }
 
       // Invalidate content cache on realtime update
       contentCacheRef.current.clear();
@@ -1001,179 +695,25 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       }
     }
   };
+  loadAnnouncementsRef.current = loadAnnouncements;
 
   return (
     <>
-      {/* Mobile Overlay + Detail Modal - rendered via portal to escape stacking contexts */}
-      {selectedAnnouncement && createPortal(
-        <>
-          {isMobileDevice && (
-            <div className="fixed inset-0 bg-black/60 z-[9999]" />
-          )}
-          <div
-            className="fixed inset-0 z-[10000] flex items-stretch justify-stretch p-0
-            xl:items-center xl:justify-center xl:p-6
-            overflow-hidden touch-none"
-            onClick={() => setSelectedAnnouncement(null)}
-            style={{
-              background: isMobileDevice ? 'rgba(15, 23, 42, 0.7)' : 'rgba(15, 23, 42, 0.6)',
-              backdropFilter: isMobileDevice ? 'none' : 'blur(4px)',
-              WebkitBackdropFilter: isMobileDevice ? 'none' : 'blur(4px)',
-              animation: isIOS ? 'none' : 'fadeIn 0.2s ease-out',
-              willChange: isIOS ? 'auto' : 'opacity',
-              WebkitTapHighlightColor: 'transparent',
-              overscrollBehavior: 'contain'
-            }}
-          >
-            <div
-              className="relative w-full h-full
-              xl:max-w-3xl xl:max-h-[85vh] xl:w-[680px] xl:h-auto
-              bg-white
-              rounded-none xl:rounded-2xl
-              overflow-hidden flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                animation: isMobileDevice ? 'none' : 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: isMobileDevice ? 'none' : '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.1)'
-              }}
-            >
-              {/* Premium Blue Gradient Header */}
-              <div
-                className="relative flex-shrink-0 overflow-hidden"
-                style={{
-                  paddingTop: isMobileDevice ? 'calc(env(safe-area-inset-top) + 16px)' : '24px',
-                  paddingBottom: '20px',
-                  paddingLeft: '20px',
-                  paddingRight: '20px',
-                  background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 70%, #1d4ed8 100%)'
-                }}
-              >
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
-                  <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-300/10 rounded-full blur-xl"></div>
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-                  <div className="absolute inset-0 opacity-[0.04]" style={{
-                    backgroundImage: 'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-                    backgroundSize: '32px 32px'
-                  }}></div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedAnnouncement(null)}
-                  className="absolute top-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors active:bg-white/30 active:scale-90"
-                  style={{
-                    touchAction: 'manipulation',
-                    top: isMobileDevice ? 'calc(env(safe-area-inset-top) + 12px)' : '16px'
-                  }}
-                  aria-label="Close"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    {selectedAnnouncement.is_pinned && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 rounded-full shadow-sm shadow-amber-700/30">
-                        <Pin className="w-3 h-3 text-white fill-white" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">{t.announcements.pinned}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 rounded-full border border-white/20">
-                      <Calendar className="w-3 h-3 text-blue-100" />
-                      <span className="text-[10px] sm:text-xs text-blue-50 font-medium">
-                        {new Date(selectedAnnouncement.publish_at).toLocaleDateString(dateLocale, {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 p-2.5 bg-white/15 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg shadow-blue-900/20">
-                      {(() => {
-                        const CategoryIcon = getCategoryIcon(selectedAnnouncement);
-                        return <CategoryIcon className="w-6 h-6 text-white" />;
-                      })()}
-                    </div>
-                    <h2 className="text-lg sm:text-xl font-bold text-white leading-snug break-words pr-8">
-                      {selectedAnnouncement.title}
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-blue-400/30 via-blue-300/50 to-blue-400/30"></div>
-              </div>
-
-              {/* Content Area */}
-              <div
-                className="relative flex-1 overflow-y-auto min-h-0 hide-scrollbar"
-                style={{
-                  WebkitOverflowScrolling: 'touch',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  padding: isMobileDevice ? '16px' : '24px'
-                }}
-              >
-                <div className="relative" style={{ minHeight: contentLoading ? '60vh' : 'auto' }}>
-                  {contentLoading ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ animation: 'content-fade-in 0.3s ease-out' }}>
-                      {/* Large centered loading spinner */}
-                      <div className="relative mb-8">
-                        <div className="w-16 h-16 rounded-full border-4 border-blue-100" style={{ animation: 'content-pulse-ring 2s ease-in-out infinite' }}></div>
-                        <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-blue-500 border-r-blue-400" style={{ animation: 'content-spinner 0.8s linear infinite' }}></div>
-                        <div className="absolute inset-2 w-12 h-12 rounded-full border-4 border-transparent border-b-blue-300 border-l-blue-200" style={{ animation: 'content-spinner 1.2s linear infinite reverse' }}></div>
-                      </div>
-
-                      {/* Animated progress bar */}
-                      <div className="w-48 h-1.5 bg-blue-100 rounded-full overflow-hidden mb-4">
-                        <div className="h-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full" style={{ animation: 'content-progress-bar 1.5s ease-in-out infinite', backgroundSize: '200% 100%' }}></div>
-                      </div>
-
-                      {/* Loading text with dot animation */}
-                      <div className="flex items-center gap-1 text-blue-500">
-                        <span className="text-base font-medium">Loading content</span>
-                        <span className="flex gap-0.5">
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" style={{ animation: 'content-bounce-dot 1.4s ease-in-out infinite' }}></span>
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" style={{ animation: 'content-bounce-dot 1.4s ease-in-out infinite 0.2s' }}></span>
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" style={{ animation: 'content-bounce-dot 1.4s ease-in-out infinite 0.4s' }}></span>
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="relative announcement-content mobile-content"
-                      style={{ fontSize: '15px', lineHeight: '1.75', color: '#374151' }}
-                      dangerouslySetInnerHTML={{ __html: sanitizedSelectedContent }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div
-                className="relative flex-shrink-0 border-t border-slate-100 bg-slate-50/80 hidden sm:flex"
-                style={{
-                  paddingTop: '12px',
-                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
-                  paddingLeft: '20px',
-                  paddingRight: '20px',
-                  minHeight: '68px'
-                }}
-              >
-                <button
-                  onClick={() => setSelectedAnnouncement(null)}
-                  className="relative w-full px-5 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 active:from-blue-800 active:to-blue-700 text-white font-semibold text-sm rounded-xl transition-all duration-200 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
-                  style={{ touchAction: 'manipulation' }}
-                >
-                  {t.common.close}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>,
-        document.body
+      {selectedAnnouncement && (
+        <AnnouncementDetailModal
+          title={selectedAnnouncement.title}
+          content={selectedAnnouncement.content}
+          publishAt={selectedAnnouncement.publish_at}
+          isPinned={selectedAnnouncement.is_pinned}
+          onClose={() => setSelectedAnnouncement(null)}
+          CategoryIcon={getCategoryIcon(selectedAnnouncement)}
+          dateLocale={dateLocale}
+          pinnedLabel={t.announcements.pinned}
+          closeLabel={t.common.close}
+          contentLoading={contentLoading}
+          isMobileDevice={isMobileDevice}
+          isIOS={isIOS}
+        />
       )}
 
       <style>{`
@@ -1254,10 +794,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           100% { transform: translate(150px, -150px) rotate(180deg); opacity: 0; }
         }
       `}</style>
-      <div className={`relative rounded-2xl border-0 lg:border-2 lg:border-blue-500/80 shadow-none lg:shadow-xl lg:shadow-blue-200/50 ${isMobileDevice ? 'p-0' : 'p-0 lg:p-8'} overflow-hidden max-sm:fixed max-sm:bottom-[56px] max-sm:left-0 max-sm:right-0 max-sm:z-[45] max-sm:flex max-sm:flex-col max-sm:rounded-none sm:fixed sm:bottom-[64px] sm:left-0 sm:right-0 sm:z-[45] sm:flex sm:flex-col sm:rounded-none md:fixed md:bottom-[64px] md:left-0 md:right-0 md:z-[45] md:flex md:flex-col md:rounded-none lg:relative lg:top-auto lg:bottom-auto lg:left-auto lg:right-auto lg:z-auto lg:flex lg:flex-col lg:rounded-2xl lg:pb-0`}
+      <div className={`relative rounded-2xl border-0 shadow-none min-[1025px]:shadow-xl min-[1025px]:shadow-blue-200/50 overflow-hidden max-sm:fixed max-sm:bottom-[56px] max-sm:left-0 max-sm:right-0 max-sm:z-[45] max-sm:flex max-sm:flex-col max-sm:rounded-none sm:fixed sm:bottom-[64px] sm:left-0 sm:right-0 sm:z-[45] sm:flex sm:flex-col sm:rounded-none md:fixed md:bottom-[64px] md:left-0 md:right-0 md:z-[45] md:flex md:flex-col md:rounded-none min-[1025px]:relative min-[1025px]:top-auto min-[1025px]:bottom-auto min-[1025px]:left-auto min-[1025px]:right-auto min-[1025px]:z-auto min-[1025px]:flex min-[1025px]:flex-col min-[1025px]:rounded-2xl min-[1025px]:pb-0`}
         style={{
           willChange: 'auto',
-          top: window.innerWidth >= 1025 ? 'auto' : window.innerWidth >= 768 ? '72px' : window.innerWidth >= 640 ? '68px' : '64px',
+          top: window.innerWidth >= 1025 ? 'auto' : 'calc(var(--employee-header-height, 64px) - 1px)',
           height: window.innerWidth >= 1025 ? 'calc(100vh - 220px)' : undefined,
           background: isMobileDevice
             ? 'linear-gradient(160deg, #ffffff 0%, #f0f7ff 40%, #e8f4fd 100%)'
@@ -1266,7 +806,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         {/* Loading Overlay - Simplified for mobile */}
         {loading && (
-          <div className="absolute inset-0 bg-white/95 z-50 flex items-center justify-center max-sm:rounded-none md:rounded-none lg:rounded-2xl">
+          <div className="absolute inset-0 bg-white/95 z-50 flex items-center justify-center max-sm:rounded-none md:rounded-none min-[1025px]:rounded-2xl">
             <div className="flex flex-col items-center gap-4">
               <div className="relative w-16 h-16">
                 <div className="absolute inset-0 rounded-full border-2 border-blue-300 animate-spin" style={{ animationDuration: '1s' }}></div>
@@ -1354,12 +894,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
           {/* Premium Blue Header Card */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6
-            flex-shrink-0 max-sm:px-4 max-sm:pt-4
-            sm:px-4 sm:pt-4
-            md:px-4 md:pt-4
-            lg:px-0 lg:pt-0">
-            <div className="relative flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 rounded-xl overflow-hidden shadow-lg shadow-blue-600/25">
+          <div className="mb-4 flex flex-shrink-0 px-3 pt-3 min-[1025px]:mb-6 min-[1025px]:px-0 min-[1025px]:pt-0">
+            <div className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl bg-[linear-gradient(120deg,#2563eb_0%,#3b82f6_55%,#60a5fa_100%)] px-3.5 py-3.5 shadow-[0_12px_26px_-10px_rgba(37,99,235,0.35)] min-[1025px]:gap-4 min-[1025px]:rounded-none min-[1025px]:bg-gradient-to-r min-[1025px]:from-blue-600 min-[1025px]:via-blue-500 min-[1025px]:to-blue-600 min-[1025px]:px-5 min-[1025px]:py-4 min-[1025px]:shadow-none">
               {/* Shimmer effect */}
               {showDesktopEffects && (
               <div className="absolute inset-0 overflow-hidden">
@@ -1374,32 +910,37 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
               </div>
               )}
               {/* Subtle pattern overlay */}
-              <div className="absolute inset-0 opacity-10" style={{
-                backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(255,255,255,0.2) 0%, transparent 40%)'
+              <div className="pointer-events-none absolute inset-0 opacity-70 min-[1025px]:opacity-10" style={{
+                backgroundImage: 'radial-gradient(circle at 85% 0%, rgba(125,211,252,0.24), transparent 48%), radial-gradient(circle at 10% 100%, rgba(255,255,255,0.14), transparent 55%)'
               }}></div>
 
-              <div className="relative flex-shrink-0 p-2 sm:p-2.5 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30">
-                <Bell className="w-5 h-5 sm:w-5 sm:h-5 text-white" />
+              <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/15 text-cyan-50 shadow-inner shadow-white/10 min-[1025px]:h-auto min-[1025px]:w-auto min-[1025px]:rounded-lg min-[1025px]:border-white/30 min-[1025px]:bg-white/20 min-[1025px]:p-2.5 min-[1025px]:text-white min-[1025px]:shadow-none min-[1025px]:backdrop-blur-sm">
+                <Bell className="h-5 w-5" />
               </div>
               <div className="relative flex-1 min-w-0">
-                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white">
+                <h2 className="truncate text-lg font-bold tracking-tight text-white max-[360px]:text-base min-[1025px]:text-xl">
                   {t.announcements.title}
                 </h2>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] sm:text-xs text-blue-100 font-medium tracking-wider uppercase">{t.announcements.liveUpdates}</span>
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.55)] animate-pulse"></div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-100/85 min-[1025px]:text-xs min-[1025px]:font-medium min-[1025px]:text-blue-100">{t.announcements.liveUpdates}</span>
                 </div>
               </div>
-              <div className="relative flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30">
-                <Sparkles className="w-3.5 h-3.5 text-blue-100" />
+              <div className="relative flex shrink-0 items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-2.5 py-2 min-[1025px]:rounded-lg min-[1025px]:border-white/30 min-[1025px]:bg-white/20 min-[1025px]:px-3 min-[1025px]:py-1.5 min-[1025px]:backdrop-blur-sm">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-200 min-[1025px]:text-blue-100" />
                 <span className="text-sm font-bold text-white">{announcements.length}</span>
-                <span className="text-[10px] text-blue-200 font-medium">{t.announcements.total}</span>
+                <span className="text-[11px] font-medium text-blue-100 max-[360px]:hidden min-[1025px]:inline min-[1025px]:text-blue-200">{t.announcements.total}</span>
               </div>
             </div>
           </div>
 
-          {announcements.length === 0 ? (
-            <div className="text-center py-16 max-sm:px-6 sm:px-6 md:px-6">
+          {announcements.length === 0 && announcementsPending ? (
+            <div role="status" className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 min-[1025px]:px-8">
+              <div className="h-10 w-10 rounded-full border-[3px] border-blue-100 border-t-blue-500 animate-spin keep-animation" />
+              <span className="text-sm font-medium text-blue-600">{t.common.loading}</span>
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center px-6 py-16 min-[1025px]:px-8">
               <div className="relative inline-flex flex-col items-center gap-4 p-12 rounded-2xl bg-blue-50/50 border border-blue-100">
                 <div className="relative">
                   <div className="absolute inset-0 bg-blue-200/50 rounded-full blur-xl animate-pulse"></div>
@@ -1413,35 +954,34 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
             <div className="relative flex-1 min-h-0 flex flex-col">
               <div
                 ref={scrollContainerRef}
-                onMouseEnter={() => !isIOS && setIsHovering(true)}
-                onMouseLeave={() => !isIOS && setIsHovering(false)}
+                onMouseEnter={() => {
+                  if (supportsHover) isCarouselPausedRef.current = true;
+                }}
+                onMouseLeave={() => {
+                  if (supportsHover) isCarouselPausedRef.current = false;
+                }}
                 onTouchStart={() => {
-                  if (isIOS) {
-                    // On iOS, only pause temporarily during touch
-                    setIsHovering(true);
-                    // Clear any existing timeout
-                    if (touchTimeoutRef.current) {
-                      clearTimeout(touchTimeoutRef.current);
-                    }
-                    // Auto-resume after 2 seconds
-                    touchTimeoutRef.current = setTimeout(() => {
-                      setIsHovering(false);
-                    }, 2000);
-                  } else {
-                    setIsHovering(true);
+                  isCarouselPausedRef.current = true;
+                  if (touchTimeoutRef.current) {
+                    clearTimeout(touchTimeoutRef.current);
+                    touchTimeoutRef.current = null;
                   }
                 }}
                 onTouchEnd={() => {
-                  if (!isIOS) {
-                    setIsHovering(false);
-                  }
-                  // On iOS, let the timeout handle it
+                  if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+                  touchTimeoutRef.current = setTimeout(() => {
+                    isCarouselPausedRef.current = false;
+                  }, 500);
                 }}
-                className={`overflow-y-auto hide-scrollbar flex-1 min-h-0
+                onTouchCancel={() => {
+                  if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+                  isCarouselPausedRef.current = false;
+                }}
+                className={`relative overflow-y-auto hide-scrollbar flex-1 min-h-0
                   max-sm:px-6 max-sm:pb-2
                   sm:px-6 sm:pb-2
                   md:px-6 md:pb-2
-                  lg:px-0 lg:pb-2 lg:pr-2 ${
+                  min-[1025px]:px-8 min-[1025px]:pb-8 ${
                   isTabletDevice ? 'space-y-3' : 'space-y-3 sm:space-y-4'
                 }`}
                 style={{
@@ -1449,23 +989,26 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                   msOverflowStyle: 'none',
                   scrollBehavior: 'auto',
                   WebkitOverflowScrolling: 'touch',
+                  willChange: carouselEnabled && announcements.length > 1 ? 'scroll-position' : 'auto',
                 }}
               >
               {/* Render announcements - duplicate for carousel when enabled */}
-              {(carouselEnabled && announcements.length > 1 && !isTabletDevice ? [...announcements, ...announcements] : announcements).map((announcement, index) => {
+              {(carouselEnabled && announcements.length > 1 ? [...announcements, ...announcements] : announcements).map((announcement, index) => {
                 const cardColorVariants = [
                   { gradient: 'from-blue-50 via-white to-sky-50', ring: 'ring-blue-200/80', accent: 'from-blue-500 via-sky-400 to-cyan-400', iconBg: 'bg-gradient-to-br from-blue-500 to-sky-500', patternColor: 'border-blue-200', hoverShadow: 'hover:shadow-blue-100/60' },
                   { gradient: 'from-sky-50 via-white to-cyan-50', ring: 'ring-sky-200/80', accent: 'from-sky-500 via-cyan-400 to-teal-400', iconBg: 'bg-gradient-to-br from-sky-500 to-cyan-500', patternColor: 'border-sky-200', hoverShadow: 'hover:shadow-sky-100/60' },
                   { gradient: 'from-cyan-50 via-white to-blue-50', ring: 'ring-cyan-200/80', accent: 'from-cyan-500 via-blue-400 to-sky-400', iconBg: 'bg-gradient-to-br from-cyan-500 to-blue-500', patternColor: 'border-cyan-200', hoverShadow: 'hover:shadow-cyan-100/60' },
                 ];
                 const pinnedStyle = { gradient: 'from-amber-50 via-white to-orange-50', ring: 'ring-amber-200/80', accent: 'from-amber-500 via-orange-400 to-yellow-400', iconBg: 'bg-gradient-to-br from-amber-500 to-orange-500', patternColor: 'border-amber-200', hoverShadow: 'hover:shadow-amber-100/60' };
-                const cardStyle = announcement.is_pinned ? pinnedStyle : cardColorVariants[index % cardColorVariants.length];
+                const cardVariantIndex = (index % announcements.length) % cardColorVariants.length;
+                const cardStyle = announcement.is_pinned ? pinnedStyle : cardColorVariants[cardVariantIndex];
                 const CategoryIcon = getCategoryIcon(announcement);
                 const categoryColor = getCategoryColor(announcement);
 
                 return (
                 <div
                   key={`${announcement.id}-${index}`}
+                  ref={index === announcements.length ? carouselLoopMarkerRef : undefined}
                   onClick={() => handleAnnouncementClick(announcement)}
                   className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-xl bg-gradient-to-br ${cardStyle.gradient} ring-1 ${cardStyle.ring} shadow-sm ${cardStyle.hoverShadow}`}
                   style={{
@@ -1509,17 +1052,17 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                             {announcement.is_pinned && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500 rounded-md shadow-sm shadow-amber-200/50 flex-shrink-0">
                                 <Pin className="w-2.5 h-2.5 text-white fill-white" />
-                                <span className="text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider">{t.announcements.pinned}</span>
+                                <span className="text-[11px] font-bold text-white uppercase tracking-wider">{t.announcements.pinned}</span>
                               </span>
                             )}
-                            <h3 className={`font-semibold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug ${
+                            <h3 className={`min-w-0 font-semibold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug break-words ${
                               isTabletDevice ? 'text-[15px] line-clamp-2' : 'text-sm sm:text-[15px] line-clamp-1'
                             }`}>
                               {announcement.title}
                             </h3>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0 text-blue-500 group-hover:text-blue-600">
-                            <span className="text-[10px] font-bold hidden sm:inline">{t.announcements.view}</span>
+                            <span className="text-[11px] font-bold hidden sm:inline">{t.announcements.view}</span>
                             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                           </div>
                         </div>
@@ -1528,7 +1071,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                         {/* Bottom meta row */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
                               <Calendar className="w-3 h-3" />
                               {new Date(announcement.publish_at).toLocaleDateString(dateLocale, {
                                 month: 'short',
@@ -1538,12 +1081,12 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                             </span>
                             {announcement.category && (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ring-1"
+                                className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ring-1"
                                 style={{
-                                  backgroundColor: `${categoryColor}15`,
+                                  backgroundColor: `${categoryColor}20`,
                                   color: categoryColor,
-                                  borderColor: `${categoryColor}40`,
-                                  boxShadow: `0 0 0 1px ${categoryColor}30`
+                                  borderColor: `${categoryColor}50`,
+                                  boxShadow: `0 0 0 1px ${categoryColor}25`
                                 }}
                               >
                                 {translateCategory(announcement.category)}
@@ -1628,10 +1171,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         }
 
         /* Safe area support for mobile devices */
-        .max-sm\:pt-safe {
+        .max-sm\\:pt-safe {
           padding-top: max(1rem, env(safe-area-inset-top));
         }
-        .max-sm\:pb-safe {
+        .max-sm\\:pb-safe {
           padding-bottom: max(1rem, env(safe-area-inset-bottom));
         }
         .line-clamp-2 {
@@ -1967,7 +1510,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         /* Announcement content image styles */
         .announcement-content img {
-          margin: 1rem 0;
+          margin: 1rem auto;
           border-radius: 0.75rem;
           border: 1px solid #e2e8f0;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
@@ -1980,7 +1523,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         @media (min-width: 640px) {
           .announcement-content img {
-            margin: 1.5rem 0;
+            margin: 1.5rem auto;
           }
           .announcement-content img:hover {
             border-color: #bfdbfe;

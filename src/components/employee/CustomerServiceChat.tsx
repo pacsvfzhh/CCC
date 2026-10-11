@@ -1,9 +1,23 @@
-import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Sparkles, Shield, Award, Hexagon, Gift, ZoomIn, ZoomOut, RotateCcw, Megaphone, ChevronRight } from 'lucide-react';
+import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Sparkles, Award, Gift, ZoomIn, ZoomOut, RotateCcw, Megaphone, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
+import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
+import { preloadCustomerAvatar } from '../admin/customerAvatarUtils';
+import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
+import { uniqueRealtimeChannelName } from '../../lib/realtimeChannel';
+
+function extractImageOnlyUrl(content: string): string | null {
+  const container = document.createElement('div');
+  container.innerHTML = sanitizeChatMessage(content);
+  const images = container.querySelectorAll('img');
+  const text = (container.textContent || '').replace(/\u00a0/g, ' ').trim();
+
+  if (images.length !== 1 || text) return null;
+  return images[0].getAttribute('src') || null;
+}
 
 // Image component with loading state
 const ChatImage = memo(({
@@ -19,13 +33,19 @@ const ChatImage = memo(({
   const [imageError, setImageError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+    const image = imgRef.current;
+    if (!image?.complete) return;
+    setImageLoaded(image.naturalWidth > 0);
+    setImageError(image.naturalWidth === 0);
+  }, [src]);
+
   return (
     <div
-      className="relative overflow-hidden rounded-xl"
-      style={{
-        width: '280px',
-        height: '200px',
-      }}
+      className={`relative flex w-fit max-w-full flex-col overflow-hidden rounded-lg leading-none ${imageLoaded || imageError ? '' : 'min-h-[60px] min-w-[60px]'}`}
+      style={{ width: 'fit-content', height: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}
     >
       {/* Loading skeleton - fades out */}
       <div
@@ -56,86 +76,57 @@ const ChatImage = memo(({
         ref={imgRef}
         src={src}
         alt={alt}
-        className={`w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity duration-300 shadow-lg ${
+        className={`block rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity duration-300 shadow-sm ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{ width: 'auto', height: 'auto', maxWidth: '200px', maxHeight: '250px' }}
         onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClickImage(src); }}
         onLoad={() => setImageLoaded(true)}
         onError={() => setImageError(true)}
-        loading="lazy"
+        loading="eager"
         decoding="async"
       />
     </div>
   );
 });
 
-// Avatar component with loading state
 const CustomerAvatar = memo(({
   customer,
   className = 'w-10 h-10'
 }: {
   customer: Customer;
   className?: string;
-}) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-
-  return (
-    <div className={`relative ${className} rounded-lg flex items-center justify-center text-base sm:text-xl overflow-hidden border-2 ${
+}) => (
+  <CustomerAvatarDisplay
+    avatar={customer.customer_avatar}
+    isVip={customer.is_super || false}
+    customAvatarUrl={customer.custom_avatar_url}
+    alt={customer.customer_name}
+    className={`${className} rounded-lg border-2 ${
       customer.is_super
-        ? 'bg-gradient-to-br from-amber-500/40 to-orange-500/30 border-amber-400/60'
-        : 'bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-cyan-400/50'
-    }`}>
-      {customer.custom_avatar_url ? (
-        <>
-          {/* Show emoji placeholder while loading */}
-          {!imageLoaded && !imageError && (
-            <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200">
-              {customer.customer_avatar}
-            </div>
-          )}
-          <img
-            src={customer.custom_avatar_url}
-            alt={customer.customer_name}
-            className={`w-full h-full object-cover transition-opacity duration-200 ${
-              imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-            loading="lazy"
-            decoding="async"
-          />
-          {/* If image fails to load, show emoji */}
-          {imageError && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              {customer.customer_avatar}
-            </div>
-          )}
-        </>
-      ) : (
-        customer.customer_avatar
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  return prevProps.customer.id === nextProps.customer.id &&
-         prevProps.className === nextProps.className;
-});
+        ? 'border-amber-400/60'
+        : 'border-cyan-400/50'
+    }`}
+  />
+));
+
+type ServiceSourceType = 'aaa_service' | 'ccc_service';
 
 interface Customer {
   id: string;
   customer_name: string;
   customer_id: string;
-  customer_avatar: string;
-  is_super?: boolean;
-  super_customer_title?: string;
-  badge_type?: 'diamond' | 'crown' | 'star' | 'vip' | 'premium';
-  custom_avatar_url?: string;
-  vip_label?: string;
+  customer_avatar: string | null;
+  is_super?: boolean | null;
+  super_customer_title?: string | null;
+  badge_type?: 'diamond' | 'crown' | 'star' | 'vip' | 'premium' | null;
+  custom_avatar_url?: string | null;
+  vip_label?: string | null;
   employee_pin_top?: boolean;
   employee_always_visible?: boolean;
   target_employee_id?: string | null;
   target_employee_ids?: string[] | null;
+  source_type: ServiceSourceType;
 }
 
 interface Message {
@@ -144,20 +135,27 @@ interface Message {
   employee_id: string;
   sender_type: 'customer' | 'employee';
   message_content: string;
-  message_type?: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip' | 'rich_card';
+  message_type?: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip' | 'rich_card' | null;
   title?: string | null;
   subtitle?: string | null;
-  image_url?: string;
+  image_url?: string | null;
   rating_data?: {
     rating?: number;
-    comment?: string;
+    comment?: string | null;
     employee_id?: string;
     status?: string;
-  };
-  is_read: boolean;
-  created_at: string;
+    tip_amount?: number;
+  } | null;
+  is_read: boolean | null;
+  created_at: string | null;
   rich_card_content_id?: string | null;
+  content_frozen?: boolean;
+  rating_value?: number | null;
+  source_template_id?: string | null;
+  source_auto_message_id?: string | null;
 }
+
+type IncomingMessage = Partial<Message> & { customer_id?: string };
 
 interface CustomerConversation {
   customer: Customer;
@@ -167,63 +165,140 @@ interface CustomerConversation {
   last_customer_message_time?: string;
 }
 
+interface EmployeeConversationSnapshot {
+  conversations: CustomerConversation[];
+  unreadCount: number;
+}
+
+function preloadConversationAvatars(conversations: CustomerConversation[]) {
+  conversations.forEach(conversation => {
+    void preloadCustomerAvatar(conversation.customer.custom_avatar_url);
+  });
+}
+
+const employeeConversationCache = new Map<string, EmployeeConversationSnapshot>();
+const employeeMessageCaches = new Map<string, Map<string, Message[]>>();
+const preloadedChatImages = new Set<string>();
+const MESSAGE_PAGE_SIZE = 50;
+const SOURCE_LOOKUP_CHUNK_SIZE = 100;
+const OPEN_CHAT_REFRESH_MS = 30000;
+const CLOSED_CHAT_REFRESH_MS = 300000;
+const CATCH_UP_MIN_GAP_MS = 10000;
+// A customer's source_type never changes, so it is looked up once per page load.
+const customerSourceTypes = new Map<string, string>();
+
+function getEmployeeMessageCache(employeeId: string) {
+  const existing = employeeMessageCaches.get(employeeId);
+  if (existing) return existing;
+  const cache = new Map<string, Message[]>();
+  employeeMessageCaches.set(employeeId, cache);
+  return cache;
+}
+
+function preloadChatImages(messages: Message[]) {
+  const imageUrls = new Set(
+    messages.slice(-12).flatMap(message => {
+      const urls = message.image_url ? [message.image_url] : [];
+      const embeddedUrls = Array.from(
+        message.message_content.matchAll(/<img[^>]+src=["']([^"']+)["']/gi),
+        match => match[1],
+      );
+      return [...urls, ...embeddedUrls];
+    }),
+  );
+
+  imageUrls.forEach(url => {
+    if (!url || preloadedChatImages.has(url)) return;
+    preloadedChatImages.add(url);
+    const image = document.createElement('img');
+    image.decoding = 'async';
+    image.src = url;
+  });
+}
+
+function isSameMessage(previous: Message, next: Message) {
+  return previous.id === next.id
+    && previous.message_content === next.message_content
+    && previous.message_type === next.message_type
+    && previous.image_url === next.image_url
+    && previous.title === next.title
+    && previous.subtitle === next.subtitle
+    && previous.is_read === next.is_read
+    && previous.rich_card_content_id === next.rich_card_content_id
+    && previous.source_template_id === next.source_template_id
+    && previous.source_auto_message_id === next.source_auto_message_id
+    && JSON.stringify(previous.rating_data) === JSON.stringify(next.rating_data);
+}
+
+// The newest page replaces what is on screen; older pages the employee scrolled to and messages
+// still being sent stay visible.
+function mergeLatestMessages(previous: Message[], latest: Message[], customerId: string) {
+  const current = previous.filter(message => message.customer_id === customerId);
+  const latestIds = new Set(latest.map(message => message.id));
+  const oldestLatestTime = latest[0]?.created_at || '';
+  const olderHistory = latest.length >= MESSAGE_PAGE_SIZE
+    ? current.filter(message => !message.id.startsWith('temp-')
+      && !latestIds.has(message.id)
+      && (message.created_at || '') < oldestLatestTime)
+    : [];
+  const sending = current.filter(message => message.id.startsWith('temp-'));
+  const next = [...olderHistory, ...latest, ...sending];
+  const unchanged = next.length === previous.length
+    && next.every((message, index) => isSameMessage(previous[index], message));
+  return unchanged ? previous : next;
+}
+
+// A refresh can bring in the saved row before the send call returns; never show it twice.
+function replaceSentMessage(messages: Message[], tempId: string, saved: Message) {
+  if (messages.some(message => message.id === saved.id)) {
+    return messages.filter(message => message.id !== tempId);
+  }
+  return messages.map(message => (message.id === tempId ? saved : message));
+}
+
 interface CustomerServiceChatProps {
   employeeId: string;
 }
 
 export default function CustomerServiceChat({ employeeId }: CustomerServiceChatProps) {
   const { t, dateLocale } = useLanguage();
+  const initialConversationSnapshot = employeeConversationCache.get(employeeId);
 
   const [isOpen, setIsOpen] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const skipListAnimationRef = useRef(false);
   const employeeAdminIdRef = useRef<string | null>(null);
-  const [conversations, setConversations] = useState<CustomerConversation[]>([]);
+  const [conversations, setConversations] = useState<CustomerConversation[]>(
+    () => initialConversationSnapshot?.conversations || [],
+  );
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
-  const MESSAGE_PAGE_SIZE = 50;
   const [messageInput, setMessageInput] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(
+    () => initialConversationSnapshot?.unreadCount || 0,
+  );
   const [serviceTicketNumber, setServiceTicketNumber] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const uploadingTempIdRef = useRef<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
-  const messagesCache = useRef<Map<string, Message[]>>(new Map());
+  const [conversationsError, setConversationsError] = useState(false);
+  const [messagesError, setMessagesError] = useState(false);
+  const [realtimeRetryKey, setRealtimeRetryKey] = useState(0);
+  const messagesCache = useRef<Map<string, Message[]>>(getEmployeeMessageCache(employeeId));
+  const messagePrefetchRequestsRef = useRef<Map<string, Promise<void>>>(new Map());
+  const conversationLoadRequestRef = useRef(0);
+  const messagesLoadRequestRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement>(null);
   const conversationListScrollRef = useRef(0);
-
-  const animateProgressTo = (from: number, target: number, duration: number = 800) => {
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    let current = from;
-    const steps = Math.max(Math.ceil(duration / 50), 1);
-    const increment = (target - current) / steps;
-    if (increment === 0) { setUploadProgress(target); return; }
-    progressIntervalRef.current = setInterval(() => {
-      current += increment;
-      if ((increment > 0 && current >= target) || (increment <= 0 && current <= target)) {
-        current = target;
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      setUploadProgress(Math.round(current));
-    }, 50);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-  }, []);
 
   const messagesContainerCallbackRef = (node: HTMLDivElement | null) => {
     if (node) {
@@ -261,19 +336,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, []);
 
   const fetchTemplateContentForViewer = useCallback(async (templateId: string): Promise<string | null> => {
-    const cacheKey = `tpl:${templateId}`;
-    const cached = richCardCacheRef.current.get(cacheKey);
-    if (cached) return cached;
     try {
       const { data, error } = await supabase
         .from('cs_message_templates')
         .select('content')
         .eq('id', templateId)
         .maybeSingle();
-      if (!error && data?.content) {
-        richCardCacheRef.current.set(cacheKey, data.content);
-        return data.content;
-      }
+      if (!error && data?.content) return data.content;
       return null;
     } catch {
       return null;
@@ -281,36 +350,31 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, []);
 
   const fetchAutoMsgContentForViewer = useCallback(async (autoMsgId: string): Promise<string | null> => {
-    const cacheKey = `auto:${autoMsgId}`;
-    const cached = richCardCacheRef.current.get(cacheKey);
-    if (cached) return cached;
     try {
       const { data, error } = await supabase
         .from('customer_auto_messages')
         .select('content')
         .eq('id', autoMsgId)
         .maybeSingle();
-      if (!error && data?.content) {
-        richCardCacheRef.current.set(cacheKey, data.content);
-        return data.content;
-      }
+      if (!error && data?.content) return data.content;
       return null;
     } catch {
       return null;
     }
   }, []);
 
-  const prefetchRichCard = useCallback((msg: Message) => {
-    const anyMsg = msg as any;
-    const key = anyMsg.source_template_id ? `tpl:${anyMsg.source_template_id}` :
-                anyMsg.source_auto_message_id ? `auto:${anyMsg.source_auto_message_id}` :
+  const prefetchRichCard = useCallback((msg: Message | IncomingMessage) => {
+    const key = msg.content_frozen && msg.rich_card_content_id ? msg.rich_card_content_id :
+                msg.source_template_id ? `tpl:${msg.source_template_id}` :
+                msg.source_auto_message_id ? `auto:${msg.source_auto_message_id}` :
                 msg.rich_card_content_id || null;
     if (!key) return;
     if (richCardCacheRef.current.has(key)) return;
     if (richCardPrefetchingRef.current.has(key)) return;
     richCardPrefetchingRef.current.add(key);
-    const p = anyMsg.source_template_id ? fetchTemplateContentForViewer(anyMsg.source_template_id) :
-              anyMsg.source_auto_message_id ? fetchAutoMsgContentForViewer(anyMsg.source_auto_message_id) :
+    const p = msg.content_frozen && msg.rich_card_content_id ? fetchRichCardContent(msg.rich_card_content_id) :
+              msg.source_template_id ? fetchTemplateContentForViewer(msg.source_template_id) :
+              msg.source_auto_message_id ? fetchAutoMsgContentForViewer(msg.source_auto_message_id) :
               fetchRichCardContent(key);
     p.finally(() => richCardPrefetchingRef.current.delete(key));
   }, [fetchRichCardContent, fetchTemplateContentForViewer, fetchAutoMsgContentForViewer]);
@@ -319,11 +383,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     richCardCancelRef.current = false;
     setViewingRichCard(msg);
 
-    const anyMsg = msg as any;
-    const cacheKey = anyMsg.source_template_id ? `tpl:${anyMsg.source_template_id}` :
-                     anyMsg.source_auto_message_id ? `auto:${anyMsg.source_auto_message_id}` :
+    const cacheKey = msg.content_frozen && msg.rich_card_content_id ? msg.rich_card_content_id :
+                     msg.source_template_id ? `tpl:${msg.source_template_id}` :
+                     msg.source_auto_message_id ? `auto:${msg.source_auto_message_id}` :
                      msg.rich_card_content_id || null;
-    if (cacheKey && richCardCacheRef.current.has(cacheKey)) {
+    if (msg.content_frozen && cacheKey && richCardCacheRef.current.has(cacheKey)) {
       setRichCardFullContent(richCardCacheRef.current.get(cacheKey)!);
       setLoadingRichCardContent(false);
       return;
@@ -334,10 +398,12 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
     try {
       let html: string | null = null;
-      if (anyMsg.source_template_id) {
-        html = await fetchTemplateContentForViewer(anyMsg.source_template_id);
-      } else if (anyMsg.source_auto_message_id) {
-        html = await fetchAutoMsgContentForViewer(anyMsg.source_auto_message_id);
+      if (msg.content_frozen && msg.rich_card_content_id) {
+        html = await fetchRichCardContent(msg.rich_card_content_id);
+      } else if (msg.source_template_id) {
+        html = await fetchTemplateContentForViewer(msg.source_template_id);
+      } else if (msg.source_auto_message_id) {
+        html = await fetchAutoMsgContentForViewer(msg.source_auto_message_id);
       } else if (msg.rich_card_content_id) {
         html = await fetchRichCardContent(msg.rich_card_content_id);
       } else if (msg.message_type === 'rich_card') {
@@ -346,9 +412,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           await new Promise(r => setTimeout(r, 150));
           const { data: fresh } = await supabase
             .from('customer_employee_conversations')
-            .select('rich_card_content_id, source_template_id, source_auto_message_id')
+            .select('rich_card_content_id, content_frozen, source_template_id, source_auto_message_id')
             .eq('id', msg.id)
             .maybeSingle();
+          if (fresh?.content_frozen && fresh.rich_card_content_id) {
+            html = await fetchRichCardContent(fresh.rich_card_content_id);
+            break;
+          }
           if (fresh?.source_template_id) {
             html = await fetchTemplateContentForViewer(fresh.source_template_id);
             break;
@@ -373,12 +443,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       }
     }
   }, [fetchRichCardContent, fetchTemplateContentForViewer, fetchAutoMsgContentForViewer]);
-
   const [imageZoom, setImageZoom] = useState(1);
   const [imageDrag, setImageDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const popupTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [customerOnlineStatus, setCustomerOnlineStatus] = useState<Map<string, boolean>>(new Map());
   const onlineCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -389,7 +458,30 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const selectedCustomerRef = useRef<Customer | null>(null);
   const isOpenRef = useRef<boolean>(false);
   const justSentRef = useRef(false);
+  const handledUnreadMessageIdsRef = useRef(new Set<string>());
+  const notificationMessageIdsRef = useRef(new Set<string>());
   const stableKeyMapRef = useRef<Map<string, string>>(new Map());
+  const conversationLoadPromiseRef = useRef<Promise<void> | null>(null);
+  const conversationRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conversationRefreshCustomerIdsRef = useRef(new Set<string>());
+  const loadConversationsRef = useRef<((force?: boolean) => Promise<void>) | null>(null);
+  const applyIncomingConversationMessageRef = useRef<((message: IncomingMessage, incrementUnread?: boolean) => void) | null>(null);
+  const prefetchRichCardRef = useRef<((message: Message | IncomingMessage) => void) | null>(null);
+  const scheduleConversationRefreshRef = useRef<((customerId?: string) => void) | null>(null);
+  const showMessagePopupRef = useRef<((customer: Customer, message: string) => void) | null>(null);
+  const updateOnlineStatusRef = useRef<(() => void) | null>(null);
+  const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadMessagesFromDBRef = useRef<((shouldMarkRead?: boolean) => Promise<void>) | null>(null);
+  const refreshChatDataRef = useRef<(() => void) | null>(null);
+  const conversationRefreshQueuedRef = useRef(false);
+  const messagesRefreshQueuedRef = useRef(false);
+  const realtimeConnectedOnceRef = useRef(false);
+  const realtimeRetryCountRef = useRef(0);
+  const lastChatRefreshAtRef = useRef(0);
+  const ticketNumbersRef = useRef(new Map<string, string>());
+  const newMessageLabelRef = useRef(t.customerService.newMessage);
+  newMessageLabelRef.current = t.customerService.newMessage;
+  prefetchRichCardRef.current = prefetchRichCard;
 
   // Lock body scroll when chat is open (mobile only - full-screen overlay)
   useEffect(() => {
@@ -400,64 +492,114 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     selectedCustomerRef.current = selectedCustomer;
   }, [selectedCustomer]);
 
-  useEffect(() => {
-    if (isOpen && window.innerWidth < 1024) {
-      const scrollY = window.scrollY;
+  useLayoutEffect(() => {
+    if (!isOpen || window.innerWidth >= 1024) return;
 
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflowY = 'scroll';
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflowY: body.style.overflowY,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    body.style.overflowY = 'scroll';
 
-      return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflowY = '';
-
-        window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
-      };
-    }
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
+    };
   }, [isOpen]);
 
   useEffect(() => {
-    loadConversations();
+    void loadConversationsRef.current?.();
+
+    onlineCheckIntervalRef.current = setInterval(() => {
+      updateOnlineStatusRef.current?.();
+    }, 30000);
+
+    return () => {
+      if (onlineCheckIntervalRef.current) {
+        clearInterval(onlineCheckIntervalRef.current);
+      }
+      if (conversationRefreshTimerRef.current) {
+        clearTimeout(conversationRefreshTimerRef.current);
+        conversationRefreshTimerRef.current = null;
+      }
+      conversationRefreshCustomerIdsRef.current.clear();
+    };
+  }, [employeeId]);
+
+  useEffect(() => {
+    let disposed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleResubscribe = () => {
+      if (disposed || retryTimer) return;
+      const delay = Math.min(30000, 2000 * 2 ** Math.min(realtimeRetryCountRef.current, 4));
+      realtimeRetryCountRef.current += 1;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        if (!disposed) setRealtimeRetryKey(key => key + 1);
+      }, delay);
+    };
 
     const channel = supabase
-      .channel('customer_employee_messages')
+      .channel(uniqueRealtimeChannelName(`customer_employee_messages_${employeeId}`))
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
-      }, async (payload: any) => {
-        console.log('New message INSERT event:', payload);
+      }, async (payload) => {
+        const message = payload.new as IncomingMessage;
+        if (!message?.customer_id) return;
 
-        loadConversations();
-        if (selectedCustomerRef.current && selectedCustomerRef.current.id === payload.new.customer_id) {
-          if (!isInitialLoadRef.current && !(justSentRef.current && payload.new.sender_type === 'employee')) {
-            loadMessagesFromDB(isOpenRef.current);
+        scheduleConversationRefreshRef.current?.(message.customer_id);
+
+        if (message.message_type === 'rich_card') {
+          prefetchRichCardRef.current?.(message);
+        }
+
+        const isNewUnreadMessage = Boolean(
+          message.sender_type === 'customer' &&
+          message.is_read === false &&
+          message.id &&
+          !handledUnreadMessageIdsRef.current.has(message.id),
+        );
+        if (isNewUnreadMessage && message.id) {
+          handledUnreadMessageIdsRef.current.add(message.id);
+          if (!(isOpenRef.current && selectedCustomerRef.current?.id === message.customer_id)) {
+            setUnreadCount(previous => previous + 1);
           }
         }
+        applyIncomingConversationMessageRef.current?.(message, isNewUnreadMessage);
 
-        if (payload.new.message_type === 'rich_card') {
-          prefetchRichCard(payload.new as any);
-        }
-
-        if (!isOpenRef.current && payload.new && payload.new.sender_type === 'customer') {
+        if (
+          !isOpenRef.current &&
+          message.sender_type === 'customer' &&
+          message.is_read === false &&
+          message.id &&
+          !notificationMessageIdsRef.current.has(message.id)
+        ) {
+          notificationMessageIdsRef.current.add(message.id);
           const { data: customerData } = await supabase
             .from('simulated_customers')
             .select('*')
-            .eq('id', payload.new.customer_id)
+            .eq('id', message.customer_id)
             .maybeSingle();
 
           if (customerData) {
-            const rawContent = payload.new.message_content || t.customerService.newMessage;
+            const newMessageLabel = newMessageLabelRef.current;
+            const rawContent = message.message_content || newMessageLabel;
             const hasEmbeddedImg = /<img\s/i.test(rawContent);
-            const messageText = payload.new.message_type === 'image'
+            const messageText = message.message_type === 'image'
               ? '\ud83d\udcf7 Photo'
-              : payload.new.message_type === 'rich_card'
-              ? (payload.new.title || 'Rich Card')
+              : message.message_type === 'rich_card'
+              ? (message.title || 'Rich Card')
               : (() => {
                   const text = rawContent
                     .replace(/<br\s*\/?>/gi, '\n')
@@ -465,9 +607,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     .replace(/<[^>]*>/g, '')
                     .replace(/\n{3,}/g, '\n\n')
                     .trim();
-                  return text || (hasEmbeddedImg ? '\ud83d\udcf7 Photo' : t.customerService.newMessage);
+                  return text || (hasEmbeddedImg ? '\ud83d\udcf7 Photo' : newMessageLabel);
                 })();
-            showMessagePopup(customerData, messageText);
+            showMessagePopupRef.current?.(customerData as Customer, messageText);
           }
         }
       })
@@ -476,45 +618,72 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
-      }, (payload: any) => {
-        loadConversations();
-        if (selectedCustomerRef.current && selectedCustomerRef.current.id === payload.new.customer_id) {
-          if (!isInitialLoadRef.current) {
-            loadMessagesFromDB(isOpenRef.current);
-          }
-        }
+      }, (payload) => {
+        const message = payload.new as Partial<Message>;
+        scheduleConversationRefreshRef.current?.(message.customer_id);
       })
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
-      }, () => {
-        loadConversations();
-        if (selectedCustomerRef.current && !isInitialLoadRef.current) {
-          loadMessagesFromDB();
-        }
+      }, (payload) => {
+        const oldMessage = payload.old as Partial<Message>;
+        const newMessage = payload.new as Partial<Message>;
+        scheduleConversationRefreshRef.current?.(oldMessage.customer_id || newMessage.customer_id);
       })
-      .subscribe();
-
-    onlineCheckIntervalRef.current = setInterval(() => {
-      updateOnlineStatus();
-    }, 30000);
+      .subscribe((status) => {
+        if (disposed) return;
+        if (status === 'SUBSCRIBED') {
+          if (retryTimer) {
+            clearTimeout(retryTimer);
+            retryTimer = null;
+          }
+          realtimeRetryCountRef.current = 0;
+          // Events sent while the channel was down are not replayed, so reload after every reconnect.
+          if (realtimeConnectedOnceRef.current) refreshChatDataRef.current?.();
+          realtimeConnectedOnceRef.current = true;
+          return;
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          scheduleResubscribe();
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
-      if (onlineCheckIntervalRef.current) {
-        clearInterval(onlineCheckIntervalRef.current);
-      }
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      void supabase.removeChannel(channel);
     };
-  }, [employeeId]);
+  }, [employeeId, realtimeRetryKey]);
+
+  useEffect(() => {
+    // Realtime does the work normally; this only catches changes missed while it was down.
+    const refreshIfStale = (maxAge: number) => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastChatRefreshAtRef.current < maxAge) return;
+      refreshChatDataRef.current?.();
+    };
+    const refreshTimer = window.setInterval(() => {
+      refreshIfStale(isOpenRef.current ? OPEN_CHAT_REFRESH_MS : CLOSED_CHAT_REFRESH_MS);
+    }, OPEN_CHAT_REFRESH_MS);
+    const catchUp = () => refreshIfStale(CATCH_UP_MIN_GAP_MS);
+    document.addEventListener('visibilitychange', catchUp);
+    window.addEventListener('online', catchUp);
+    return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener('visibilitychange', catchUp);
+      window.removeEventListener('online', catchUp);
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedCustomer) {
       isInitialLoadRef.current = true;
+      messagesRefreshQueuedRef.current = false;
       shouldAutoScrollRef.current = true;
       conversationOpenedAtRef.current = new Date().toISOString();
-      loadMessages();
+      void loadMessagesRef.current?.();
     }
   }, [selectedCustomer]);
 
@@ -526,9 +695,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     if (!container || messages.length === 0) return;
 
     const handleScroll = () => {
-      shouldAutoScrollRef.current = container.scrollTop < 150;
+      // Column-reverse containers report 0 at the newest message and negative values above it.
+      const distanceFromNewest = Math.abs(container.scrollTop);
+      shouldAutoScrollRef.current = distanceFromNewest < 150;
       const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll > 0 && maxScroll - container.scrollTop < 100) {
+      if (maxScroll > 0 && maxScroll - distanceFromNewest < 100) {
         loadOlderMessagesRef.current?.();
       }
     };
@@ -555,7 +726,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, [notification]);
 
   useEffect(() => {
-    updateOnlineStatus();
+    updateOnlineStatusRef.current?.();
   }, [conversations]);
 
   const scrollToBottom = () => {
@@ -566,7 +737,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   };
 
   const playNotificationSound = (isSuper: boolean) => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+    const audioContext = new AudioContextConstructor();
 
     const playTone = (frequency: number, startTime: number, duration: number, volume: number) => {
       const oscillator = audioContext.createOscillator();
@@ -606,15 +779,15 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }, isSuper ? 1500 : 2000);
 
     if (audioRef.current) {
-      clearInterval(audioRef.current as any);
+      clearInterval(audioRef.current);
     }
-    audioRef.current = interval as any;
+    audioRef.current = interval;
   };
 
   const stopContinuousSound = () => {
     setPlayingSound(false);
     if (audioRef.current) {
-      clearInterval(audioRef.current as any);
+      clearInterval(audioRef.current);
       audioRef.current = null;
     }
   };
@@ -637,6 +810,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     startContinuousSound(customer.is_super || false);
     console.log('⏰ Popup will persist until clicked');
   };
+  showMessagePopupRef.current = showMessagePopup;
 
   const isCustomerOnline = (customerId: string): boolean => {
     const conv = conversations.find(c => c.customer.id === customerId);
@@ -656,6 +830,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     });
     setCustomerOnlineStatus(newStatus);
   };
+  updateOnlineStatusRef.current = updateOnlineStatus;
 
   const renderMessageContent = (msg: Message) => {
     if (msg.message_type === 'image' && !msg.image_url) {
@@ -697,7 +872,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                   <span className="text-white text-[11px] sm:text-xs font-bold drop-shadow-sm">{uploadProgress}%</span>
                 </div>
               </div>
-              <div className="text-white/70 text-[10px] font-medium mt-1.5">
+              <div className="text-white/70 text-[11px] font-medium mt-1.5">
                 {uploadProgress < 20 ? t.customerService.preparing :
                  uploadProgress < 85 ? t.customerService.uploading :
                  uploadProgress < 100 ? t.customerService.processing : ''}
@@ -724,7 +899,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 border border-white/20 rounded-full">
                   <div className="w-1.5 h-1.5 bg-blue-200 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] text-blue-100 font-semibold">{t.customerService.pending}</span>
+                  <span className="text-[11px] text-blue-100 font-semibold">{t.customerService.pending}</span>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-2.5 py-2">
@@ -756,7 +931,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full">
                   <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full"></div>
-                  <span className="text-[10px] text-emerald-200 font-semibold">{t.customerService.completed}</span>
+                  <span className="text-[11px] text-emerald-200 font-semibold">{t.customerService.completed}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between py-2">
@@ -818,44 +993,47 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }
 
     if (msg.message_type === 'tip' && msg.rating_data) {
-      const tipAmt = (msg.rating_data as any).tip_amount || 0;
+      const tipAmt = msg.rating_data?.tip_amount || 0;
       return (
-        <div className="w-[240px] rounded-lg overflow-hidden shadow-xl shadow-amber-900/30">
-          {/* Banknote-style card */}
-          <div className="relative bg-gradient-to-br from-amber-600 via-amber-500 to-yellow-600 p-[3px]">
-            {/* Inner border frame */}
-            <div className="relative bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 rounded-sm px-4 py-3 overflow-hidden">
-              {/* Guilloche pattern overlay */}
-              <div className="absolute inset-0 opacity-[0.08]" style={{
-                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 3px),
-                  repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 3px)`
-              }}></div>
-              {/* Top ornamental line */}
-              <div className="absolute top-0 left-3 right-3 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
-              {/* Bottom ornamental line */}
-              <div className="absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
-              {/* Radial glow */}
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.12),transparent_70%)]"></div>
-
+        <div className="my-2 w-[min(280px,100%)] max-w-full">
+          <div className="overflow-hidden rounded-[22px] border border-amber-200/40 bg-gradient-to-br from-amber-300/80 via-emerald-400 to-emerald-700 p-[2px] shadow-[0_14px_36px_rgba(120,53,15,0.35)]">
+            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#10251f] via-[#163c2f] to-[#4a2a0e] px-5 py-4">
+              <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-amber-300/15 blur-3xl" />
+              <div className="absolute -bottom-12 -left-10 h-28 w-28 rounded-full bg-emerald-300/10 blur-3xl" />
+              <div className="absolute inset-0 opacity-[0.06]" style={{
+                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.7) 3px, rgba(255,255,255,0.7) 4px),
+                  repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.4) 3px, rgba(255,255,255,0.4) 4px)`
+              }} />
+              <div className="absolute left-5 right-5 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/70 to-transparent" />
               <div className="relative">
-                {/* Header row */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <Gift className="w-3.5 h-3.5 text-amber-100" />
-                    <span className="text-[10px] font-bold text-amber-100 uppercase tracking-widest">{t.customerService.tip}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-200/30 bg-amber-200/15 shadow-lg shadow-black/10">
+                      <Gift className="h-4 w-4 text-amber-100" />
+                    </span>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-100">{t.customerService.tip}</div>
+                      <div className="mt-0.5 text-[11px] font-medium text-emerald-100/65">Service appreciation</div>
+                    </div>
                   </div>
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-200/80" />
+                  <span className="flex items-center gap-1 rounded-full border border-amber-200/25 bg-white/10 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-100">
+                    <Sparkles className="h-3 w-3 text-amber-200" /> Reward
+                  </span>
                 </div>
-                {/* Main amount - very prominent */}
-                <div className="flex items-center justify-center py-2">
-                  <span className="text-[28px] font-black mr-0.5 bg-gradient-to-b from-yellow-100 via-white to-yellow-200 bg-clip-text text-transparent leading-none" style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.3)' }}>$</span>
-                  <span className="text-[34px] font-black tracking-tight leading-none bg-gradient-to-b from-yellow-100 via-white to-yellow-200 bg-clip-text text-transparent" style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.3)', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>{tipAmt.toFixed(2)}</span>
+                <div className="py-5 text-center">
+                  <div className="flex items-baseline justify-center text-white" style={{ textShadow: '0 4px 10px rgba(0,0,0,0.35)' }}>
+                    <span className="mr-1 text-2xl font-black text-amber-100">$</span>
+                    <span className="text-[40px] font-black leading-none tracking-tight">{tipAmt.toFixed(2)}</span>
+                  </div>
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-emerald-100/75">
+                    <Star className="h-3 w-3 fill-amber-200/70 text-amber-200" />
+                    <span>{t.customerService.addedToWallet}</span>
+                  </div>
                 </div>
-                {/* Footer */}
-                <div className="flex items-center justify-center mt-2 gap-2">
-                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/30"></div>
-                  <span className="text-[8px] font-bold text-white/50 uppercase tracking-[0.2em]">{t.customerService.addedToWallet}</span>
-                  <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/30"></div>
+                <div className="flex items-center gap-2 border-t border-amber-100/15 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100/60">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-100/30" />
+                  <span>Received with appreciation</span>
+                  <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-100/30" />
                 </div>
               </div>
             </div>
@@ -866,6 +1044,16 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
     const content = msg.message_content;
     const hasHtml = /<[a-z][\s\S]*>/i.test(content);
+    const imageOnlyUrl = hasHtml ? extractImageOnlyUrl(content) : null;
+    if (imageOnlyUrl) {
+      return (
+        <ChatImage
+          src={imageOnlyUrl}
+          alt="Shared image"
+          onClickImage={(url: string) => { setPreviewImage(url); setImageZoom(1); setImageDrag({ x: 0, y: 0 }); }}
+        />
+      );
+    }
     if (hasHtml) {
       const sanitized = sanitizeChatMessage(content);
       const hasImgTag = /<img\s/i.test(content);
@@ -893,34 +1081,70 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     return <div className="text-sm leading-relaxed whitespace-pre-wrap break-words" style={{ overflowWrap: 'anywhere' }}>{content}</div>;
   };
 
-  const loadConversations = async () => {
-    setLoadingConversations(true);
+  const loadConversations = (force = false) => {
+    const pending = conversationLoadPromiseRef.current;
+    if (pending) {
+      // A forced refresh asked for during a load must still run, or the newest change is lost.
+      if (force) conversationRefreshQueuedRef.current = true;
+      return pending;
+    }
+
+    const requestId = ++conversationLoadRequestRef.current;
+    const request = (async () => {
+    const cached = force ? null : employeeConversationCache.get(employeeId);
+    if (cached) {
+      preloadConversationAvatars(cached.conversations);
+      setConversations(cached.conversations);
+      setUnreadCount(cached.unreadCount);
+      setLoadingConversations(false);
+    } else {
+      setLoadingConversations(true);
+    }
+
     try {
       if (!employeeAdminIdRef.current) {
-        const { data: empData } = await supabase.from('users').select('created_by').eq('id', employeeId).maybeSingle();
+        const { data: empData, error: empError } = await supabase.from('users').select('created_by').eq('id', employeeId).maybeSingle();
+        if (empError) throw empError;
         if (empData?.created_by) employeeAdminIdRef.current = empData.created_by;
       }
+      const employeeAdminId = employeeAdminIdRef.current;
 
-      let alwaysVisibleQuery = supabase
-        .from('simulated_customers')
-        .select('id, customer_name, customer_id, customer_avatar, is_super, super_customer_title, badge_type, custom_avatar_url, vip_label, employee_pin_top, employee_always_visible, target_employee_id, target_employee_ids')
-        .eq('employee_always_visible', true)
-        .eq('is_active', true);
-      if (employeeAdminIdRef.current) {
-        alwaysVisibleQuery = alwaysVisibleQuery.eq('admin_id', employeeAdminIdRef.current);
-      }
+      // Without the employee's admin the always-visible query would include other groups' customers.
+      const alwaysVisibleRequest = employeeAdminId
+        ? supabase
+          .from('simulated_customers')
+          .select('id, customer_name, customer_id, customer_avatar, is_super, super_customer_title, badge_type, custom_avatar_url, vip_label, employee_pin_top, employee_always_visible, target_employee_id, target_employee_ids, source_type')
+          .eq('employee_always_visible', true)
+          .eq('is_active', true)
+          .eq('admin_id', employeeAdminId)
+        : Promise.resolve({ data: [] as never[], error: null });
 
       const [summaryResult, alwaysVisibleResult] = await Promise.all([
         supabase.rpc('get_employee_conversation_summaries', { p_employee_id: employeeId }),
-        alwaysVisibleQuery
+        alwaysVisibleRequest,
       ]);
 
       if (summaryResult.error) throw summaryResult.error;
+      if (alwaysVisibleResult.error) throw alwaysVisibleResult.error;
+
+      const unknownCustomerIds = (summaryResult.data || [])
+        .map(row => row.customer_id)
+        .filter(id => !customerSourceTypes.has(id));
+      for (let index = 0; index < unknownCustomerIds.length; index += SOURCE_LOOKUP_CHUNK_SIZE) {
+        const { data: sourceRows, error: sourceError } = await supabase
+          .from('simulated_customers')
+          .select('id, source_type')
+          .in('id', unknownCustomerIds.slice(index, index + SOURCE_LOOKUP_CHUNK_SIZE));
+        if (sourceError) throw sourceError;
+        sourceRows?.forEach(row => customerSourceTypes.set(row.id, row.source_type));
+      }
 
       const grouped = new Map<string, CustomerConversation>();
       let totalUnread = 0;
 
       for (const row of summaryResult.data || []) {
+        const sourceType = customerSourceTypes.get(row.customer_id);
+        if (sourceType !== 'aaa_service' && sourceType !== 'ccc_service') continue;
         const unread = Number(row.unread_count) || 0;
         totalUnread += unread;
         grouped.set(row.customer_id, {
@@ -931,25 +1155,29 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             customer_avatar: row.customer_avatar,
             is_super: row.is_super,
             super_customer_title: row.super_customer_title,
-            badge_type: row.badge_type,
-            custom_avatar_url: row.custom_avatar_url,
-            vip_label: row.vip_label,
-            employee_pin_top: row.employee_pin_top,
-            employee_always_visible: row.employee_always_visible,
+            badge_type: row.badge_type as Customer['badge_type'],
+            custom_avatar_url: row.custom_avatar_url || undefined,
+            vip_label: row.vip_label || undefined,
+            employee_pin_top: row.employee_pin_top ?? false,
+            employee_always_visible: row.employee_always_visible ?? false,
             target_employee_id: row.target_employee_id,
             target_employee_ids: row.target_employee_ids,
+            source_type: sourceType,
           },
           unread_count: unread,
           last_message: row.last_message_type === 'image' ? '\ud83d\udcf7 Photo' : (row.last_message || ''),
-          last_message_time: row.last_message_time,
+          last_message_time: row.last_message_time || new Date(0).toISOString(),
           last_customer_message_time: row.last_customer_message_time || undefined,
         });
       }
 
       // Load always-visible customers that may not have messages yet
       for (const customer of alwaysVisibleResult.data || []) {
+        const sourceType = customer.source_type === 'aaa_service' || customer.source_type === 'ccc_service'
+          ? customer.source_type
+          : null;
         const ids = customer.target_employee_ids;
-        if (ids && ids.length > 0 && !ids.includes(employeeId)) continue;
+        if (!sourceType || (ids && ids.length > 0 && !ids.includes(employeeId))) continue;
         if (grouped.has(customer.id)) continue;
         grouped.set(customer.id, {
           customer: {
@@ -959,17 +1187,18 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             customer_avatar: customer.customer_avatar,
             is_super: customer.is_super,
             super_customer_title: customer.super_customer_title,
-            badge_type: customer.badge_type,
-            custom_avatar_url: customer.custom_avatar_url,
-            vip_label: customer.vip_label,
-            employee_pin_top: customer.employee_pin_top,
-            employee_always_visible: customer.employee_always_visible,
+            badge_type: customer.badge_type as Customer['badge_type'],
+            custom_avatar_url: customer.custom_avatar_url || undefined,
+            vip_label: customer.vip_label || undefined,
+            employee_pin_top: customer.employee_pin_top ?? false,
+            employee_always_visible: customer.employee_always_visible ?? false,
             target_employee_id: customer.target_employee_id,
             target_employee_ids: customer.target_employee_ids,
+            source_type: sourceType,
           },
           unread_count: 0,
           last_message: '',
-          last_message_time: customer.id,
+          last_message_time: new Date(0).toISOString(),
         });
       }
 
@@ -990,11 +1219,26 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
       });
 
-      setConversations(conversationList);
-      setUnreadCount(totalUnread);
+      const snapshot = {
+        conversations: conversationList,
+        unreadCount: totalUnread,
+      };
+      employeeConversationCache.set(employeeId, snapshot);
+      lastChatRefreshAtRef.current = Date.now();
+      if (requestId !== conversationLoadRequestRef.current) return;
+
+      setConversationsError(false);
+      preloadConversationAvatars(snapshot.conversations);
+      setConversations(snapshot.conversations);
+      setUnreadCount(snapshot.unreadCount);
+      snapshot.conversations
+        .slice(0, 6)
+        .forEach(conversation => { void prefetchMessages(conversation.customer.id); });
 
       if (selectedCustomerRef.current) {
-        const stillExists = grouped.has(selectedCustomerRef.current.id);
+        const stillExists = snapshot.conversations.some(
+          conversation => conversation.customer.id === selectedCustomerRef.current?.id
+        );
         if (!stillExists) {
           setSelectedCustomer(null);
           setMessages([]);
@@ -1002,33 +1246,221 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
       }
     } catch (error) {
-      console.error('Error loading conversations:', error);
-    } finally {
-      setLoadingConversations(false);
+      if (requestId === conversationLoadRequestRef.current) {
+        console.error('Error loading conversations:', error);
+        setConversationsError(true);
+      }
+      } finally {
+        if (requestId === conversationLoadRequestRef.current) {
+          setLoadingConversations(false);
+        }
+      }
+    })();
+
+    conversationLoadPromiseRef.current = request;
+    const releaseRequest = () => {
+      if (conversationLoadPromiseRef.current !== request) return;
+      conversationLoadPromiseRef.current = null;
+      if (conversationRefreshQueuedRef.current) {
+        conversationRefreshQueuedRef.current = false;
+        void loadConversationsRef.current?.(true);
+      }
+    };
+    request.then(releaseRequest, releaseRequest);
+    return request;
+  };
+  loadConversationsRef.current = loadConversations;
+
+  const applyIncomingConversationMessage = (message: IncomingMessage, incrementUnread = false) => {
+    const customerId = message?.customer_id;
+    if (!customerId) return;
+
+    const shouldIncreaseUnread = incrementUnread &&
+      !(isOpenRef.current && selectedCustomerRef.current?.id === customerId);
+
+    const updateConversation = (conversation: CustomerConversation): CustomerConversation => ({
+      ...conversation,
+      unread_count: shouldIncreaseUnread
+        ? conversation.unread_count + 1
+        : conversation.unread_count,
+      last_message: message.message_type === 'image'
+        ? '\ud83d\udcf7 Photo'
+        : message.message_content || conversation.last_message,
+      last_message_time: message.created_at || conversation.last_message_time,
+      last_customer_message_time: message.sender_type === 'customer'
+        ? message.created_at || conversation.last_customer_message_time
+        : conversation.last_customer_message_time,
+    });
+
+    const cached = employeeConversationCache.get(employeeId);
+    if (cached) {
+      const cachedIndex = cached.conversations.findIndex(
+        conversation => conversation.customer.id === customerId,
+      );
+      if (cachedIndex >= 0) {
+        const cachedConversations = [...cached.conversations];
+        cachedConversations[cachedIndex] = updateConversation(cachedConversations[cachedIndex]);
+        employeeConversationCache.set(employeeId, {
+          conversations: cachedConversations,
+          unreadCount: cached.unreadCount + (shouldIncreaseUnread ? 1 : 0),
+        });
+      }
     }
+
+    setConversations(previous => {
+      const index = previous.findIndex(
+        conversation => conversation.customer.id === customerId,
+      );
+      if (index < 0) return previous;
+
+      const next = [...previous];
+      next[index] = updateConversation(next[index]);
+      return next;
+    });
+  };
+  applyIncomingConversationMessageRef.current = applyIncomingConversationMessage;
+
+  const scheduleConversationRefresh = (customerId?: string) => {
+    if (customerId) {
+      conversationRefreshCustomerIdsRef.current.add(customerId);
+    }
+
+    if (conversationRefreshTimerRef.current) {
+      clearTimeout(conversationRefreshTimerRef.current);
+    }
+
+    conversationRefreshTimerRef.current = setTimeout(() => {
+      conversationRefreshTimerRef.current = null;
+      const customerIds = conversationRefreshCustomerIdsRef.current;
+      conversationRefreshCustomerIdsRef.current = new Set<string>();
+      const selectedId = selectedCustomerRef.current?.id;
+
+      void loadConversationsRef.current?.(true);
+      if (selectedId && customerIds.has(selectedId)) {
+        requestMessagesRefresh();
+      }
+    }, 120);
+  };
+  scheduleConversationRefreshRef.current = scheduleConversationRefresh;
+
+  // A change that lands while a conversation is still opening is replayed once that load ends.
+  const requestMessagesRefresh = () => {
+    // A closed panel reloads the open conversation when it is shown again.
+    if (!selectedCustomerRef.current || !isOpenRef.current) return;
+    if (isInitialLoadRef.current) {
+      messagesRefreshQueuedRef.current = true;
+      return;
+    }
+    void loadMessagesFromDBRef.current?.(isOpenRef.current);
   };
 
+  const refreshChatData = () => {
+    void loadConversationsRef.current?.(true);
+    requestMessagesRefresh();
+  };
+  refreshChatDataRef.current = refreshChatData;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void loadConversationsRef.current?.();
+    if (selectedCustomerRef.current && !isInitialLoadRef.current) {
+      void loadMessagesFromDBRef.current?.(true);
+    }
+  }, [isOpen]);
+
   useEffect(() => { loadOlderMessagesRef.current = loadOlderMessages; });
+
+  const prefetchMessages = async (customerId: string) => {
+    if (messagesCache.current.has(customerId)) return;
+
+    const pendingRequest = messagePrefetchRequestsRef.current.get(customerId);
+    if (pendingRequest) {
+      await pendingRequest;
+      return;
+    }
+
+    const request = (async () => {
+      const { data, error } = await supabase
+        .from('customer_employee_conversations')
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
+
+      if (error || !data) return;
+
+      const sorted = data.reverse();
+      messagesCache.current.set(customerId, sorted);
+      preloadChatImages(sorted);
+      for (const message of sorted) {
+        if (message.message_type === 'rich_card') {
+          prefetchRichCardRef.current?.(message);
+        }
+      }
+    })();
+
+    messagePrefetchRequestsRef.current.set(customerId, request);
+    request.then(
+      () => messagePrefetchRequestsRef.current.delete(customerId),
+      () => messagePrefetchRequestsRef.current.delete(customerId),
+    );
+    try {
+      await request;
+    } catch {
+      // Background prefetch is optional; the foreground load will retry when opened.
+    }
+  };
 
   const loadMessages = async () => {
     const currentCustomer = selectedCustomerRef.current;
     if (!currentCustomer) return;
 
+    const requestId = ++messagesLoadRequestRef.current;
+    setMessagesError(false);
+
     try {
       const cachedMessages = messagesCache.current.get(currentCustomer.id);
       if (cachedMessages) {
+        setMessages(cachedMessages);
+        preloadChatImages(cachedMessages);
         setHasMoreMessages(cachedMessages.length >= MESSAGE_PAGE_SIZE);
+        setLoadingMessages(false);
+      } else {
+        setLoadingMessages(true);
+        const pendingPrefetch = messagePrefetchRequestsRef.current.get(currentCustomer.id);
+        if (pendingPrefetch) {
+          await pendingPrefetch;
+          if (
+            requestId === messagesLoadRequestRef.current &&
+            selectedCustomerRef.current?.id === currentCustomer.id
+          ) {
+            const prefetchedMessages = messagesCache.current.get(currentCustomer.id);
+            if (prefetchedMessages) {
+              setMessages(prefetchedMessages);
+              preloadChatImages(prefetchedMessages);
+              setHasMoreMessages(prefetchedMessages.length >= MESSAGE_PAGE_SIZE);
+              setLoadingMessages(false);
+            }
+          }
+        }
       }
 
-      if (!cachedMessages) setLoadingMessages(true);
-      await loadMessagesFromDB();
+      await loadMessagesFromDB(true, requestId);
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
-      setLoadingMessages(false);
-      isInitialLoadRef.current = false;
+      if (requestId === messagesLoadRequestRef.current) {
+        setLoadingMessages(false);
+        isInitialLoadRef.current = false;
+        if (messagesRefreshQueuedRef.current) {
+          messagesRefreshQueuedRef.current = false;
+          void loadMessagesFromDBRef.current?.(isOpenRef.current);
+        }
+      }
     }
   };
+  loadMessagesRef.current = loadMessages;
 
   const loadOlderMessages = async () => {
     const currentCustomer = selectedCustomerRef.current;
@@ -1050,6 +1482,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       if (error) throw error;
       if (data && data.length > 0) {
         const olderMessages = data.reverse();
+        preloadChatImages(olderMessages);
         setMessages(prev => [...olderMessages, ...prev]);
         const cached = messagesCache.current.get(currentCustomer.id);
         if (cached) {
@@ -1057,8 +1490,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
         setHasMoreMessages(data.length >= MESSAGE_PAGE_SIZE);
         for (const m of olderMessages) {
-          if ((m as any).message_type === 'rich_card') {
-            prefetchRichCard(m as any);
+          if (m.message_type === 'rich_card') {
+            prefetchRichCard(m);
           }
         }
       } else {
@@ -1071,75 +1504,111 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }
   };
 
-  const loadMessagesFromDB = async (shouldMarkRead = true) => {
+  const loadMessagesFromDB = async (
+    shouldMarkRead = true,
+    requestId = ++messagesLoadRequestRef.current,
+  ) => {
     const currentCustomer = selectedCustomerRef.current;
     if (!currentCustomer) return;
+    const customerId = currentCustomer.id;
 
     try {
-      const [messagesResult, sessionResult] = await Promise.all([
-        supabase
-          .from('customer_employee_conversations')
-          .select('*')
-          .eq('customer_id', currentCustomer.id)
-          .eq('employee_id', employeeId)
-          .order('created_at', { ascending: false })
-          .limit(MESSAGE_PAGE_SIZE),
-        supabase.rpc('get_or_create_service_session', {
+      const cachedTicket = ticketNumbersRef.current.get(customerId);
+      const sessionRequest = cachedTicket
+        ? null
+        : supabase.rpc('get_or_create_service_session', {
           p_customer_id: currentCustomer.id,
-          p_employee_id: employeeId
-        })
-      ]);
-
-      if (messagesResult.error) throw messagesResult.error;
-
-      if (!messagesResult.data || messagesResult.data.length === 0) {
-        setMessages([]);
-        setHasMoreMessages(false);
-      } else {
-        const sorted = messagesResult.data.reverse();
-        const prevCached = messagesCache.current.get(currentCustomer.id);
-        messagesCache.current.set(currentCustomer.id, sorted);
-        setHasMoreMessages(messagesResult.data.length >= MESSAGE_PAGE_SIZE);
-
-        const prevIds = prevCached?.map((m: any) => m.id).join(',');
-        const newIds = sorted.map((m: any) => m.id).join(',');
-        if (prevIds !== newIds) {
-          setMessages(sorted);
-        }
-
-        for (const m of sorted) {
-          if ((m as any).message_type === 'rich_card') {
-            prefetchRichCard(m as any);
-          }
-        }
-
-        if (shouldMarkRead) {
-          await markMessagesAsRead();
-        }
-      }
-
-      if (sessionResult.data && sessionResult.data.length > 0) {
-        setServiceTicketNumber(sessionResult.data[0].service_ticket_number);
-      }
-    } catch (error) {
-      console.error('Error loading messages from DB:', error);
-    }
-  };
-
-  const markMessagesAsRead = async () => {
-    const currentCustomer = selectedCustomerRef.current;
-    if (!currentCustomer) return;
-
-    try {
-      await supabase
+          p_employee_id: employeeId,
+        });
+      const messagesResult = await supabase
         .from('customer_employee_conversations')
-        .update({ is_read: true, read_at: new Date().toISOString() })
+        .select('*')
         .eq('customer_id', currentCustomer.id)
         .eq('employee_id', employeeId)
-        .eq('sender_type', 'customer')
-        .eq('is_read', false);
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
 
-      loadConversations();
+      if (messagesResult.error) throw messagesResult.error;
+      if (
+        requestId !== messagesLoadRequestRef.current ||
+        selectedCustomerRef.current?.id !== customerId
+      ) {
+        return;
+      }
+
+      const latest = (messagesResult.data || []).reverse();
+      messagesCache.current.set(customerId, latest);
+      preloadChatImages(latest);
+      setHasMoreMessages(latest.length >= MESSAGE_PAGE_SIZE);
+      setMessagesError(false);
+      // Compare with what is on screen, not the cache, so a filled cache cannot leave the view empty.
+      setMessages(previous => mergeLatestMessages(previous, latest, customerId));
+
+      for (const m of latest) {
+        if (m.message_type === 'rich_card') {
+          prefetchRichCard(m);
+        }
+      }
+
+      const listedUnread = conversations.find(c => c.customer.id === customerId)?.unread_count || 0;
+      const hasUnread = listedUnread > 0 || latest.some(m => m.sender_type === 'customer' && !m.is_read);
+      if (shouldMarkRead && hasUnread && latest.length > 0) {
+        void markMessagesAsRead(customerId, latest[latest.length - 1].created_at);
+      }
+
+      if (cachedTicket) {
+        setServiceTicketNumber(cachedTicket);
+        return;
+      }
+      void sessionRequest?.then(({ data: sessionData, error: sessionError }) => {
+        if (
+          sessionError ||
+          !sessionData ||
+          sessionData.length === 0 ||
+          requestId !== messagesLoadRequestRef.current ||
+          selectedCustomerRef.current?.id !== customerId
+        ) {
+          return;
+        }
+        ticketNumbersRef.current.set(customerId, sessionData[0].service_ticket_number);
+        setServiceTicketNumber(sessionData[0].service_ticket_number);
+      }, () => {
+        // The ticket number is secondary to displaying the chat messages.
+      });
+    } catch (error) {
+      console.error('Error loading messages from DB:', error);
+      if (requestId === messagesLoadRequestRef.current && selectedCustomerRef.current?.id === customerId) {
+        setMessagesError(true);
+      }
+    } finally {
+      if (requestId === messagesLoadRequestRef.current) {
+        setLoadingMessages(false);
+      }
+    }
+  };
+  loadMessagesFromDBRef.current = loadMessagesFromDB;
+
+  // Read receipts are shown to admins, so only messages already on screen in a visible page count.
+  const markMessagesAsRead = async (customerId: string, shownUpTo: string | null) => {
+    if (
+      !shownUpTo ||
+      !isOpenRef.current ||
+      selectedCustomerRef.current?.id !== customerId ||
+      document.visibilityState !== 'visible'
+    ) return;
+
+    try {
+      const { error } = await supabase
+        .from('customer_employee_conversations')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('customer_id', customerId)
+        .eq('employee_id', employeeId)
+        .eq('sender_type', 'customer')
+        .eq('is_read', false)
+        .lte('created_at', shownUpTo);
+      if (error) throw error;
+
+      void loadConversationsRef.current?.(true);
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
@@ -1175,6 +1644,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       message_type: 'image',
       image_url: dataUrl,
       created_at: new Date().toISOString(),
+      is_read: false,
       rating_value: null,
     };
 
@@ -1183,35 +1653,29 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     uploadingTempIdRef.current = tempId;
     setUploadingImage(true);
     setUploadProgress(0);
-    animateProgressTo(0, 20, 600);
 
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${selectedCustomer.id}_${employeeId}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const startTime = Date.now();
-      const { error: uploadError } = await supabase.storage
-        .from('chat-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      animateProgressTo(20, 90, 200);
-      await new Promise(r => setTimeout(r, 200));
+      await uploadStorageObjectWithProgress({
+        bucket: 'chat-images',
+        path: filePath,
+        body: file,
+        onProgress: percentage => setUploadProgress(percentage),
+      });
 
       const { data: { publicUrl } } = supabase.storage
         .from('chat-images')
         .getPublicUrl(filePath);
 
-      animateProgressTo(90, 100, 150);
-      await new Promise(r => setTimeout(r, 150));
+      setUploadProgress(100);
 
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, image_url: publicUrl } : m));
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
       setUploadProgress(0);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
       justSentRef.current = true;
       setTimeout(() => { justSentRef.current = false; }, 3000);
@@ -1224,6 +1688,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           message_content: '[Image]',
           message_type: 'image',
           image_url: publicUrl,
+          is_read: false,
+          source_type: selectedCustomer.source_type,
         })
         .select()
         .single()
@@ -1234,16 +1700,19 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             setNotification({ type: 'error', text: t.customerService.saveImageError });
           } else if (newMsg) {
             stableKeyMapRef.current.set(newMsg.id, tempId);
-            setMessages(prev => prev.map(m => m.id === tempId ? newMsg : m));
+            setMessages(prev => replaceSentMessage(prev, tempId, newMsg as Message));
           }
+        }, (error: unknown) => {
+          console.error('Failed to save image message:', error);
+          setMessages(prev => prev.filter(m => m.id !== tempId));
+          setNotification({ type: 'error', text: t.customerService.saveImageError });
         });
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || t.customerService.uploadError });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: error instanceof Error ? error.message : t.customerService.uploadError });
       setMessages(prev => prev.filter(m => m.id !== tempId));
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
       setUploadProgress(0);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -1269,7 +1738,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       sender_type: 'employee',
       message_content: messageContent,
       message_type: 'text',
-      is_read: true,
+      is_read: false,
       created_at: new Date().toISOString(),
     };
 
@@ -1288,6 +1757,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           sender_type: 'employee',
           message_content: messageContent,
           message_type: 'text',
+          is_read: false,
+          source_type: selectedCustomer.source_type,
         })
         .select()
         .single();
@@ -1299,7 +1770,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       if (newMsg) {
         stableKeyMapRef.current.set(newMsg.id, tempMessage.id);
-        setMessages(prev => prev.map(m => m.id === tempMessage.id ? newMsg : m));
+        setMessages(prev => replaceSentMessage(prev, tempMessage.id, newMsg as Message));
         const cached = messagesCache.current.get(selectedCustomer.id);
         if (cached) {
           messagesCache.current.set(selectedCustomer.id, cached.map(m => m.id === tempMessage.id ? newMsg : m));
@@ -1308,6 +1779,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     } catch (error) {
       console.error('Error sending message:', error);
       setMessageInput(messageContent);
+      setNotification({ type: 'error', text: t.customerService.sendError });
     }
   };
 
@@ -1350,6 +1822,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             status: 'pending'
           },
           is_read: false,
+          source_type: selectedCustomer.source_type,
         })
         .select()
         .single();
@@ -1362,14 +1835,14 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       setNotification({ type: 'success', text: t.customerService.ratingRequestSent });
       if (newMsg) {
         stableKeyMapRef.current.set(newMsg.id, tempMessage.id);
-        setMessages(prev => prev.map(m => m.id === tempMessage.id ? newMsg : m));
+        setMessages(prev => replaceSentMessage(prev, tempMessage.id, newMsg as Message));
         const cached = messagesCache.current.get(selectedCustomer.id);
         if (cached) {
           messagesCache.current.set(selectedCustomer.id, cached.map(m => m.id === tempMessage.id ? newMsg : m));
         }
       }
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || t.customerService.ratingRequestError });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: error instanceof Error ? error.message : t.customerService.ratingRequestError });
     }
   };
 
@@ -1377,6 +1850,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     if (conversationListRef.current) {
       conversationListScrollRef.current = conversationListRef.current.scrollTop;
     }
+    void prefetchMessages(customer.id);
+    setMessagesError(false);
+    setServiceTicketNumber(ticketNumbersRef.current.get(customer.id) || '');
     const cachedMessages = messagesCache.current.get(customer.id);
     if (cachedMessages) {
       setMessages(cachedMessages);
@@ -1390,10 +1866,12 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   };
 
   const handleBackToList = () => {
+    messagesLoadRequestRef.current += 1;
     skipListAnimationRef.current = true;
     setShowConversationList(true);
     setSelectedCustomer(null);
     setMessages([]);
+    setMessagesError(false);
     setLoadingMessages(false);
     requestAnimationFrame(() => {
       if (conversationListRef.current) {
@@ -1709,6 +2187,30 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
         }
 
+        button.customer-service-panel-close,
+        button.customer-service-search-clear {
+          box-sizing: border-box;
+          width: 44px !important;
+          height: 44px !important;
+          min-width: 44px !important;
+          min-height: 44px !important;
+          padding: 0 !important;
+        }
+
+        input.customer-service-search {
+          box-sizing: border-box;
+          height: 40px;
+          min-height: 40px !important;
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        @media (max-width: 1023px) {
+          .customer-service-panel-header {
+            padding-top: calc(env(safe-area-inset-top) + 12px);
+          }
+        }
+
         /* Stable scrollbar styles */
         .chat-messages-container {
           overflow-y: scroll;
@@ -1776,11 +2278,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     {messagePopup.customer.is_super && (
                       <div className="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 bg-white/25 backdrop-blur-sm border border-white/40 rounded-full">
                         <Sparkles className="w-2.5 h-2.5 text-white fill-white" />
-                        <span className="text-[10px] font-bold text-white">{messagePopup.customer.vip_label || 'VIP'}</span>
+                        <span className="text-[11px] font-bold text-white">{messagePopup.customer.vip_label || 'VIP'}</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-white/70 truncate">
+                  <p className="text-[11px] sm:text-xs text-white/70 truncate">
                     ID: {messagePopup.customer.customer_id}
                   </p>
                 </div>
@@ -1808,14 +2310,14 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     <span className="text-xs sm:text-sm font-medium">Photo</span>
                   </div>
                 ) : (
-                  <p className="text-xs sm:text-sm leading-relaxed break-all whitespace-pre-wrap text-white/95 line-clamp-3">
+                  <p className="text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap text-white/95 line-clamp-3">
                     {messagePopup.message}
                   </p>
                 )}
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-white/60 truncate min-w-0">
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-white/60 truncate min-w-0">
                   <Clock className="w-3 h-3 flex-shrink-0" />
                   <span className="truncate">{messagePopup.time}</span>
                 </div>
@@ -1825,11 +2327,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     setIsOpen(true);
                     setMessagePopup(null);
                     stopContinuousSound();
-                    const customer = messagePopup.customer;
-                    setTimeout(() => {
-                      setSelectedCustomer(customer);
-                      setShowConversationList(false);
-                    }, 100);
+                    handleSelectConversation(messagePopup.customer);
                   }}
                   className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 shadow-md ${
                     messagePopup.customer.is_super
@@ -1848,7 +2346,10 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       )}
 
       {!isOpen && createPortal(
-        <div className="fixed bottom-20 right-3 sm:right-4 md:bottom-28 lg:bottom-4 lg:right-4 z-[10000]">
+        <div
+          className="customer-service-fab fixed z-[9999]"
+          style={{ right: '16px', bottom: 'calc(var(--employee-bottom-nav-height, 72px) + 16px)' }}
+        >
           <button
             onClick={() => {
               setIsOpen(true);
@@ -1932,7 +2433,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 flex items-center justify-center z-20">
                 <div className="absolute inset-0 bg-red-500 rounded-full animate-ping keep-animation opacity-75"></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500 via-orange-500 to-red-600 rounded-full blur-md opacity-80"></div>
-                <div className="relative flex items-center justify-center min-w-[22px] sm:min-w-[28px] lg:min-w-[36px] h-[22px] sm:h-7 lg:h-9 px-1.5 sm:px-2 lg:px-3 bg-gradient-to-br from-red-500 via-orange-500 to-red-600 text-white text-[10px] sm:text-xs lg:text-sm font-black rounded-full border-2 border-white shadow-xl animate-breath-intense keep-animation">
+                <div className="relative flex items-center justify-center min-w-[22px] sm:min-w-[28px] lg:min-w-[36px] h-[22px] sm:h-7 lg:h-9 px-1.5 sm:px-2 lg:px-3 bg-gradient-to-br from-red-500 via-orange-500 to-red-600 text-white text-[11px] sm:text-xs lg:text-sm font-black rounded-full border-2 border-white shadow-xl animate-breath-intense keep-animation">
                   <span className="relative drop-shadow-lg">{unreadCount > 99 ? '99+' : unreadCount}</span>
                 </div>
               </div>
@@ -1954,7 +2455,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       {isOpen && createPortal(
         <div
-          className="fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh-2rem)] bg-white lg:border lg:border-gray-200 lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-[slideInRight_0.3s_ease-out_both]"
+          className="employee-modal-surface fixed inset-0 lg:bottom-4 lg:right-4 lg:top-auto lg:left-auto z-[10000] lg:z-50 w-full lg:w-[400px] xl:w-[460px] h-full lg:h-[600px] xl:h-[680px] lg:max-h-[calc(100vh_-_var(--employee-header-height,_76px)_-_2rem)] bg-white lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           style={{
             WebkitOverflowScrolling: 'touch',
           }}
@@ -1965,7 +2466,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
           {showConversationList ? (
             <>
-              <div className="relative z-10 flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 px-4 pt-10 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden">
+              <div className="customer-service-panel-header relative z-10 flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 px-4 pt-3 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden">
                 {/* Decorative elements */}
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/[0.04] rounded-full -translate-y-1/2 translate-x-1/4"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/[0.04] rounded-full translate-y-1/2 -translate-x-1/4"></div>
@@ -1988,11 +2489,15 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95 border border-white/10"
+                    className="customer-service-panel-close group flex flex-shrink-0 items-center justify-center rounded-xl text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
+                    aria-label={t.common.close}
                   >
-                    <X className="w-4 h-4" strokeWidth={2.5} />
+                    <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] border border-white/10 bg-white/20 transition-all group-hover:bg-white/30 group-active:scale-95">
+                      <X className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                    </span>
                   </button>
                 </div>
 
@@ -2005,15 +2510,18 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t.customerService.searchPlaceholder}
-                    className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 sm:py-2.5 bg-white/15 border border-white/20 rounded-lg text-white text-xs sm:text-sm placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 focus:bg-white/20 transition-all"
+                    autoComplete="off"
+                    className="customer-service-search w-full pl-9 sm:pl-10 pr-[44px] bg-white/15 border border-white/20 rounded-lg text-white text-xs sm:text-sm placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 focus:bg-white/20 transition-all"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 sm:right-3.5 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-lg transition-all group"
+                      className="customer-service-search-clear group absolute right-0 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg"
                       aria-label="Clear search"
                     >
-                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-200 group-hover:text-white transition-colors" />
+                      <span className="flex h-[32px] w-[32px] items-center justify-center rounded-lg transition-colors group-hover:bg-white/10">
+                        <X className="h-[18px] w-[18px] text-blue-200 transition-colors group-hover:text-white" />
+                      </span>
                     </button>
                   )}
                 </div>
@@ -2028,7 +2536,39 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                      scrollbarColor: 'rgba(148, 163, 184, 0.4) transparent',
                      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e8eef6 100%)'
                    }}>
-                {filteredConversations.length === 0 ? (
+                {loadingConversations && filteredConversations.length === 0 ? (
+                  <div className="p-3 sm:p-4 space-y-2.5" aria-label={t.customerService.loadingMessages}>
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
+                      >
+                        <div className="h-11 w-11 flex-shrink-0 animate-pulse rounded-xl bg-slate-200" />
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="h-3 w-2/5 animate-pulse rounded bg-slate-200" />
+                          <div className="h-2.5 w-3/4 animate-pulse rounded bg-slate-100" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : conversationsError && conversations.length === 0 ? (
+                  <div role="alert" className="flex flex-col items-center justify-center h-full text-center px-6">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-rose-50 flex items-center justify-center mb-4 shadow-inner">
+                      <MessageCircle className="w-10 h-10 text-rose-300" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-500">{t.customerService.loadFailed}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConversationsError(false);
+                        void loadConversations(true);
+                      }}
+                      className="mt-4 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    >
+                      {t.common.retry}
+                    </button>
+                  </div>
+                ) : filteredConversations.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-6">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-blue-50 flex items-center justify-center mb-4 shadow-inner">
                       <MessageCircle className="w-10 h-10 text-slate-300" />
@@ -2042,6 +2582,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                       <button
                         key={conv.customer.id}
                         onClick={() => handleSelectConversation(conv.customer)}
+                        onMouseEnter={() => { void prefetchMessages(conv.customer.id); }}
+                        onTouchStart={() => { void prefetchMessages(conv.customer.id); }}
+                        onFocus={() => { void prefetchMessages(conv.customer.id); }}
                         className={`w-full rounded-2xl transition-all duration-200 hover:translate-x-0.5 active:scale-[0.98] group relative overflow-hidden ${skipListAnimationRef.current ? '' : 'animate-[fadeInUp_0.4s_ease-out_both]'} ${
                           conv.customer.is_super
                             ? conv.unread_count > 0
@@ -2101,7 +2644,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                       <Award className="w-3 h-3 flex-shrink-0" />
                                       {conv.customer.super_customer_title}
                                     </span>
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 border border-amber-300/40 rounded text-[10px] font-bold text-amber-600">
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 border border-amber-300/40 rounded text-[11px] font-bold text-amber-600">
                                       <Sparkles className="w-2.5 h-2.5" />
                                       {conv.customer.vip_label || 'VIP'}
                                     </span>
@@ -2134,7 +2677,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                       </p>
                                     );
                                   })()}
-                                  <div className="flex items-center gap-1 text-[10px] text-amber-500/70 font-medium flex-shrink-0">
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-500/70 font-medium flex-shrink-0">
                                     <Clock className="w-3 h-3" />
                                     {formatTime(conv.last_message_time)}
                                   </div>
@@ -2169,7 +2712,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                 )}
                               </div>
 
-                              <p className="text-[10px] font-mono mb-0.5 text-gray-500">
+                              <p className="text-[11px] font-mono mb-0.5 text-gray-500">
                                 # {conv.customer.customer_id}
                               </p>
 
@@ -2193,7 +2736,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                                     </p>
                                   );
                                 })()}
-                                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium flex-shrink-0">
+                                <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium flex-shrink-0">
                                   <Clock className="w-3 h-3" />
                                   {formatTime(conv.last_message_time)}
                                 </div>
@@ -2209,7 +2752,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             </>
           ) : (
             <>
-              <div className={`relative flex-shrink-0 px-4 pt-10 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden ${
+              <div className={`customer-service-panel-header relative flex-shrink-0 px-4 pt-3 pb-4 lg:px-6 lg:pt-5 lg:pb-5 overflow-hidden ${
                 selectedCustomer?.is_super
                   ? 'bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600'
                   : 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700'
@@ -2251,19 +2794,19 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
                         {selectedCustomer.is_super && selectedCustomer.super_customer_title ? (
                           <div className="flex items-center gap-1 mt-0.5">
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded text-[10px] sm:text-xs font-bold text-white">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded text-[11px] sm:text-xs font-bold text-white">
                               <Award className="w-2.5 h-2.5 flex-shrink-0" />
                               <span>{selectedCustomer.super_customer_title}</span>
                             </span>
                           </div>
                         ) : !selectedCustomer.is_super && serviceTicketNumber ? (
-                          <div className="text-[10px] sm:text-xs font-mono text-blue-100 flex items-center gap-1 mt-0.5 leading-tight">
+                          <div className="text-[11px] sm:text-xs font-mono text-blue-100 flex items-center gap-1 mt-0.5 leading-tight">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-300 flex-shrink-0"></div>
                             <span>{t.customerService.ticket}: {serviceTicketNumber}</span>
                           </div>
                         ) : null}
 
-                        <div className={`text-[10px] sm:text-xs font-mono leading-tight mt-0.5 ${
+                        <div className={`text-[11px] sm:text-xs font-mono leading-tight mt-0.5 ${
                           selectedCustomer.is_super ? 'text-amber-100' : 'text-blue-100'
                         }`}>
                           # {selectedCustomer.customer_id}
@@ -2304,6 +2847,21 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                       <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
                       <span className="text-sm text-gray-400 font-medium">{t.customerService.loadingMessages}</span>
                     </div>
+                  </div>
+                ) : messagesError && messages.length === 0 ? (
+                  <div role="alert" className="flex flex-col items-center justify-center h-full text-center px-6 py-10">
+                    <p className="text-sm font-medium text-slate-500">{t.customerService.loadFailed}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMessagesError(false);
+                        setLoadingMessages(true);
+                        void loadMessagesFromDB(true);
+                      }}
+                      className="mt-4 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    >
+                      {t.common.retry}
+                    </button>
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center animate-[fadeIn_0.5s_ease-out] px-6">
@@ -2353,7 +2911,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     {messages.map((msg, index) => {
                       const stableKey = stableKeyMapRef.current.get(msg.id) || msg.id;
                       const isSwapped = stableKeyMapRef.current.has(msg.id);
-                      const showEntryAnim = !isSwapped && msg.created_at > conversationOpenedAtRef.current && index >= messages.length - 3;
+                      const messageCreatedAt = msg.created_at || new Date(0).toISOString();
+                      const showEntryAnim = !isSwapped && messageCreatedAt > conversationOpenedAtRef.current && index >= messages.length - 3;
                       return (
                     <div
                       key={stableKey}
@@ -2372,7 +2931,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                       </div>
 
                       <div className={`flex flex-col ${msg.sender_type === 'employee' ? 'items-end' : 'items-start'} max-w-[75%] sm:max-w-[75%] md:max-w-[70%] min-w-0`}>
-                        <div className={`text-[10px] sm:text-xs font-semibold mb-0.5 ${
+                        <div className={`text-[11px] sm:text-xs font-semibold mb-0.5 ${
                           msg.sender_type === 'employee'
                             ? 'text-blue-600'
                             : selectedCustomer?.is_super
@@ -2385,7 +2944,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                           <>
                             {renderMessageContent(msg)}
                           </>
-                        ) : msg.message_type === 'image' && msg.image_url ? (
+                        ) : (msg.message_type === 'image' && msg.image_url) || (msg.message_type === 'text' && extractImageOnlyUrl(msg.message_content)) ? (
                           <div className="rounded-2xl overflow-hidden shadow-md">
                             {renderMessageContent(msg)}
                           </div>
@@ -2404,8 +2963,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                           </div>
                         </div>
                         )}
-                        <div className="text-[10px] sm:text-[11px] mt-0.5 sm:mt-1 text-gray-400">
-                          {new Date(msg.created_at).toLocaleString(dateLocale, {
+                        <div className="text-[11px] mt-0.5 sm:mt-1 text-gray-400">
+                          {new Date(messageCreatedAt).toLocaleString(dateLocale, {
                             year: 'numeric',
                             month: '2-digit',
                             day: '2-digit',
@@ -2525,7 +3084,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       )}
       {previewImage && createPortal(
         <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          className="employee-modal-backdrop fixed inset-0 z-[99999] flex items-center justify-center bg-black/90"
           onClick={(e) => { if (e.target === e.currentTarget) { setPreviewImage(null); setImageZoom(1); setImageDrag({ x: 0, y: 0 }); } }}
         >
           <div className="absolute top-3 right-3 sm:top-5 sm:right-5 flex items-center gap-2 z-10">
@@ -2582,17 +3141,16 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       )}
       {viewingRichCard && createPortal(
         <div
-          className="fixed inset-0 z-[10000] flex items-stretch justify-stretch p-0 xl:items-center xl:justify-center xl:p-6 overflow-hidden touch-none"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-stretch justify-stretch p-0 xl:items-center xl:justify-center xl:p-6 overflow-hidden touch-none"
           onClick={() => { richCardCancelRef.current = true; setViewingRichCard(null); }}
           style={{ background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease-out', WebkitTapHighlightColor: 'transparent', overscrollBehavior: 'contain' }}
         >
           <div
-            className="relative w-full h-full xl:max-w-3xl xl:max-h-[85vh] xl:w-[680px] xl:h-auto bg-white rounded-none xl:rounded-2xl overflow-hidden flex flex-col"
+            className="employee-modal-surface relative w-full h-full xl:max-w-3xl xl:max-h-[85vh] xl:w-[680px] xl:h-auto bg-white rounded-none xl:rounded-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
-            style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.1)' }}
+            style={{ boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.25)' }}
           >
             <div
-              className="relative flex-shrink-0 overflow-hidden"
               className="relative flex-shrink-0 overflow-hidden px-5 pb-5 bg-gradient-to-br from-[#1e40af] via-[#2563eb] to-[#1d4ed8]"
               style={{ paddingTop: 'calc(env(safe-area-inset-top) + 16px)' }}
             >
@@ -2612,8 +3170,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               <div className="relative z-10">
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 rounded-full border border-white/20 w-fit mb-3">
                   <Clock className="w-3 h-3 text-blue-100" />
-                  <span className="text-[10px] sm:text-xs text-blue-50 font-medium">
-                    {new Date(viewingRichCard.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                  <span className="text-[11px] sm:text-xs text-blue-50 font-medium">
+                    {new Date(viewingRichCard.created_at || new Date(0).toISOString()).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
@@ -2659,7 +3217,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               )}
             </div>
             <div
-              className="relative flex-shrink-0 border-t border-slate-100 bg-slate-50/80"
               className="relative flex-shrink-0 border-t border-slate-100 bg-slate-50/80 pt-3 px-5"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
             >
@@ -2667,7 +3224,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                 onClick={() => { richCardCancelRef.current = true; setViewingRichCard(null); }}
                 className="w-full px-5 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 active:from-blue-800 active:to-blue-700 text-white font-semibold text-sm rounded-xl transition-all duration-200 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
               >
-                {t.announcements?.close || 'Close'}
+                Close
               </button>
             </div>
           </div>

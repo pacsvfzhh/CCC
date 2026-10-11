@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
-import { Search, X, User, Calendar, Mail, Phone, Wallet, FileText, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { Search, X, User, Calendar, Mail, Phone, Wallet, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
+import { getAdminFinancialSessionToken, logout } from '../../lib/auth';
 import { formatDateUTC } from '../../lib/dateUtils';
 
 interface EmployeeSearchResult {
@@ -10,23 +11,21 @@ interface EmployeeSearchResult {
   created_at: string;
   is_active: boolean;
   is_verified: boolean;
-  created_by: string;
-  remarks: string;
+  remarks: string | null;
   tags: string[];
   total_income: number;
-  first_success_order_date: string;
+  first_success_order_date: string | null;
   admin_info?: {
     username: string;
     role: string;
-  };
+  } | null;
   verification_info?: {
-    real_name: string;
-    email: string;
-    phone: string;
-    wallet_address: string;
-    status: string;
-    created_at: string;
-  };
+    real_name: string | null;
+    email: string | null;
+    phone: string | null;
+    wallet_address: string | null;
+    created_at: string | null;
+  } | null;
 }
 
 interface SearchProgress {
@@ -43,7 +42,9 @@ export default function EmployeeSearch() {
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [progress, setProgress] = useState<SearchProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const searchAbortController = useRef<AbortController | null>(null);
+  const searchRequestIdRef = useRef(0);
 
   const handleSearch = useCallback(async () => {
     const trimmedValue = searchValue.trim();
@@ -51,157 +52,52 @@ export default function EmployeeSearch() {
       return;
     }
 
-    // Cancel any ongoing search
     if (searchAbortController.current) {
       searchAbortController.current.abort();
     }
 
-    // Create new abort controller
-    searchAbortController.current = new AbortController();
-
+    const requestId = ++searchRequestIdRef.current;
+    const requestController = new AbortController();
+    searchAbortController.current = requestController;
     setLoading(true);
     setHasSearched(true);
-    setProgress({ step: 0, totalSteps: 5, currentTask: 'Initializing search...', percentage: 0 });
+    setError(null);
+    setProgress({ step: 0, totalSteps: 5, currentTask: '正在初始化搜尋...', percentage: 0 });
 
     try {
-      // Step 1: Search in users table for username and employee_id (exact match)
-      setProgress({ step: 1, totalSteps: 5, currentTask: 'Searching users by username and ID...', percentage: 20 });
-      const { data: usersFromDirect, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .or(`username.eq.${trimmedValue},employee_id.eq.${trimmedValue}`);
+      setProgress({ step: 1, totalSteps: 5, currentTask: '正在搜尋全部員工分組...', percentage: 20 });
+      const { data, error } = await supabase
+        .rpc('search_all_employees_for_admin', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_search_term: trimmedValue,
+          p_limit: 100,
+        })
+        .abortSignal(requestController.signal);
+      if (requestId !== searchRequestIdRef.current) return;
+      if (error) throw error;
 
-      if (userError) {
-        console.error('User search error:', userError);
-        throw userError;
-      }
-
-      // Step 2: Search in verification_requests table for personal info (exact match)
-      setProgress({ step: 2, totalSteps: 5, currentTask: 'Searching verification records...', percentage: 40 });
-      const { data: verifications, error: verError } = await supabase
-        .from('verification_requests')
-        .select('*')
-        .or(`real_name.eq.${trimmedValue},email.eq.${trimmedValue},phone.eq.${trimmedValue},wallet_address.eq.${trimmedValue}`);
-
-      if (verError) {
-        console.error('Verification search error:', verError);
-        throw verError;
-      }
-
-      // Step 3: Processing and combining results
-      setProgress({ step: 3, totalSteps: 5, currentTask: 'Processing search results...', percentage: 60 });
-      const userIdsFromDirect = usersFromDirect?.map(u => u.id) || [];
-      const userIdsFromVerifications = verifications?.map(v => v.user_id) || [];
-      const allUserIds = [...new Set([...userIdsFromDirect, ...userIdsFromVerifications])];
-
-      console.log('Search complete:', {
-        directUsers: userIdsFromDirect.length,
-        verificationUsers: userIdsFromVerifications.length,
-        totalUnique: allUserIds.length
-      });
-
-      // If no results, return empty array
-      if (allUserIds.length === 0) {
-        setProgress({ step: 5, totalSteps: 5, currentTask: 'Complete', percentage: 100 });
-        setResults([]);
-        return;
-      }
-
-      // Step 4: Fetch complete user data
-      setProgress({ step: 4, totalSteps: 5, currentTask: 'Fetching complete user data...', percentage: 80 });
-      const { data: allUsers, error: allUsersError } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', allUserIds);
-
-      if (allUsersError) {
-        console.error('All users fetch error:', allUsersError);
-        throw allUsersError;
-      }
-
-      const { data: allVerifications, error: allVerificationsError } = await supabase
-        .from('verification_requests')
-        .select('*')
-        .in('user_id', allUserIds)
-        .order('created_at', { ascending: false });
-
-      if (allVerificationsError) {
-        console.error('All verifications fetch error:', allVerificationsError);
-        throw allVerificationsError;
-      }
-
-      // Fetch wallet balances
-      const { data: walletData, error: walletError } = await supabase
-        .from('wallets')
-        .select('user_id, available_balance, frozen_balance')
-        .in('user_id', allUserIds);
-
-      if (walletError) {
-        console.error('Wallet fetch error:', walletError);
-      }
-
-      const walletMap = new Map((walletData || []).map(wallet => [
-        wallet.user_id,
-        {
-          available_balance: wallet.available_balance || 0,
-          frozen_balance: wallet.frozen_balance || 0
-        }
-      ]));
-
-      // Fetch admin information
-      const adminIds = [...new Set((allUsers || []).map(u => u.created_by))].filter(Boolean);
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('id, username, role')
-        .in('id', adminIds);
-
-      if (adminError) {
-        console.error('Admin fetch error:', adminError);
-      }
-
-      const adminMap = new Map((adminData || []).map(admin => [admin.id, admin]));
-
-      // Step 5: Finalizing results
-      setProgress({ step: 5, totalSteps: 5, currentTask: 'Finalizing results...', percentage: 90 });
-      const combined = (allUsers || []).map(user => {
-        // Only show verification info if user is currently verified
-        // Find the most recent approved verification request
-        const verificationInfo = user.is_verified
-          ? allVerifications?.find(v => v.user_id === user.id && v.status === 'approved')
-          : undefined;
-
-        const admin = adminMap.get(user.created_by);
-        const wallet = walletMap.get(user.id);
-
-        // Calculate total balance (available + frozen)
-        const totalBalance = wallet
-          ? Number(wallet.available_balance) + Number(wallet.frozen_balance)
-          : 0;
-
-        return {
-          ...user,
-          total_income: totalBalance, // Override with actual wallet balance
-          admin_info: admin ? { username: admin.username, role: admin.role } : undefined,
-          verification_info: verificationInfo
-        };
-      });
-
-      console.log('Final results:', combined.length);
-      setProgress({ step: 5, totalSteps: 5, currentTask: 'Complete', percentage: 100 });
-      setResults(combined);
-    } catch (error: any) {
-      // Ignore abort errors
-      if (error?.name === 'AbortError') {
+      setProgress({ step: 4, totalSteps: 5, currentTask: '正在整理搜尋結果...', percentage: 80 });
+      setResults(Array.isArray(data) ? data as EmployeeSearchResult[] : []);
+      setProgress({ step: 5, totalSteps: 5, currentTask: '完成', percentage: 100 });
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.log('Search aborted');
         setProgress(null);
         return;
       }
+      if (isFinancialAdminSessionError(error)) {
+        setError('管理員登入已失效，請重新登入。');
+        void logout(false);
+        return;
+      }
       console.error('Search error:', error);
+      setError(formatSupabaseError(error) || '搜尋失敗，請稍後再試。');
       setResults([]);
     } finally {
-      setLoading(false);
-      // Clear progress after a short delay
-      setTimeout(() => setProgress(null), 500);
+      if (requestId === searchRequestIdRef.current) {
+        setLoading(false);
+        setTimeout(() => setProgress(null), 500);
+      }
     }
   }, [searchValue]);
 
@@ -215,6 +111,8 @@ export default function EmployeeSearch() {
     setSearchValue('');
     setResults([]);
     setHasSearched(false);
+    setExpandedCard(null);
+    setError(null);
   };
 
   const toggleCard = (userId: string) => {
@@ -222,336 +120,212 @@ export default function EmployeeSearch() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Search Form */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="max-w-4xl mx-auto">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Search Employee
-            <span className="ml-2 text-gray-500 font-normal text-xs">
-              (Username, Employee ID, Name, Email, Phone, or Wallet Address)
-            </span>
-          </label>
-          <div className="flex gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Enter any employee information to search..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-              />
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            </div>
-
-            {/* Clear Button */}
-            {searchValue && (
-              <button
-                onClick={clearSearch}
-                className="px-4 py-3 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors flex items-center gap-2 font-medium"
-                title="Clear search"
-              >
-                <X className="w-5 h-5" />
-                Clear
-              </button>
-            )}
-
-            {/* Search Button */}
-            <button
-              onClick={handleSearch}
-              disabled={loading || !searchValue.trim()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors disabled:bg-blue-400 flex items-center gap-2 min-w-[120px] justify-center"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Searching
-                </>
-              ) : (
-                <>
-                  <Search className="w-5 h-5" />
-                  Search
-                </>
-              )}
-            </button>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 text-slate-100">
+      <section className="relative shrink-0 border-b border-cyan-900/60 pb-4 sm:pb-5">
+        <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end">
+          <div className="min-w-0 xl:w-[260px] xl:shrink-0">
+            <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[28px]">搜尋員工資料</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">跨全部管理員分組，透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
           </div>
 
-          {/* Progress Bar */}
-          {progress && (
-            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span className="text-sm font-medium text-blue-900">{progress.currentTask}</span>
-                </div>
-                <span className="text-sm font-semibold text-blue-700">
-                  {progress.step}/{progress.totalSteps}
-                </span>
+          <div className="min-w-0 flex-1">
+            <label className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold tracking-[0.08em] text-cyan-100">
+              搜尋員工記錄
+              <span className="font-medium tracking-normal text-slate-300">使用者名稱 · 員工編號 · 姓名 · 電子郵件 · 電話 · 錢包地址</span>
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
+                <input
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="輸入員工使用者名稱、員工編號或聯絡資料..."
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-medium text-slate-900 shadow-[0_8px_24px_rgba(2,6,23,0.16)] outline-none transition-[border-color,box-shadow,background-color,transform] placeholder:text-slate-500 hover:border-cyan-400 hover:shadow-[0_10px_28px_rgba(6,182,212,0.14)] focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-400/20 focus:shadow-[0_10px_30px_rgba(6,182,212,0.2)]"
+                />
               </div>
-
-              {/* Progress Bar */}
-              <div className="relative w-full h-2 bg-blue-100 rounded-full overflow-hidden">
-                <div
-                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300 ease-out"
-                  style={{ width: `${progress.percentage}%` }}
+              {searchValue && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-100 px-4 text-sm font-semibold text-slate-700 transition-[border-color,background-color,color,transform] hover:-translate-y-px hover:border-slate-400 hover:bg-white hover:text-slate-950"
+                  title="清除搜尋"
                 >
-                  <div className="absolute inset-0 bg-blue-400 opacity-50 animate-pulse"></div>
-                </div>
-              </div>
-
-              {/* Step Indicators */}
-              <div className="flex justify-between mt-3">
-                {[1, 2, 3, 4, 5].map((step) => (
-                  <div
-                    key={step}
-                    className={`flex flex-col items-center transition-all duration-300 ${
-                      step <= progress.step ? 'opacity-100' : 'opacity-40'
-                    }`}
-                  >
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                        step < progress.step
-                          ? 'bg-green-500 text-white'
-                          : step === progress.step
-                          ? 'bg-blue-600 text-white ring-4 ring-blue-200'
-                          : 'bg-gray-200 text-gray-500'
-                      }`}
-                    >
-                      {step < progress.step ? '✓' : step}
-                    </div>
-                    <span className="text-[10px] text-gray-600 mt-1 text-center max-w-[60px]">
-                      {step === 1 && 'Users'}
-                      {step === 2 && 'Verify'}
-                      {step === 3 && 'Process'}
-                      {step === 4 && 'Fetch'}
-                      {step === 5 && 'Done'}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  <X className="h-4 w-4" />
+                  清除
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={loading || !searchValue.trim()}
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/60 bg-gradient-to-r from-blue-600 via-cyan-600 to-cyan-500 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(8,145,178,0.24)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_12px_30px_rgba(8,145,178,0.34)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-45 disabled:shadow-none sm:min-w-[126px]"
+              >
+                {loading ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    搜尋中
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4" />
+                    搜尋
+                  </>
+                )}
+              </button>
             </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* Results */}
-      {hasSearched && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Search Results
-              <span className="ml-2 text-sm text-gray-500">
-                ({results.length} {results.length === 1 ? 'employee' : 'employees'} found)
-              </span>
-            </h3>
+        {progress && (
+          <div className="relative border-t border-cyan-900/50 bg-slate-950/35 px-4 py-3 sm:px-5">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <div className="flex min-w-0 items-center gap-2 text-cyan-100">
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-200/30 border-t-cyan-200" />
+                <span className="truncate">{progress.currentTask}</span>
+              </div>
+              <span className="shrink-0 font-bold text-cyan-300">{progress.step}/{progress.totalSteps}</span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-300 transition-all duration-300" style={{ width: `${progress.percentage}%` }} />
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="border-t border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-sm font-medium text-rose-200 sm:px-5">
+            {error}
+          </div>
+        )}
+      </section>
+
+      {hasSearched ? (
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/90 px-4 py-3 sm:px-5">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/75">搜尋結果</p>
+              <h3 className="mt-1 truncate text-base font-semibold text-cyan-100">員工帳戶</h3>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-bold text-cyan-100">
+              <User className="h-3.5 w-3.5 text-cyan-300" />
+              {results.length} 筆員工
+            </span>
           </div>
 
           {results.length === 0 ? (
-            <div className="text-center py-12">
-              <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No employees found</p>
-              <p className="text-gray-400 text-sm mt-2">Try adjusting your search criteria</p>
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-14 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+                <Search className="h-7 w-7" />
+              </span>
+              <p className="mt-4 text-base font-semibold text-cyan-100">找不到員工</p>
+              <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-300">請嘗試其他使用者名稱、員工編號或已驗證的聯絡資料。</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-3 dark-panel-scroll sm:pt-4">
               {results.map(employee => (
-                <div
+                <article
                   key={employee.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                  className="overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/45 shadow-[0_8px_22px_rgba(2,6,23,0.18)] transition-[border-color,background-color,box-shadow] hover:border-cyan-700/70 hover:bg-slate-950/65 hover:shadow-[0_12px_28px_rgba(2,6,23,0.28)]"
                 >
-                  {/* Admin Group Badge */}
                   {employee.admin_info && (
-                    <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-8 py-5 flex items-center gap-6 shadow-md">
-                      <div className="flex items-center gap-3">
-                        {employee.admin_info.role === 'super_admin' ? (
-                          <>
-                            <div className="bg-amber-400/30 p-2.5 rounded-lg backdrop-blur-sm border border-amber-300/40">
-                              <svg className="w-7 h-7 text-amber-100" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="flex items-center gap-5">
-                              <div className="text-xs text-amber-100 font-medium uppercase tracking-wider">Managed by</div>
-                              <span className="px-3 py-1 bg-amber-400/20 text-amber-100 text-sm font-bold rounded-full border border-amber-300/30">
-                                SUPER ADMIN
-                              </span>
-                              <div className="h-8 w-px bg-white/40"></div>
-                              <span className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">{employee.admin_info.username}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="bg-white/20 p-2.5 rounded-lg backdrop-blur-sm border border-white/30">
-                              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                              </svg>
-                            </div>
-                            <div className="flex items-center gap-5">
-                              <div className="text-xs text-blue-100 font-medium uppercase tracking-wider">Managed by</div>
-                              <span className="px-3 py-1 bg-white/20 text-white text-sm font-bold rounded-full border border-white/30">
-                                SECONDARY ADMIN
-                              </span>
-                              <div className="h-8 w-px bg-white/40"></div>
-                              <span className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">{employee.admin_info.username}</span>
-                            </div>
-                          </>
-                        )}
+                    <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5 sm:px-5 ${employee.admin_info.role === 'super_admin' ? 'border-amber-300/20 bg-gradient-to-r from-amber-500/15 via-slate-900/40 to-cyan-500/10' : 'border-cyan-300/20 bg-gradient-to-r from-blue-500/15 via-slate-900/40 to-cyan-500/10'}`}>
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${employee.admin_info.role === 'super_admin' ? 'border-amber-300/30 bg-amber-300/10 text-amber-200' : 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200'}`}>
+                          <User className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">所屬管理員</span>
+                        <span className={`truncate text-sm font-bold ${employee.admin_info.role === 'super_admin' ? 'text-amber-100' : 'text-cyan-100'}`}>{employee.admin_info.username}</span>
                       </div>
+                      <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] ${employee.admin_info.role === 'super_admin' ? 'border-amber-300/25 bg-amber-300/10 text-amber-200' : 'border-cyan-300/25 bg-cyan-300/10 text-cyan-200'}`}>
+                        {employee.admin_info.role === 'super_admin' ? '超級管理員' : '二級管理員'}
+                      </span>
                     </div>
                   )}
 
-                  {/* Card Header */}
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={expandedCard === employee.id}
                     onClick={() => toggleCard(employee.id)}
-                    className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 cursor-pointer hover:from-gray-100 hover:to-gray-200 transition-colors"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggleCard(employee.id);
+                      }
+                    }}
+                    className="group flex cursor-pointer items-center justify-between gap-4 px-4 py-3.5 outline-none transition-colors hover:bg-cyan-400/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/60 sm:px-5"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-white" />
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-gradient-to-br from-blue-500/80 to-cyan-500/80 shadow-[0_6px_16px_rgba(6,182,212,0.18)]">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          <h4 className="truncate text-sm font-bold text-cyan-100 sm:text-base">{employee.username}</h4>
+                          <span className="rounded-md border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">員工編號 {employee.employee_id}</span>
+                          {employee.is_verified && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle className="h-3.5 w-3.5" />已驗證</span>
+                          )}
+                          {!employee.is_active && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-300"><XCircle className="h-3.5 w-3.5" />未啟用</span>
+                          )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h4 className="font-semibold text-gray-900">{employee.username}</h4>
-                            <span className="text-sm text-gray-500">ID: {employee.employee_id}</span>
-                            {employee.is_verified && (
-                              <span className="flex items-center gap-1 text-green-600 text-sm">
-                                <CheckCircle className="w-4 h-4" />
-                                Verified
-                              </span>
-                            )}
-                            {!employee.is_active && (
-                              <span className="flex items-center gap-1 text-red-600 text-sm">
-                                <XCircle className="w-4 h-4" />
-                                Inactive
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                            <Calendar className="w-4 h-4" />
-                            Registered: {formatDateUTC(employee.created_at)}
-                          </div>
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-300">
+                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                          註冊時間 {formatDateUTC(employee.created_at)}
                         </div>
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        {expandedCard === employee.id ? (
-                          <ChevronUp className="w-5 h-5" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5" />
-                        )}
-                      </button>
                     </div>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/70 text-slate-300 transition-colors group-hover:border-cyan-500/50 group-hover:text-cyan-200">
+                      {expandedCard === employee.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </span>
                   </div>
 
-                  {/* Expanded Content */}
                   {expandedCard === employee.id && (
-                    <div className="px-6 py-4 bg-white">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Account Information */}
-                        <div className="space-y-3">
-                          <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <User className="w-4 h-4 text-blue-600" />
-                            Account Information
-                          </h5>
-                          <InfoRow label="Username" value={employee.username} />
-                          <InfoRow label="Employee ID" value={employee.employee_id} />
-                          <InfoRow label="Registration Date" value={formatDateUTC(employee.created_at)} />
-                          <InfoRow
-                            label="Status"
-                            value={
-                              <span className={`inline-flex items-center gap-1 ${employee.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                                {employee.is_active ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                {employee.is_active ? 'Active' : 'Inactive'}
-                              </span>
-                            }
-                          />
-                          <InfoRow
-                            label="Identity Verification"
-                            value={
-                              <span className={`inline-flex items-center gap-1 font-semibold ${employee.is_verified ? 'text-green-600' : 'text-red-600'}`}>
-                                {employee.is_verified ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                {employee.is_verified ? 'Verified' : 'Not Verified'}
-                              </span>
-                            }
-                          />
-                          <InfoRow label="Wallet Balance" value={`$${(employee.total_income || 0).toFixed(2)}`} />
-                          <InfoRow
-                            label="First Success Order"
-                            value={employee.first_success_order_date ? formatDateUTC(employee.first_success_order_date) : 'Not started working yet'}
-                          />
+                    <div className="border-t border-slate-800/90 bg-slate-900/45 px-4 py-4 sm:px-5">
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/35 p-4">
+                          <h5 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-cyan-200"><User className="h-4 w-4 text-cyan-300" />帳戶資料</h5>
+                          <div className="mt-3 space-y-2.5">
+                            <InfoRow label="使用者名稱" value={employee.username} />
+                            <InfoRow label="員工編號" value={employee.employee_id} />
+                            <InfoRow label="註冊日期" value={formatDateUTC(employee.created_at)} />
+                            <InfoRow label="狀態" value={<span className={`inline-flex items-center gap-1 font-semibold ${employee.is_active ? 'text-emerald-300' : 'text-rose-300'}`}>{employee.is_active ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{employee.is_active ? '啟用' : '未啟用'}</span>} />
+                            <InfoRow label="身分驗證" value={<span className={`inline-flex items-center gap-1 font-semibold ${employee.is_verified ? 'text-emerald-300' : 'text-rose-300'}`}>{employee.is_verified ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{employee.is_verified ? '已驗證' : '未驗證'}</span>} />
+                            <InfoRow label="錢包餘額" value={`$${(employee.total_income || 0).toFixed(2)}`} />
+                            <InfoRow label="首次成功訂單" value={employee.first_success_order_date ? formatDateUTC(employee.first_success_order_date) : '尚未開始工作'} />
+                          </div>
                         </div>
 
-                        {/* Verification Information */}
-                        <div className="space-y-3">
-                          <h5 className="font-semibold text-gray-900 mb-3">
-                            Verification Information
-                          </h5>
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/35 p-4">
+                          <h5 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-cyan-200"><CheckCircle className="h-4 w-4 text-cyan-300" />驗證資料</h5>
                           {employee.verification_info ? (
-                            <>
-                              <InfoRow
-                                label="Full Legal Name"
-                                value={employee.verification_info.real_name || 'N/A'}
-                              />
-                              <InfoRow
-                                label="Email Address"
-                                value={employee.verification_info.email || 'N/A'}
-                                icon={<Mail className="w-4 h-4 text-gray-400" />}
-                              />
-                              <InfoRow
-                                label="Phone Number"
-                                value={employee.verification_info.phone || 'N/A'}
-                                icon={<Phone className="w-4 h-4 text-gray-400" />}
-                              />
-                              <InfoRow
-                                label="Wallet Address"
-                                value={employee.verification_info.wallet_address || 'N/A'}
-                                icon={<Wallet className="w-4 h-4 text-gray-400" />}
-                                breakAll
-                              />
-                              <InfoRow
-                                label="Verified Date"
-                                value={formatDateUTC(employee.verification_info.created_at)}
-                                icon={<Calendar className="w-4 h-4 text-gray-400" />}
-                              />
-                            </>
-                          ) : (
-                            <div className="flex items-center gap-2 text-red-600 py-4">
-                              <Clock className="w-5 h-5" />
-                              <span>No verification information available</span>
+                            <div className="mt-3 space-y-2.5">
+                              <InfoRow label="法定姓名" value={employee.verification_info.real_name || '無資料'} />
+                              <InfoRow label="電子郵件" value={employee.verification_info.email || '無資料'} icon={<Mail className="h-3.5 w-3.5 text-slate-300" />} />
+                              <InfoRow label="電話號碼" value={employee.verification_info.phone || '無資料'} icon={<Phone className="h-3.5 w-3.5 text-slate-300" />} />
+                              <InfoRow label="錢包地址" value={employee.verification_info.wallet_address || '無資料'} icon={<Wallet className="h-3.5 w-3.5 text-slate-300" />} breakAll />
+                              <InfoRow label="驗證日期" value={employee.verification_info.created_at ? formatDateUTC(employee.verification_info.created_at) : '無資料'} icon={<Calendar className="h-3.5 w-3.5 text-slate-300" />} />
                             </div>
+                          ) : (
+                            <div className="mt-4 flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-3 py-2.5 text-xs text-rose-300"><Clock className="h-4 w-4" />沒有可用的驗證資料</div>
                           )}
                         </div>
 
-                        {/* Tags and Remarks */}
                         {(employee.tags?.length > 0 || employee.remarks) && (
-                          <div className="md:col-span-2 space-y-3 pt-4 border-t border-gray-200">
+                          <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/35 p-4 lg:col-span-2">
                             {employee.tags?.length > 0 && (
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300">標籤</label>
                                 <div className="flex flex-wrap gap-2">
-                                  {employee.tags.map((tag, index) => (
-                                    <span
-                                      key={index}
-                                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
+                                  {employee.tags.map((tag, index) => <span key={index} className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-200">{tag}</span>)}
                                 </div>
                               </div>
                             )}
                             {employee.remarks && (
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Remarks</label>
-                                <p className="text-gray-600 bg-gray-50 rounded-lg p-3">{employee.remarks}</p>
+                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300">備註</label>
+                                <p className="rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs leading-relaxed text-slate-300">{employee.remarks}</p>
                               </div>
                             )}
                           </div>
@@ -559,11 +333,19 @@ export default function EmployeeSearch() {
                       </div>
                     </div>
                   )}
-                </div>
+                </article>
               ))}
             </div>
           )}
-        </div>
+        </section>
+      ) : (
+        <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 py-12 text-center">
+          <div className="max-w-md">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,0.08)]"><Search className="h-7 w-7" /></span>
+            <p className="mt-4 text-base font-semibold text-cyan-100">搜尋員工記錄</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-300">使用上方搜尋欄，即可查看帳戶、驗證、錢包與所屬管理員資料。</p>
+          </div>
+        </section>
       )}
     </div>
   );
@@ -583,13 +365,13 @@ function InfoRow({
   breakAll?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <span className="text-sm font-medium text-gray-500 min-w-[140px]">{label}:</span>
-      <div className="flex items-start gap-2 flex-1">
+    <div className="flex items-start gap-3 border-b border-slate-800/70 pb-2 last:border-0 last:pb-0">
+      <span className="w-[112px] shrink-0 text-[11px] font-medium text-slate-300">{label}</span>
+      <div className="flex min-w-0 flex-1 items-start gap-2">
         {icon}
         {typeof value === 'string' ? (
           <span
-            className={`text-sm text-gray-900 ${truncate ? 'truncate' : ''} ${breakAll ? 'break-all' : ''}`}
+            className={`min-w-0 text-xs text-slate-200 ${truncate ? 'truncate' : ''} ${breakAll ? 'break-all' : ''}`}
             title={truncate ? value : undefined}
           >
             {value}

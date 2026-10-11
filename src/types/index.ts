@@ -1,12 +1,37 @@
 export interface Admin {
   id: string;
   username: string;
+  admin_id?: string;
   role: 'super_admin' | 'secondary_admin' | 'emergency_admin';
   parent_id: string | null;
   is_active: boolean;
   is_pinned: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export type AutomationPlanStatus = 'active' | 'paused' | 'archived';
+
+export interface NotificationAutomationPlan {
+  id: string;
+  owner_admin_id: string;
+  name: string;
+  description: string;
+  status: AutomationPlanStatus;
+  member_count?: number;
+  task_count?: number;
+  active_task_count?: number;
+  selected_task_count?: number;
+  all_managed_task_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface NotificationAutomationPlanAssignment {
+  user_id: string;
+  plan_id: string;
+  plan_name: string;
+  plan_status: AutomationPlanStatus;
 }
 
 export interface Employee {
@@ -21,6 +46,12 @@ export interface Employee {
   remarks: string;
   tags: string[];
   is_pinned: boolean;
+  automation_plan_id?: string | null;
+  automation_plan_name?: string | null;
+  current_session_token?: string | null;
+  session_created_at?: string | null;
+  last_heartbeat_at?: string | null;
+  current_tab_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +60,7 @@ export interface ProductType {
   id: string;
   name: string;
   is_active: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -59,13 +91,14 @@ export interface Wallet {
 export interface WalletTransaction {
   id: string;
   user_id: string;
-  type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment' | 'tip';
+  type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip' | 'performance_bonus';
   amount: number;
   balance_before: number;
   balance_after: number;
   reference_id: string | null;
   remarks: string;
   created_by: string | null;
+  operation_id?: string | null;
   created_at: string;
 }
 
@@ -73,10 +106,11 @@ export interface Withdrawal {
   id: string;
   user_id: string;
   amount: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
   audit_remark: string | null;
   audited_by: string | null;
   audited_at: string | null;
+  last_operation_id?: string | null;
   created_at: string;
 }
 
@@ -125,6 +159,9 @@ export interface VerificationRequest {
   wallet_address: string;
   phone: string;
   email: string;
+  id_front_url: string | null;
+  id_back_url: string | null;
+  selfie_url: string | null;
   status: 'pending' | 'approved' | 'rejected';
   audit_remark: string | null;
   audited_by: string | null;
@@ -133,27 +170,42 @@ export interface VerificationRequest {
   updated_at: string;
 }
 
+export type NotificationDeliveryMode = 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
+export type NotificationDeliveryChannel = 'realtime' | 'login_popup';
+
 export interface Message {
   id: string;
-  sender_id: string;
+  sender_id?: string;
   sender_username: string;
   title: string;
   content: string;
   message_type: 'login_popup' | 'realtime';
+  delivery_mode: NotificationDeliveryMode;
   priority: 'low' | 'normal' | 'high' | 'urgent';
-  expires_at: string | null;
-  created_at: string;
+  notification_category?: 'standard' | 'performance_reward';
+  reward_amount?: number | null;
+  reward_currency?: string | null;
+  automation_execution_id?: string | null;
+  expires_at?: string | null;
+  created_at: string | null;
 }
 
 export interface MessageRecipient {
   id: string;
   message_id: string;
   recipient_id: string;
-  is_read: boolean;
+  is_read: boolean | null;
   read_at: string | null;
-  is_shown: boolean;
+  is_shown: boolean | null;
   shown_at: string | null;
-  created_at: string;
+  delivery_channel: NotificationDeliveryChannel | null;
+  delivery_claim_token: string | null;
+  delivery_claim_channel: NotificationDeliveryChannel | null;
+  delivery_claim_until: string | null;
+  delivery_completed_claim_token: string | null;
+  delivered_at: string | null;
+  delivery_sequence: number;
+  created_at: string | null;
 }
 
 export interface MessageWithRecipient extends MessageRecipient {
@@ -176,7 +228,7 @@ export interface AdminGroup {
   verified_employees: number;
 }
 
-export interface AuthState {
-  user: Admin | Employee | null;
-  userType: 'admin' | 'employee' | null;
-}
+export type AuthState =
+  | { user: null; userType: null }
+  | { user: Admin; userType: 'admin' }
+  | { user: Employee; userType: 'employee' };

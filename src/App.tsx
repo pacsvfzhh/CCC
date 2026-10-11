@@ -1,26 +1,38 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
+import { flushSync } from 'react-dom';
 import Login from './pages/Login';
 import BlockchainBackground from './components/BlockchainBackground';
 import ErrorBoundary from './components/ErrorBoundary';
+import PhoneLandscapeGuard from './components/PhoneLandscapeGuard';
 import { LanguageProvider } from './lib/i18n';
-import { getStoredAuth } from './lib/auth';
-import { startOrderProcessing } from './services/orderProcessor';
+import {
+  AUTH_HANDOVER_EVENT,
+  AUTH_LOGOUT_EVENT,
+  getStoredAuth,
+  hasRememberedSession,
+  PROFILE_UPDATED_EVENT,
+  resumeRememberedSession,
+} from './lib/auth';
 import { useDeviceOptimization } from './lib/useDeviceOptimization';
-import { useResponsive, applyResponsiveMeta } from './lib/useResponsive';
+import { useResponsive, useApplyResponsiveMeta } from './lib/useResponsive';
 import type { AuthState } from './types';
 
-const EmployeeDashboard = lazy(() => import('./components/employee/EmployeeDashboard'));
+const loadEmployeeDashboard = () => import('./components/employee/EmployeeDashboard');
+const EmployeeDashboard = lazy(loadEmployeeDashboard);
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 
+const EMPTY_AUTH_STATE: AuthState = {
+  user: null,
+  userType: null,
+};
+
 function App() {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    userType: null,
-  });
+  const [authState, setAuthState] = useState<AuthState>(() => getStoredAuth() || EMPTY_AUTH_STATE);
+  const [resumingSession, setResumingSession] = useState(() => !getStoredAuth() && hasRememberedSession());
 
   const { deviceName, tier, isLowEnd } = useDeviceOptimization();
   const responsive = useResponsive();
-  applyResponsiveMeta();
+  useApplyResponsiveMeta();
 
   useEffect(() => {
     const setVH = () => {
@@ -62,7 +74,34 @@ function App() {
     if (isLowEnd) {
       console.log('[App] Low-end device detected, performance optimizations active');
     }
-  }, [deviceName, tier, isLowEnd, responsive.width, responsive.height]);
+  }, [
+    deviceName,
+    tier,
+    isLowEnd,
+    responsive.width,
+    responsive.height,
+    responsive.compactMode,
+    responsive.deviceName,
+    responsive.isNotchDevice,
+    responsive.needsSafeArea,
+    responsive.pixelRatio,
+  ]);
+
+  useEffect(() => {
+    if (!resumingSession) return;
+
+    let cancelled = false;
+    void loadEmployeeDashboard();
+    void resumeRememberedSession().then((restored) => {
+      if (cancelled) return;
+      if (restored) setAuthState(restored);
+      setResumingSession(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resumingSession]);
 
   useEffect(() => {
     const stored = getStoredAuth();
@@ -73,7 +112,13 @@ function App() {
     const handleLogout = () => {
       setAuthState({ user: null, userType: null });
     };
-    window.addEventListener('quantum_trader_logout', handleLogout);
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleLogout);
+
+    // Unmount synchronously so the old dashboard's listeners cannot act on the session the new tab owns.
+    const handleHandover = () => {
+      flushSync(() => setAuthState({ user: null, userType: null }));
+    };
+    window.addEventListener(AUTH_HANDOVER_EVENT, handleHandover);
 
     const handleProfileUpdate = () => {
       const updated = getStoredAuth();
@@ -81,17 +126,13 @@ function App() {
         setAuthState(updated);
       }
     };
-    window.addEventListener('quantum_trader_profile_updated', handleProfileUpdate);
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate);
 
     return () => {
-      window.removeEventListener('quantum_trader_logout', handleLogout);
-      window.removeEventListener('quantum_trader_profile_updated', handleProfileUpdate);
+      window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogout);
+      window.removeEventListener(AUTH_HANDOVER_EVENT, handleHandover);
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate);
     };
-  }, []);
-
-  useEffect(() => {
-    const cleanup = startOrderProcessing();
-    return cleanup;
   }, []);
 
   const handleLoginSuccess = () => {
@@ -101,11 +142,20 @@ function App() {
     }
   };
 
+  if (resumingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="keep-animation w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!authState.user || !authState.userType) {
     return (
       <LanguageProvider>
         <BlockchainBackground />
         <Login onLoginSuccess={handleLoginSuccess} />
+        <PhoneLandscapeGuard />
       </LanguageProvider>
     );
   }
@@ -113,7 +163,6 @@ function App() {
   if (authState.userType === 'employee') {
     return (
       <LanguageProvider>
-        <BlockchainBackground />
         <ErrorBoundary>
           <Suspense fallback={null}>
             <EmployeeDashboard employee={authState.user} />
@@ -126,7 +175,6 @@ function App() {
   if (authState.userType === 'admin') {
     return (
       <>
-        <BlockchainBackground />
         <ErrorBoundary>
           <Suspense fallback={null}>
             <AdminDashboard admin={authState.user} />

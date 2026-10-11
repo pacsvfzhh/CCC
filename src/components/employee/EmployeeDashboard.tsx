@@ -1,30 +1,70 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown } from 'lucide-react';
-import { Employee } from '../../types';
-import { logout } from '../../lib/auth';
-import { supabase } from '../../lib/supabase';
+import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
+import { Employee, MessageWithRecipient } from '../../types';
+import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, getStoredAuth, leaveSessionForAnotherTab, logout } from '../../lib/auth';
+import { logEmployeeLogin } from '../../lib/loginHistoryService';
+import { formatSupabaseError, isSupabaseTransientError, supabase } from '../../lib/supabase';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { useResponsive } from '../../lib/useResponsive';
 import { tabSessionManager } from '../../lib/TabSessionManager';
-import { useLanguage } from '../../lib/i18n';
-import type { Language } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
+import type { Language } from '../../lib/i18n/types';
+import type { Database } from '../../types/database';
 import LanguageSwitcher, { LanguageModal } from '../LanguageSwitcher';
+import PhoneLandscapeGuard from '../PhoneLandscapeGuard';
 import SessionExpiredModal from './SessionExpiredModal';
+import MessageCenter from './MessageCenter';
+import LoginPopupMessages from './LoginPopupMessages';
 
 const AnnouncementBoard = lazy(() => import('./AnnouncementBoard'));
 const OrderSubmission = lazy(() => import('./OrderSubmission'));
 const OrderList = lazy(() => import('./OrderList'));
 const WalletOverview = lazy(() => import('./WalletOverview'));
 const DailyStatistics = lazy(() => import('./DailyStatistics'));
-const MessageCenter = lazy(() => import('./MessageCenter'));
-const LoginPopupMessages = lazy(() => import('./LoginPopupMessages'));
 const OrderDispatch = lazy(() => import('./OrderDispatch'));
 const CustomerServiceChat = lazy(() => import('./CustomerServiceChat'));
 const PasswordChange = lazy(() => import('./PasswordChange'));
 
+function MessageOverlayFallback() {
+  return createPortal(
+    <div className="fixed inset-0 flex items-center justify-center bg-slate-900/45" style={{ zIndex: 10100 }}>
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/35 border-t-white" />
+    </div>,
+    document.body,
+  );
+}
+
 interface EmployeeDashboardProps {
   employee: Employee;
+}
+
+type RealtimeNotificationClaim = {
+  claim_token: string;
+  recipient: Omit<MessageWithRecipient, 'messages'>;
+  message: MessageWithRecipient['messages'];
+};
+
+type MessageToast = {
+  recipientId: string;
+  title: string;
+  content: string;
+  priority: string;
+  notificationCategory: string;
+  rewardAmount: number | null;
+  rewardCurrency: string | null;
+  notification: MessageWithRecipient;
+  summaryCount?: number;
+};
+
+const REALTIME_BACKLOG_SUMMARY_THRESHOLD = 3;
+
+type EmployeeFinancialSession = ReturnType<typeof getEmployeeFinancialSession>;
+
+function isExpiredEmployeeSession(error: unknown) {
+  const message = formatSupabaseError(error).toLowerCase();
+  return message.includes('employee session is invalid or expired')
+    || message.includes('employee session has expired');
 }
 
 export default function EmployeeDashboard({ employee: initialEmployee }: EmployeeDashboardProps) {
@@ -33,13 +73,15 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['announcements']));
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showMessageCenter, setShowMessageCenter] = useState(false);
+  const [messageToOpen, setMessageToOpen] = useState<MessageWithRecipient | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [hasNewOrder, setHasNewOrder] = useState(false);
   const [hasOrderTimeout, setHasOrderTimeout] = useState(false);
   const [showMessageToast, setShowMessageToast] = useState(false);
-  const [latestMessage, setLatestMessage] = useState<{ title: string; content: string; priority: string } | null>(null);
+  const [latestMessage, setLatestMessage] = useState<MessageToast | null>(null);
+  const [messageToastQueue, setMessageToastQueue] = useState<MessageToast[]>([]);
   const [audioContextReady, setAudioContextReady] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
@@ -47,9 +89,53 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const employeeHeaderRef = useRef<HTMLElement>(null);
+  const employeeNavRef = useRef<HTMLElement>(null);
   const { companyName } = useCompanyName(employee.created_by);
   const { isMobile, isTablet } = useResponsive();
   const { t, language, setLanguage } = useLanguage();
+  const loadUnreadCountRef = useRef<(() => Promise<void>) | null>(null);
+  const checkLoginPopupMessagesRef = useRef<((combinedOnly?: boolean) => Promise<void>) | null>(null);
+  const loginPopupGenerationRef = useRef(0);
+  const processRealtimeRecipientRef = useRef<((recipientId: string) => Promise<void>) | null>(null);
+  const recoverRealtimeNotificationsRef = useRef<(() => Promise<void>) | null>(null);
+  const notificationChannelStatusRef = useRef('CLOSED');
+  const notificationDeliveryActiveRef = useRef(false);
+  const financialSessionInvalidRef = useRef(false);
+  const deliveredRecipientIdsRef = useRef(new Set<string>());
+  const realtimeDeliveryChainRef = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    const header = employeeHeaderRef.current;
+    if (!header) return;
+
+    const syncHeaderHeight = () => {
+      document.documentElement.style.setProperty('--employee-header-height', `${header.getBoundingClientRect().height}px`);
+    };
+    const observer = new ResizeObserver(syncHeaderHeight);
+    observer.observe(header);
+    syncHeaderHeight();
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--employee-header-height');
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const nav = employeeNavRef.current;
+    if (!nav) return;
+
+    const syncNavHeight = () => {
+      document.documentElement.style.setProperty('--employee-bottom-nav-height', `${nav.getBoundingClientRect().height}px`);
+    };
+    const observer = new ResizeObserver(syncNavHeight);
+    observer.observe(nav);
+    syncNavHeight();
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--employee-bottom-nav-height');
+    };
+  }, []);
 
   // Trigger auto messages for all eligible customers on login
   useEffect(() => {
@@ -64,7 +150,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           .eq('admin_id', employee.created_by);
         if (cancelled || !customers || customers.length === 0) return;
 
-        const customerIds = customers.map((c: any) => c.id);
+        const customerIds = customers.map(c => c.id);
 
         const [autoMsgsRes, logsRes] = await Promise.all([
           supabase
@@ -81,25 +167,25 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         ]);
         if (cancelled) return;
 
-        const sentIds = new Set((logsRes.data || []).map((l: any) => l.auto_message_id));
-        const unsent = (autoMsgsRes.data || []).filter((m: any) => !sentIds.has(m.id));
+        const sentIds = new Set((logsRes.data || []).map(l => l.auto_message_id));
+        const unsent = (autoMsgsRes.data || []).filter(m => !sentIds.has(m.id));
         if (unsent.length === 0) return;
 
-        const unsentIds = unsent.map((m: any) => m.id);
+        const unsentIds = unsent.map(m => m.id);
         const { data: fullMsgs } = await supabase
           .from('customer_auto_messages')
           .select('*')
           .in('id', unsentIds);
         if (cancelled || !fullMsgs || fullMsgs.length === 0) return;
 
-        const fullMsgMap = new Map(fullMsgs.map((m: any) => [m.id, m]));
+        const fullMsgMap = new Map(fullMsgs.map(m => [m.id, m]));
 
 
         const baseTime = Date.now();
-        const conversationPayloads = unsent.map((msg: any, idx: number) => {
-          const full = fullMsgMap.get(msg.id) || msg;
+        const conversationPayloads = unsent.map((msg, idx: number) => {
+          const full = fullMsgMap.get(msg.id) || { ...msg, content: '' };
           const isRichCard = full.content_type === 'rich_card';
-          const payload: any = {
+          const payload: Database['public']['Tables']['customer_employee_conversations']['Insert'] = {
             customer_id: full.customer_id,
             employee_id: employee.id,
             sender_type: 'customer',
@@ -113,7 +199,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           return payload;
         });
 
-        const logPayloads = unsent.map((msg: any) => ({
+        const logPayloads = unsent.map(msg => ({
           customer_id: msg.customer_id,
           employee_id: employee.id,
           auto_message_id: msg.id,
@@ -128,14 +214,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       }
     })();
     return () => { cancelled = true; };
-  }, [employee.id]);
+  }, [employee.id, employee.created_by]);
 
   // Real-time sync employee data (especially is_verified status and session token)
   useEffect(() => {
     console.log('[EmployeeDashboard] Setting up real-time sync for employee data');
 
     // Get current session token from sessionStorage
-    const auth = sessionStorage.getItem('quantum_trader_auth');
+    const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
     const currentSessionToken = auth ? JSON.parse(auth).sessionToken : null;
 
     // Subscribe to changes in the users table for this employee
@@ -155,11 +241,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
           // Check if session token has changed (another login kicked us out)
           if (currentSessionToken && updatedEmployee.current_session_token !== currentSessionToken) {
-            console.log('[EmployeeDashboard] Session token changed - another login detected!');
-            console.log('Old token:', currentSessionToken);
-            console.log('New token:', updatedEmployee.current_session_token);
-
-            // Show session expired modal and logout
+            financialSessionInvalidRef.current = true;
             setShowSessionExpired(true);
             return;
           }
@@ -168,11 +250,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           setEmployee(updatedEmployee);
 
           // Update sessionStorage
-          const auth = sessionStorage.getItem('quantum_trader_auth');
+          const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
           if (auth) {
             const authData = JSON.parse(auth);
             authData.user = updatedEmployee;
-            sessionStorage.setItem('quantum_trader_auth', JSON.stringify(authData));
+            sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
             console.log('[EmployeeDashboard] Updated sessionStorage with new employee data');
           }
         }
@@ -189,12 +271,19 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   // Initialize tab session tracking
   useEffect(() => {
     const handleSessionExpired = () => {
-      console.log('[EmployeeDashboard] Session expired, showing modal');
+      financialSessionInvalidRef.current = true;
       setShowSessionExpired(true);
     };
 
+    const auth = getStoredAuth();
+    const employeeAuth = auth?.userType === 'employee' ? auth : null;
+
     // Start tracking this tab's session
-    tabSessionManager.startSession(employee.id, handleSessionExpired);
+    tabSessionManager.startSession(employee.id, 'employee', handleSessionExpired, undefined, {
+      sessionMarker: employeeAuth?.sessionToken,
+      expiresAt: employeeAuth?.expiresAt,
+      onHandover: leaveSessionForAnotherTab,
+    });
 
     // Cleanup on unmount
     return () => {
@@ -215,7 +304,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     const initAudioContext = () => {
       if (!audioContextReady) {
         try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+          if (!AudioContextConstructor) return;
+          const audioContext = new AudioContextConstructor();
           audioContext.resume().then(() => {
             setAudioContextReady(true);
             console.log('Audio context initialized and ready');
@@ -285,66 +376,153 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     return () => clearTimeout(timer);
   }, [activeTab, loadedTabs]);
 
-  // Load unread message count
   useEffect(() => {
-    // Load data asynchronously without blocking render
-    loadUnreadCount();
-    checkLoginPopupMessages();
+    const reconcileLoginAndNotifications = async () => {
+      const storedAuth = sessionStorage.getItem(AUTH_STORAGE_KEY);
+      const sessionMarker = storedAuth
+        ? (JSON.parse(storedAuth) as { sessionToken?: string }).sessionToken
+        : undefined;
 
-    // Subscribe to new messages
-    const channel = supabase
-      .channel('employee_new_messages')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'message_recipients',
-          filter: `recipient_id=eq.${employee.id}`
-        },
-        async () => {
-          loadUnreadCount();
+      if (sessionMarker) {
+        await logEmployeeLogin(
+          employee.id,
+          employee.username,
+          employee.employee_id,
+          sessionMarker,
+        );
+      }
 
-          const { data: latest } = await supabase
-            .from('message_recipients')
-            .select('id, messages!inner(message_type)')
-            .eq('recipient_id', employee.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+      void loadUnreadCountRef.current?.();
+      void checkLoginPopupMessagesRef.current?.(false);
+    };
 
-          if (latest?.messages?.message_type === 'login_popup') return;
+    void reconcileLoginAndNotifications();
 
-          playNotificationSound();
-          setHasNewMessage(true);
-          await loadLatestMessage();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'message_recipients',
-          filter: `recipient_id=eq.${employee.id}`
-        },
-        () => {
-          loadUnreadCount();
-        }
-      )
-      .subscribe();
+    let recoveryQueued = false;
+    let recoveryFailures = 0;
+    let recoveryRetryAt = 0;
+    let transientWarningShown = false;
+    let cancelled = false;
+    notificationDeliveryActiveRef.current = true;
+
+    const recoverWhileActive = () => {
+      if (
+        cancelled
+        || recoveryQueued
+        || Date.now() < recoveryRetryAt
+        || financialSessionInvalidRef.current
+        || document.visibilityState !== 'visible'
+        || !navigator.onLine
+      ) return;
+
+      recoveryQueued = true;
+      void loadUnreadCountRef.current?.();
+      realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
+        .then(async () => {
+          if (cancelled || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
+          await recoverRealtimeNotificationsRef.current?.();
+          recoveryFailures = 0;
+          recoveryRetryAt = 0;
+          transientWarningShown = false;
+        })
+        .catch(error => {
+          if (cancelled) return;
+          if (isExpiredEmployeeSession(error)) {
+            financialSessionInvalidRef.current = true;
+            setShowSessionExpired(true);
+            return;
+          }
+          if (isSupabaseTransientError(error)) {
+            recoveryFailures += 1;
+            recoveryRetryAt = Date.now() + Math.min(30000 * 2 ** (recoveryFailures - 1), 300000);
+            if (!transientWarningShown) {
+              console.warn('Realtime notification recovery temporarily unavailable; retrying automatically:', formatSupabaseError(error));
+              transientWarningShown = true;
+            }
+            return;
+          }
+          console.error('Error recovering realtime notifications:', formatSupabaseError(error));
+        })
+        .finally(() => { recoveryQueued = false; });
+    };
+
+    const recoverAfterInterruption = () => {
+      if (cancelled || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
+
+      recoveryRetryAt = 0;
+      void loadUnreadCountRef.current?.();
+      recoverWhileActive();
+      void checkLoginPopupMessagesRef.current?.(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') recoverAfterInterruption();
+    };
+
+    window.addEventListener('online', recoverAfterInterruption);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const recoveryTimer = window.setInterval(recoverWhileActive, 30000);
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const subscribeTimer = window.setTimeout(() => {
+      channel = supabase
+        .channel(`employee_new_messages_${employee.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'message_recipients',
+            filter: `recipient_id=eq.${employee.id}`
+          },
+          payload => {
+            void loadUnreadCountRef.current?.();
+            const recipientId = String((payload.new as { id?: string }).id || '');
+            if (!recipientId || financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+            realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
+              .then(() => processRealtimeRecipientRef.current?.(recipientId))
+              .then(() => undefined)
+              .catch(error => console.error('Error draining realtime notifications:', formatSupabaseError(error)));
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'message_recipients',
+            filter: `recipient_id=eq.${employee.id}`
+          },
+          () => {
+            void loadUnreadCountRef.current?.();
+          }
+        )
+        .subscribe(status => {
+          notificationChannelStatusRef.current = status;
+          if (status === 'SUBSCRIBED') recoverAfterInterruption();
+        });
+    }, 0);
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      notificationDeliveryActiveRef.current = false;
+      window.removeEventListener('online', recoverAfterInterruption);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(recoveryTimer);
+      window.clearTimeout(subscribeTimer);
+      notificationChannelStatusRef.current = 'CLOSED';
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [employee.id]);
+  }, [employee.employee_id, employee.id, employee.username]);
 
 
 
   const playNotificationSound = () => {
     // Create a pleasant notification sound with two tones
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextConstructor) return;
+      const audioContext = new AudioContextConstructor();
 
       // Resume audio context if suspended (browser autoplay policy)
       if (audioContext.state === 'suspended') {
@@ -407,57 +585,186 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     }
   };
 
-  const checkLoginPopupMessages = async () => {
+  const checkLoginPopupMessages = async (combinedOnly = false) => {
+    if (financialSessionInvalidRef.current) return;
+    const generation = loginPopupGenerationRef.current;
     try {
-      const { data, error } = await supabase
-        .from('message_recipients')
-        .select('id, messages!inner(message_type)')
-        .eq('recipient_id', employee.id)
-        .eq('is_shown', false)
-        .eq('messages.message_type', 'login_popup')
-        .limit(1);
-
-      if (!error && data && data.length > 0) {
-        setShowLoginPopup(true);
-      }
+      const session = getEmployeeFinancialSession();
+      const { data, error } = await supabase.rpc('has_pending_employee_login_notifications', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_combined_only: combinedOnly,
+      });
+      if (error) throw error;
+      if (data && generation === loginPopupGenerationRef.current) setShowLoginPopup(true);
     } catch (error) {
-      console.error('Error checking login popup messages:', error);
+      if (isExpiredEmployeeSession(error)) {
+        financialSessionInvalidRef.current = true;
+        setShowSessionExpired(true);
+        return;
+      }
+      console.error('Error checking login popup messages:', formatSupabaseError(error));
     }
   };
 
-  const loadLatestMessage = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('message_recipients')
-        .select(`
-          id,
-          messages!inner (
-            title,
-            content,
-            priority
-          )
-        `)
-        .eq('recipient_id', employee.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+  const confirmClaimedRealtimeNotification = async (
+    result: RealtimeNotificationClaim,
+    session: EmployeeFinancialSession,
+  ): Promise<MessageToast | null> => {
+    if (financialSessionInvalidRef.current) return null;
+    const recipientId = result.recipient.id;
+    const completionPayload = {
+      p_user_id: employee.id,
+      p_session_token: session.token,
+      p_tab_id: session.tabId,
+      p_recipient_id: recipientId,
+      p_claim_token: result.claim_token,
+      p_mark_read: false,
+    };
+    let completion = await supabase.rpc('complete_notification_delivery', completionPayload);
+    if (completion.error && navigator.onLine && isSupabaseTransientError(completion.error)) {
+      await new Promise(resolve => window.setTimeout(resolve, 300));
+      if (financialSessionInvalidRef.current) return null;
+      completion = await supabase.rpc('complete_notification_delivery', completionPayload);
+    }
+    if (completion.error) throw completion.error;
+    const delivered = completion.data as { success?: boolean; delivery_channel?: MessageWithRecipient['delivery_channel']; delivered_at?: string; is_read?: boolean; read_at?: string | null } | null;
+    if (!delivered?.success) {
+      throw new Error('Notification delivery could not be confirmed.');
+    }
+    if (deliveredRecipientIdsRef.current.has(recipientId)) return null;
 
-      if (!error && data) {
-        setLatestMessage({
-          title: data.messages.title,
-          content: data.messages.content,
-          priority: data.messages.priority,
+    deliveredRecipientIdsRef.current.add(recipientId);
+    return {
+      recipientId,
+      title: result.message.title,
+      content: result.message.content,
+      priority: result.message.priority,
+      notificationCategory: result.message.notification_category || 'standard',
+      rewardAmount: result.message.reward_amount || null,
+      rewardCurrency: result.message.reward_currency || null,
+      notification: {
+        ...result.recipient,
+        delivery_channel: delivered.delivery_channel || 'realtime',
+        delivered_at: delivered.delivered_at || null,
+        is_read: delivered.is_read || false,
+        read_at: delivered.read_at || null,
+        messages: result.message,
+      },
+    };
+  };
+
+  const presentRealtimeNotifications = (toasts: MessageToast[]) => {
+    if (toasts.length === 0) return;
+    const latest = toasts[toasts.length - 1];
+    const items: MessageToast[] = toasts.length > REALTIME_BACKLOG_SUMMARY_THRESHOLD
+      ? [{
+          ...latest,
+          recipientId: `summary:${latest.recipientId}`,
+          priority: 'normal',
+          notificationCategory: 'standard',
+          rewardAmount: null,
+          rewardCurrency: null,
+          summaryCount: toasts.length,
+        }]
+      : toasts;
+    playNotificationSound();
+    setHasNewMessage(true);
+    setMessageToastQueue(previous => [
+      ...previous,
+      ...items.filter(item => !previous.some(existing => existing.recipientId === item.recipientId)),
+    ]);
+    void loadUnreadCountRef.current?.();
+  };
+
+  const processRealtimeRecipient = async (recipientId: string) => {
+    if (financialSessionInvalidRef.current || deliveredRecipientIdsRef.current.has(recipientId)) return;
+
+    try {
+      const session = getEmployeeFinancialSession();
+      const { data, error } = await supabase.rpc('claim_realtime_notification_delivery', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_recipient_id: recipientId,
+        p_lease_seconds: 120,
+      });
+      if (error) throw error;
+
+      const result = data as RealtimeNotificationClaim | null;
+      if (!result) return;
+      const toast = await confirmClaimedRealtimeNotification(result, session);
+      if (toast) presentRealtimeNotifications([toast]);
+    } catch (error) {
+      if (isExpiredEmployeeSession(error)) {
+        financialSessionInvalidRef.current = true;
+        setShowSessionExpired(true);
+        return;
+      }
+      console.error('Error processing realtime notification:', formatSupabaseError(error));
+    }
+  };
+
+  const recoverRealtimeNotifications = async () => {
+    if (financialSessionInvalidRef.current) return;
+    const session = getEmployeeFinancialSession();
+    const recoveredToasts: MessageToast[] = [];
+    try {
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        if (financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine || !notificationDeliveryActiveRef.current) return;
+
+        const { data, error } = await supabase.rpc('claim_next_realtime_notification_delivery', {
+          p_user_id: employee.id,
+          p_session_token: session.token,
+          p_tab_id: session.tabId,
+          p_lease_seconds: 120,
         });
-        setShowMessageToast(true);
+        if (error) throw error;
 
-        setTimeout(() => {
-          setShowMessageToast(false);
-        }, 10000);
+        const result = data as RealtimeNotificationClaim | null;
+        if (!result) return;
+        const toast = await confirmClaimedRealtimeNotification(result, session);
+        if (toast) recoveredToasts.push(toast);
       }
-    } catch (error) {
-      console.error('Error loading latest message:', error);
+    } finally {
+      if (notificationDeliveryActiveRef.current) presentRealtimeNotifications(recoveredToasts);
     }
   };
+
+  loadUnreadCountRef.current = loadUnreadCount;
+  checkLoginPopupMessagesRef.current = checkLoginPopupMessages;
+  processRealtimeRecipientRef.current = processRealtimeRecipient;
+  recoverRealtimeNotificationsRef.current = recoverRealtimeNotifications;
+
+  const dismissMessageToast = () => {
+    setShowMessageToast(false);
+    setLatestMessage(null);
+  };
+
+  useEffect(() => {
+    if (showMessageToast || latestMessage || messageToastQueue.length === 0) return;
+    const [nextMessage, ...remainingMessages] = messageToastQueue;
+    setLatestMessage(nextMessage);
+    setMessageToastQueue(remainingMessages);
+    setShowMessageToast(true);
+  }, [latestMessage, messageToastQueue, showMessageToast]);
+
+  useEffect(() => {
+    if (!showMessageToast || !latestMessage) return;
+    const timer = window.setTimeout(() => {
+      setShowMessageToast(false);
+      setLatestMessage(null);
+    }, 10000);
+    return () => window.clearTimeout(timer);
+  }, [latestMessage, showMessageToast]);
+
+  useEffect(() => {
+    deliveredRecipientIdsRef.current.clear();
+    setMessageToastQueue([]);
+    setShowMessageToast(false);
+    setLatestMessage(null);
+  }, [employee.id]);
 
   return (
     <div className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
@@ -525,24 +832,22 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         )}
       </div>
 
-      {createPortal(
-        <header
-          className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : 'translate-y-0'}`}
+      <header
+          ref={employeeHeaderRef}
+          className={`employee-header transition-transform duration-300 ${showWithdrawalHistory && isMobile ? '-translate-y-full' : ''}`}
           style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 9999,
             paddingTop: 'env(safe-area-inset-top)',
-            background: isMobile
+            backgroundImage: isMobile
               ? 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)'
               : 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 80%, #2563eb 100%)',
-            boxShadow: '0 4px 20px -2px rgba(37, 99, 235, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08)',
+            border: 'none',
+            borderRadius: 0,
+            outline: 'none',
+            boxShadow: 'none',
           }}
         >
           <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)'
+            background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.04) 100%)'
           }}>
             {/* Geometric decorative blocks in header */}
             <div className="absolute top-2 right-[15%] w-8 h-8 border-2 border-white/[0.08] rounded-lg rotate-12"></div>
@@ -551,11 +856,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             <div className="absolute top-3 left-[40%] w-4 h-4 bg-white/[0.04] rounded-full"></div>
             <div className="absolute bottom-2 right-[45%] w-3 h-3 bg-cyan-200/[0.06] rounded-full"></div>
             <div className="absolute top-1/2 left-[60%] w-10 h-10 border border-white/[0.05] rounded-xl rotate-12 -translate-y-1/2"></div>
-            {/* Accent line */}
-            <div className="absolute top-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-200/20 to-transparent"></div>
-          <div className={`max-w-7xl mx-auto relative ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 py-3.5'}`}>
+          <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 py-3.5'}`}>
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : isTablet ? 'w-9 h-9 rounded-xl' : 'w-10 h-10 rounded-xl'} bg-white/95 flex items-center justify-center shadow-sm flex-shrink-0`}>
@@ -571,23 +873,26 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   </div>
                 </div>
               </div>
-              <div className={`flex items-center ${isMobile ? 'gap-1.5' : isTablet ? 'gap-2' : 'gap-3'}`}>
+              <div className={`flex flex-shrink-0 items-center ${isMobile ? 'gap-1.5' : isTablet ? 'gap-2' : 'gap-3'}`}>
                 {/* Message Center Button */}
                 <div className="relative">
                   <button
                     onClick={() => {
+                      dismissMessageToast();
+                      setMessageToOpen(null);
                       setShowMessageCenter(true);
                       setHasNewMessage(false);
-                      setShowMessageToast(false);
                     }}
-                    className={`relative rounded-lg transition-all duration-200 group ${
+                    className={`employee-header-action relative flex-shrink-0 rounded-lg transition-all duration-200 group ${
                       unreadMessageCount > 0
                         ? 'bg-amber-400/20 hover:bg-amber-400/30'
                         : 'bg-white/10 hover:bg-white/20'
                     }`}
                     style={{
-                      width: isMobile ? '34px' : '36px',
-                      height: isMobile ? '34px' : '36px',
+                      width: isMobile || isTablet ? '44px' : '36px',
+                      height: isMobile || isTablet ? '44px' : '36px',
+                      minWidth: isMobile || isTablet ? '44px' : '36px',
+                      minHeight: isMobile || isTablet ? '44px' : '36px',
                       padding: '0',
                       display: 'flex',
                       alignItems: 'center',
@@ -599,7 +904,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   {/* Bell icon with breathing pulse when unread */}
                   <div className={`z-10 relative ${unreadMessageCount > 0 ? 'animate-bell-pulse keep-animation' : ''}`}>
                     <Bell
-                      className={`w-[18px] h-[18px] sm:w-5 sm:h-5 flex-shrink-0 keep-animation ${
+                      className={`w-[18px] h-[18px] flex-shrink-0 keep-animation ${
                         unreadMessageCount > 0 ? 'animate-bell-ring text-amber-300' : 'text-white'
                       }`}
                       strokeWidth={2.2}
@@ -610,7 +915,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   {/* Unread count badge */}
                   {unreadMessageCount > 0 && (
                     <div
-                      className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white z-20 keep-animation ${hasNewMessage ? 'animate-badge-bounce' : ''}`}
+                      className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white z-20 keep-animation ${hasNewMessage ? 'animate-badge-bounce' : ''}`}
                       style={{ willChange: hasNewMessage ? 'transform' : 'auto' }}
                     >
                       {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
@@ -622,9 +927,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   {showMessageToast && latestMessage && (
                     <div className="absolute top-full right-0 mt-2 w-[min(calc(100vw-2rem),320px)] z-50 animate-slide-in-down" style={{ maxWidth: 'min(calc(100vw - 2rem), 320px)' }}>
                       {/* Arrow */}
-                      <div className="absolute -top-[6px] right-3 w-3 h-3 transform rotate-45 bg-emerald-600 border border-emerald-400/30 border-b-0 border-r-0"></div>
+                      <div className={`absolute -top-[6px] right-3 h-3 w-3 rotate-45 border border-b-0 border-r-0 ${latestMessage.notificationCategory === 'performance_reward' ? 'border-amber-300/40 bg-amber-500' : 'border-emerald-400/30 bg-emerald-600'}`}></div>
 
-                      <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-emerald-400/40 border border-emerald-500/20" style={{ background: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%)', WebkitTextSizeAdjust: '100%' }}>
+                      <div className={`relative overflow-hidden rounded-2xl border shadow-2xl ring-1 ${latestMessage.notificationCategory === 'performance_reward' ? 'border-amber-300/30 bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-500 ring-amber-300/50' : 'border-emerald-500/20 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 ring-emerald-400/40'}`} style={{ WebkitTextSizeAdjust: '100%' }}>
                         {/* Decorative patterns - hidden on very narrow screens */}
                         <div className="hidden sm:block absolute top-0 right-0 w-20 h-20 rounded-full bg-teal-300 opacity-15 -translate-y-8 translate-x-6"></div>
                         <div className="hidden sm:block absolute bottom-0 left-0 w-14 h-14 rounded-full bg-emerald-300 opacity-10 translate-y-5 -translate-x-5"></div>
@@ -636,7 +941,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                         {/* Content */}
                         <div
-                          onClick={() => { setShowMessageToast(false); setShowMessageCenter(true); }}
+                          onClick={() => { setMessageToOpen(latestMessage.summaryCount ? null : latestMessage.notification); dismissMessageToast(); setShowMessageCenter(true); setHasNewMessage(false); }}
                           className="relative px-3 sm:px-4 pt-3 sm:pt-3.5 pb-3 sm:pb-3.5 cursor-pointer touch-manipulation"
                           style={{ WebkitTapHighlightColor: 'transparent' }}
                         >
@@ -644,20 +949,22 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                           <div className="flex items-center gap-2 sm:gap-2.5 mb-2 sm:mb-2.5">
                             <div className="relative flex-shrink-0">
                               <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 border border-white/20 ring-1 ring-white/10 shadow-inner">
-                                <Bell className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
+                                {latestMessage.notificationCategory === 'performance_reward' ? <Gift className="h-4.5 w-4.5 text-white" strokeWidth={2.2} /> : <Bell className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />}
                               </div>
-                              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center bg-white shadow-md">
-                                <span className="text-[7px] font-black leading-none text-emerald-600">1</span>
+                              <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-[3px] rounded-full flex items-center justify-center bg-white shadow-md">
+                                <span className="text-[10px] font-black leading-none text-emerald-600">{latestMessage.summaryCount ? (latestMessage.summaryCount > 99 ? '99+' : latestMessage.summaryCount) : 1}</span>
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="text-[9px] font-bold uppercase tracking-[0.12em] block mb-0.5 text-emerald-200">{t.header.newMessage}</span>
+                              <span className={`mb-0.5 block text-[11px] font-bold uppercase tracking-[0.12em] ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-50' : 'text-emerald-200'}`}>{latestMessage.notificationCategory === 'performance_reward' ? 'Performance Reward' : t.header.newMessage}</span>
                               <h3 className="font-bold text-[13px] leading-tight truncate text-white">
-                                {latestMessage.title}
+                                {latestMessage.summaryCount
+                                  ? t.header.newMessagesSummary.replace('{n}', String(latestMessage.summaryCount))
+                                  : latestMessage.title}
                               </h3>
                             </div>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setShowMessageToast(false); }}
+                              onClick={(e) => { e.stopPropagation(); dismissMessageToast(); }}
                               className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 transition-all"
                               style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation', minWidth: '32px', minHeight: '32px' }}
                             >
@@ -665,21 +972,30 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                             </button>
                           </div>
 
+                          {latestMessage.notificationCategory === 'performance_reward' && (
+                            <div className="mb-2.5 ml-[44px] flex items-center justify-between rounded-lg border border-white/20 bg-white/15 px-3 py-2 sm:ml-[46px]">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-white/75">Credited to Wallet</span>
+                              <span className="text-sm font-black text-white">+{Number(latestMessage.rewardAmount || 0).toFixed(2)} {latestMessage.rewardCurrency}</span>
+                            </div>
+                          )}
+
                           {/* Body */}
                           <div className="ml-[44px] sm:ml-[46px] p-2 sm:p-2.5 rounded-lg bg-white/10 border border-white/10 backdrop-blur-sm mb-2.5 sm:mb-3">
                             <p className="text-[12px] line-clamp-2 leading-[1.5] text-white/85">
-                              {latestMessage.content.replace(/<[^>]*>/g, '').slice(0, 80)}
+                              {latestMessage.summaryCount
+                                ? t.header.newMessagesSummaryHint
+                                : latestMessage.content.replace(/<[^>]*>/g, '').slice(0, 80)}
                             </p>
                           </div>
 
                           {/* Footer */}
                           <div className="flex items-center justify-between ml-[44px] sm:ml-[46px]">
-                            <span className="text-[10px] font-medium text-white/50 truncate mr-2">
+                            <span className="text-[11px] font-medium text-white/50 truncate mr-2">
                               {latestMessage.priority === 'urgent' ? t.header.urgent :
                                latestMessage.priority === 'high' ? t.header.highPriority : t.header.normal}
                             </span>
-                            <div className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all active:scale-95 hover:scale-105 bg-white text-emerald-700 shadow-md">
-                              <span className="text-[10px] font-bold">{t.header.view}</span>
+                            <div className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all active:scale-95 hover:scale-105 bg-white shadow-md ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                              <span className="text-[11px] font-bold">{t.header.view}</span>
                               <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                             </div>
                           </div>
@@ -710,7 +1026,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   </button>
 
                   <button
-                    onClick={logout}
+                    onClick={() => logout()}
                     className="px-3.5 py-2 rounded-lg bg-white/15 hover:bg-red-500/80 active:bg-red-600/80 text-white transition-all border border-white/20 hover:border-red-400/50"
                   >
                     <div className="flex items-center gap-2">
@@ -726,11 +1042,13 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="relative rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors group"
+                    className="employee-header-action relative flex-shrink-0 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors group"
                     style={{
-                      minWidth: isMobile ? '44px' : '50px',
-                      height: isMobile ? '34px' : '36px',
-                      padding: '0 8px',
+                      width: '44px',
+                      height: '44px',
+                      minWidth: '44px',
+                      minHeight: '44px',
+                      padding: '0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -739,15 +1057,15 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                     }}
                   >
                     <div className="flex items-center gap-1 sm:gap-1.5 relative z-10">
-                      <User className="w-[18px] h-[18px] sm:w-5 sm:h-5 flex-shrink-0 text-white" strokeWidth={2.2} />
-                      <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0 text-white/70 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
+                      <User className="w-[18px] h-[18px] flex-shrink-0 text-white" strokeWidth={2.2} />
+                      <ChevronDown className={`w-[12px] h-[12px] flex-shrink-0 text-white/70 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
                     </div>
                   </button>
 
                   {/* Dropdown Menu */}
                   {showUserMenu && (
                     <div className="absolute top-full right-0 mt-3 w-64 z-50 animate-[menuAppear_0.15s_ease-out]">
-                      <div className="relative bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-300 ring-1 ring-slate-200/50 overflow-hidden">
+                      <div className="relative overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-900/20">
                         {/* User Info Header */}
                         <div className="relative px-5 py-4 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 overflow-hidden">
                           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_60%)]" />
@@ -806,9 +1124,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
               </div>
             </div>
           </div>
-        </header>,
-        document.body
-      )}
+      </header>
 
       <div className="nav-content-pt relative">
         <div className={`max-w-7xl mx-auto ${isMobile ? 'px-3 py-0 pb-2' : isTablet ? 'px-5 py-4 pb-4' : 'px-8 py-6 pb-6'}`}>
@@ -828,7 +1144,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                     <div key={tab.id} className="flex-1 flex items-center min-w-0">
                       <button
                         onClick={() => setActiveTab(tab.id)}
-                        className={`group relative w-full flex items-center justify-center gap-2 px-3 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 overflow-hidden ${
+                        className={`group relative w-full flex items-center justify-center gap-2 px-3 xl:px-4 py-3 rounded-xl font-semibold transition-all duration-200 overflow-hidden ${
                           isActive
                             ? 'text-white'
                             : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
@@ -872,7 +1188,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                         </div>
 
                         {/* Label */}
-                        <span className="relative z-10 text-sm truncate">
+                        <span className="relative z-10 text-sm xl:text-base truncate">
                           {tab.label}
                         </span>
                       </button>
@@ -889,7 +1205,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           <div className="space-y-3 sm:space-y-6">
-            <div style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>
+            <div className="sm:max-lg:pb-[88px]" style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>
               {loadedTabs.has('announcements') ? (
                 <AnnouncementBoard userId={employee.id} />
               ) : isTransitioning ? (
@@ -898,9 +1214,12 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="pb-8">
+            <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="pb-[88px] lg:pb-24">
               {loadedTabs.has('dispatch') ? (
-                <OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onNavigateToOrders={() => {
+                <OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onSessionExpired={() => {
+                  financialSessionInvalidRef.current = true;
+                  setShowSessionExpired(true);
+                }} onNavigateToOrders={() => {
                   setActiveTab('orders');
                   setLoadedTabs(prev => new Set([...prev, 'orders']));
                 }} />
@@ -910,10 +1229,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div className="space-y-4 sm:space-y-6 pb-8" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
+            <div className="space-y-4 sm:space-y-6 pb-[88px] lg:pb-24" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
               {loadedTabs.has('orders') ? (
                 <>
-                  <OrderSubmission employeeId={employee.id} adminId={employee.created_by} onNavigateToDispatch={() => {
+                  <OrderSubmission employeeId={employee.id} isActive={activeTab === 'orders'} adminId={employee.created_by} onNavigateToDispatch={() => {
                     setActiveTab('dispatch');
                     setLoadedTabs(prev => new Set([...prev, 'dispatch']));
                   }} />
@@ -925,7 +1244,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div className="pb-8" style={{ display: activeTab === 'wallet' ? 'block' : 'none' }}>
+            <div className="pb-[88px] lg:pb-24" style={{ display: activeTab === 'wallet' ? 'block' : 'none' }}>
               {loadedTabs.has('wallet') ? (
                 <WalletOverview
                   employeeId={employee.id}
@@ -938,7 +1257,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
               ) : null}
             </div>
-            <div className="pb-8" style={{ display: activeTab === 'statistics' ? 'block' : 'none' }}>
+            <div className="pb-[88px] lg:pb-24" style={{ display: activeTab === 'statistics' ? 'block' : 'none' }}>
               {loadedTabs.has('statistics') ? (
                 <DailyStatistics employeeId={employee.id} />
               ) : isTransitioning ? (
@@ -955,7 +1274,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
       {/* Bottom Navigation - portaled to document.body */}
       {createPortal(
-      <nav className="nav-mobile safe-area-pb employee-nav" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9998 }}>
+      <nav ref={employeeNavRef} className="nav-mobile safe-area-pb employee-nav" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9998 }}>
         <div className="absolute inset-0 bg-white border-t border-slate-200/60"
           style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.04)' }}
         ></div>
@@ -1009,7 +1328,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 </div>
 
                 {/* Label */}
-                <span className={`relative z-10 text-[10px] xs:text-[11px] text-center leading-tight tracking-tight ${
+                <span className={`relative z-10 text-[11px] text-center leading-tight tracking-tight ${
                   isActive
                     ? 'text-blue-600 font-bold'
                     : showNewOrderEffect
@@ -1018,7 +1337,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                         ? 'text-red-600 font-medium'
                         : 'text-slate-400 font-medium'
                 }`}>
-                  {isMobile ? tab.mobileLabel : tab.label}
+                  <span className="min-[768px]:hidden">{tab.mobileLabel}</span>
+                  <span className="hidden min-[768px]:inline">{tab.label}</span>
                 </span>
               </button>
             );
@@ -1030,11 +1350,13 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
       {/* Password Change Modal */}
       {showPasswordChange && (
-        <PasswordChange
-          employeeId={employee.id}
-          onClose={() => setShowPasswordChange(false)}
-          onLogout={logout}
-        />
+        <Suspense fallback={<MessageOverlayFallback />}>
+          <PasswordChange
+            employeeId={employee.id}
+            onClose={() => setShowPasswordChange(false)}
+            onLogout={logout}
+          />
+        </Suspense>
       )}
 
       {/* Language Selection Modal */}
@@ -1054,16 +1376,26 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         /* CRITICAL: Navigation visibility - raw CSS, no Tailwind dependency */
         .nav-desktop { display: none; }
         .nav-mobile { display: block; }
-        .nav-root-padding { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
-        .nav-content-pt { padding-top: 56px; }
+        .nav-root-padding { padding-bottom: var(--employee-bottom-nav-height, calc(72px + env(safe-area-inset-bottom, 0px))); }
+        .nav-content-pt { padding-top: 0; }
 
-        /* Force fixed positioning for header and nav - cannot be overridden */
         .employee-header {
-          position: fixed !important;
+          position: sticky !important;
           top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          z-index: 9999 !important;
+          width: 100% !important;
+          border: none !important;
+          border-radius: 0 !important;
+          outline: none !important;
+          box-shadow: none !important;
+          background-clip: border-box;
+          isolation: isolate;
+          z-index: 10020 !important;
+        }
+        body:has(.employee-modal-backdrop, .employee-modal-surface) .employee-header {
+          z-index: 9000 !important;
+        }
+        body:has(.employee-modal-backdrop, .employee-modal-surface) .customer-service-fab {
+          visibility: hidden;
         }
         .employee-nav {
           position: fixed !important;
@@ -1087,14 +1419,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         }
 
         @media (min-width: 600px) {
-          .nav-content-pt { padding-top: 64px; }
+          .nav-content-pt { padding-top: 0; }
         }
 
         @media (min-width: 1025px) {
           .nav-desktop { display: block !important; }
           .nav-mobile { display: none !important; }
           .nav-root-padding { padding-bottom: 0; }
-          .nav-content-pt { padding-top: 72px; }
+          .nav-content-pt { padding-top: 8px; }
         }
 
         @keyframes shimmer-slide {
@@ -1235,9 +1567,17 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       {showMessageCenter && (
         <MessageCenter
           employee={employee}
+          initialMessage={messageToOpen}
           onClose={() => {
             setShowMessageCenter(false);
-            loadUnreadCount();
+            setMessageToOpen(null);
+            void loadUnreadCountRef.current?.();
+          }}
+          onSessionExpired={() => {
+            financialSessionInvalidRef.current = true;
+            setShowMessageCenter(false);
+            setMessageToOpen(null);
+            setShowSessionExpired(true);
           }}
         />
       )}
@@ -1247,19 +1587,38 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         <LoginPopupMessages
           employee={employee}
           onClose={() => {
+            loginPopupGenerationRef.current += 1;
             setShowLoginPopup(false);
-            loadUnreadCount();
+            void loadUnreadCountRef.current?.();
+          }}
+          onSessionExpired={() => {
+            loginPopupGenerationRef.current += 1;
+            financialSessionInvalidRef.current = true;
+            setShowLoginPopup(false);
+            setShowSessionExpired(true);
           }}
         />
       )}
 
       {/* Customer Service Chat Widget */}
-      <CustomerServiceChat employeeId={employee.id} />
+      <Suspense fallback={null}>
+        <CustomerServiceChat employeeId={employee.id} />
+      </Suspense>
 
       {/* Session Expired Modal */}
       <SessionExpiredModal
         isOpen={showSessionExpired}
         onClose={handleSessionExpiredClose}
+      />
+
+      <PhoneLandscapeGuard
+        notice={
+          hasNewOrder
+            ? { message: t.orientation.newOrder, tone: 'order' }
+            : hasOrderTimeout
+              ? { message: t.orientation.orderAttention, tone: 'urgent' }
+              : null
+        }
       />
     </div>
   );

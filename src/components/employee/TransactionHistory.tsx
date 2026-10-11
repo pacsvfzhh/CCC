@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { History, ArrowUpRight, CheckCircle, XCircle, Clock, Calendar, MessageSquare, Ban, X, DollarSign, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getCurrentTimestamp, formatDateUTC, formatTimeUTC } from '../../lib/dateUtils';
+import { formatDateUTC, formatTimeUTC } from '../../lib/dateUtils';
 import { Withdrawal, WalletTransaction } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 import { usePaginatedList } from '../../lib/usePaginatedList';
+import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
 
 interface TransactionHistoryProps {
   employeeId: string;
@@ -22,6 +24,8 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
   const [selectedTransaction, setSelectedTransaction] = useState<CombinedTransaction | null>(null);
   const { isMobile } = useResponsive();
   const { t } = useLanguage();
+  const loadTransactionsRef = useRef<(() => Promise<void>) | null>(null);
+  const cancellationOperationIdsRef = useRef(new Map<string, string>());
 
   const ITEMS_PER_PAGE = isMobile ? 10 : 15;
   const { pageItems, page, totalPages, totalItems, hasNext, hasPrev, goNext, goPrev } = usePaginatedList({
@@ -30,7 +34,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
   });
 
   useEffect(() => {
-    loadTransactions();
+    void loadTransactionsRef.current?.();
 
     // Realtime subscription for new wallet transactions
     const txChannel = supabase
@@ -39,21 +43,21 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${employeeId}` },
         () => {
-          loadTransactions();
+          void loadTransactionsRef.current?.();
         }
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'withdrawals', filter: `user_id=eq.${employeeId}` },
+        { event: '*', schema: 'public', table: 'withdrawal_events', filter: `user_id=eq.${employeeId}` },
         () => {
-          loadTransactions();
+          void loadTransactionsRef.current?.();
         }
       )
       .subscribe();
 
     // Fallback polling at longer interval since realtime handles most updates
     const interval = setInterval(() => {
-      loadTransactions();
+      void loadTransactionsRef.current?.();
     }, 15000);
 
     return () => {
@@ -62,26 +66,30 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
     };
   }, [employeeId]);
 
-  useEffect(() => {
-    if (selectedTransaction) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+  const isDetailOpen = Boolean(selectedTransaction);
+  useLayoutEffect(() => {
+    if (!isDetailOpen) return;
 
-      return () => {
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [selectedTransaction]);
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isDetailOpen]);
 
   const loadTransactions = async () => {
     try {
@@ -95,7 +103,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
           .from('wallet_transactions')
           .select('*')
           .eq('user_id', employeeId)
-          .in('type', ['manual_adjustment', 'withdrawal_approved', 'withdrawal_rejected'])
+          .in('type', ['manual_adjustment', 'withdrawal_approved', 'withdrawal_rejected', 'performance_bonus'])
           .order('created_at', { ascending: false })
       ]);
 
@@ -124,6 +132,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       setLoading(false);
     }
   };
+  loadTransactionsRef.current = loadTransactions;
 
   const getTransactionIcon = (transaction: CombinedTransaction) => {
     if (transaction.type === 'withdrawal') {
@@ -144,6 +153,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       const walletTx = transaction.data as WalletTransaction;
       if (walletTx.type === 'withdrawal_approved') return <CheckCircle className="w-4 h-4" />;
       if (walletTx.type === 'withdrawal_rejected') return <XCircle className="w-4 h-4" />;
+      if (walletTx.type === 'performance_bonus') return <DollarSign className="w-4 h-4" />;
       return walletTx.amount > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />;
     }
   };
@@ -155,6 +165,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       const walletTx = transaction.data as WalletTransaction;
       if (walletTx.type === 'withdrawal_approved') return 'approved';
       if (walletTx.type === 'withdrawal_rejected') return 'rejected';
+      if (walletTx.type === 'performance_bonus') return 'performance_bonus';
       const amount = walletTx.amount;
       return amount > 0 ? 'adjustment_add' : 'adjustment_subtract';
     }
@@ -204,6 +215,13 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
         iconBg: 'bg-orange-500/20',
         dotColor: 'bg-orange-400'
       },
+      performance_bonus: {
+        bg: 'bg-amber-500/10',
+        border: 'border-amber-500/30',
+        text: 'text-amber-400',
+        iconBg: 'bg-amber-500/20',
+        dotColor: 'bg-amber-400'
+      },
     };
 
     return configs[status as keyof typeof configs];
@@ -224,6 +242,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       const walletTx = transaction.data as WalletTransaction;
       if (walletTx.type === 'withdrawal_approved') return 'WITHDRAWAL COMPLETED';
       if (walletTx.type === 'withdrawal_rejected') return 'WITHDRAWAL REFUNDED';
+      if (walletTx.type === 'performance_bonus') return 'PERFORMANCE BONUS';
       const amount = walletTx.amount;
       return amount > 0 ? 'BALANCE ADDED' : 'BALANCE DEDUCTED';
     }
@@ -260,83 +279,30 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
     setCancellingId(withdrawal.id);
 
     try {
-      // First, verify the withdrawal is still pending
-      const { data: currentWithdrawal, error: checkError } = await supabase
-        .from('withdrawals')
-        .select('status, amount')
-        .eq('id', withdrawal.id)
-        .single();
+      const financialSession = getEmployeeFinancialSession();
+      const operationId = cancellationOperationIdsRef.current.get(withdrawal.id)
+        || createFinancialOperationId();
+      cancellationOperationIdsRef.current.set(withdrawal.id, operationId);
 
-      if (checkError) throw checkError;
+      const { data: result, error } = await supabase.rpc('cancel_employee_withdrawal', {
+        p_user_id: employeeId,
+        p_session_token: financialSession.token,
+        p_tab_id: financialSession.tabId,
+        p_withdrawal_id: withdrawal.id,
+        p_operation_id: operationId,
+      });
 
-      if (currentWithdrawal.status !== 'pending') {
-        alert('This withdrawal has already been processed and cannot be cancelled.');
-        loadTransactions();
-        setCancellingId(null);
-        return;
-      }
+      if (error) throw error;
+      if (!result?.success) throw new Error(result?.error || 'Failed to cancel withdrawal.');
 
-      // Get current wallet state
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', employeeId)
-        .single();
-
-      if (walletError) throw walletError;
-
-      // Calculate new balances
-      const newAvailable = wallet.available_balance + currentWithdrawal.amount;
-      const newFrozen = wallet.frozen_balance - currentWithdrawal.amount;
-
-      // Validate that frozen balance is sufficient
-      if (newFrozen < 0) {
-        throw new Error('Insufficient frozen balance. Please refresh and try again.');
-      }
-
-      // Update withdrawal status first
-      const { error: withdrawalUpdateError } = await supabase
-        .from('withdrawals')
-        .update({
-          status: 'cancelled',
-          audit_remark: t.withdrawals.cancelledByUser,
-          audited_at: getCurrentTimestamp(),
-        })
-        .eq('id', withdrawal.id)
-        .eq('status', 'pending'); // Only update if still pending
-
-      if (withdrawalUpdateError) throw withdrawalUpdateError;
-
-      // Then update wallet balances
-      const { error: walletUpdateError } = await supabase
-        .from('wallets')
-        .update({
-          available_balance: newAvailable,
-          frozen_balance: newFrozen,
-        })
-        .eq('user_id', employeeId);
-
-      if (walletUpdateError) {
-        // Try to rollback withdrawal status
-        await supabase
-          .from('withdrawals')
-          .update({
-            status: 'pending',
-            audit_remark: null,
-            audited_at: null,
-          })
-          .eq('id', withdrawal.id);
-        throw walletUpdateError;
-      }
-
-      // Reload transactions to reflect changes
+      cancellationOperationIdsRef.current.delete(withdrawal.id);
       await loadTransactions();
       alert('Withdrawal cancelled successfully. Funds have been returned to your available balance.');
     } catch (error) {
       console.error('Error cancelling withdrawal:', error);
       alert(`Failed to cancel withdrawal: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
       // Reload to ensure UI reflects actual state
-      loadTransactions();
+      void loadTransactionsRef.current?.();
     } finally {
       setCancellingId(null);
     }
@@ -426,7 +392,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                                 {label}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                            <div className="flex items-center gap-1 text-[11px] text-slate-400">
                               <Calendar className="w-2.5 h-2.5" />
                               <span>{formatDate(transaction.created_at)}</span>
                               <span className="opacity-40">•</span>
@@ -435,7 +401,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Amount</div>
+                          <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Amount</div>
                           <div className="text-xl font-black text-white tracking-tight">
                             ${Math.abs(amount).toFixed(2)}
                           </div>
@@ -446,7 +412,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                         <div className={`rounded-lg border ${config.border} ${config.bg} overflow-hidden`}>
                           <div className={`px-2.5 py-1.5 ${config.iconBg} border-b ${config.border} flex items-center gap-1.5`}>
                             <MessageSquare className={`w-3 h-3 ${config.text}`} />
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${config.text}`}>
+                            <span className={`text-[11px] font-bold uppercase tracking-wider ${config.text}`}>
                               {transaction.type === 'withdrawal' ? 'Feedback' : 'Note'}
                             </span>
                           </div>
@@ -461,7 +427,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                           <div className="space-y-2">
                             <div className="rounded-lg border border-slate-700/40 bg-slate-800/30 p-2.5 text-center">
                               <Clock className="w-5 h-5 text-slate-500 mx-auto mb-1.5" />
-                              <p className="text-[10px] text-slate-500 font-semibold">Pending Review...</p>
+                              <p className="text-[11px] text-slate-500 font-semibold">Pending Review...</p>
                             </div>
                             <button
                               onClick={(e) => {
@@ -477,14 +443,14 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                           </div>
                         ) : (
                           <div className="rounded-lg border border-slate-700/40 bg-slate-800/30 p-2 text-center">
-                            <p className="text-[10px] text-slate-500 italic">No {transaction.type === 'withdrawal' ? 'feedback' : 'note'} provided</p>
+                            <p className="text-[11px] text-slate-500 italic">No {transaction.type === 'withdrawal' ? 'feedback' : 'note'} provided</p>
                           </div>
                         )
                       )}
 
                       {transaction.type === 'withdrawal' && (transaction.data as Withdrawal).audited_at && (
                         <div className="mt-2 pt-2 border-t border-slate-700/50">
-                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+                          <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
                             <CheckCircle className="w-3 h-3 text-emerald-400" />
                             <span className="font-medium">Reviewed</span>
                             <span className="opacity-50">·</span>
@@ -561,7 +527,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                               <div className="flex items-start gap-2">
                                 <MessageSquare className={`w-4 h-4 flex-shrink-0 mt-0.5 ${config.text}`} />
                                 <div className="flex-1 min-w-0">
-                                  <div className={`text-[10px] font-bold uppercase tracking-wider ${config.text} mb-1.5`}>
+                                  <div className={`text-[11px] font-bold uppercase tracking-wider ${config.text} mb-1.5`}>
                                     {transaction.type === 'withdrawal' ? 'Feedback' : 'Note'}
                                   </div>
                                   <p className="text-sm text-slate-200 leading-relaxed break-words">
@@ -649,9 +615,9 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       </div>
       </div>
 
-      {selectedTransaction && (
+      {selectedTransaction && createPortal(
         <div
-          className="fixed inset-0 z-50 flex bg-black/70
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex bg-black/70
           md:items-stretch md:justify-stretch md:p-0
           lg:items-stretch lg:justify-stretch lg:p-0
           xl:items-center xl:justify-center xl:p-4"
@@ -669,7 +635,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
           }}
         >
           <div
-            className="relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 w-full flex flex-col overflow-hidden
+            className="employee-modal-surface relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 w-full flex flex-col overflow-hidden
                        md:m-0 md:rounded-none md:max-w-full md:h-screen
                        xl:m-4 xl:rounded-2xl xl:max-w-3xl xl:max-h-[calc(100vh-2rem)]"
             style={{
@@ -752,7 +718,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                         <div className="p-1.5 bg-emerald-500/20 rounded-lg">
                           <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
                         </div>
-                        <span className="text-[10px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Amount</span>
+                        <span className="text-[11px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Amount</span>
                       </div>
                       <div className="text-2xl lg:text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-300 bg-clip-text text-transparent">
                         ${Math.abs(getTransactionAmount(selectedTransaction)).toFixed(2)}
@@ -766,7 +732,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                     <div className={`relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-xl p-3 lg:p-4 border-2 ${getStatusConfig(getTransactionStatus(selectedTransaction)).border} backdrop-blur-sm`}>
                       <div className="flex items-center gap-2 mb-1.5 lg:mb-2">
                         <span className={`w-2 h-2 rounded-full ${getStatusConfig(getTransactionStatus(selectedTransaction)).dotColor} animate-pulse shadow-lg`}></span>
-                        <span className="text-[10px] sm:text-xs text-slate-300 font-black uppercase tracking-wider">Status</span>
+                        <span className="text-[11px] sm:text-xs text-slate-300 font-black uppercase tracking-wider">Status</span>
                       </div>
                       <div className={`text-xl lg:text-2xl font-black uppercase ${getStatusConfig(getTransactionStatus(selectedTransaction)).text}`}>
                         {getTransactionLabel(selectedTransaction)}
@@ -782,7 +748,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                       <div className="p-1.5 bg-blue-500/20 rounded-lg">
                         <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
                       </div>
-                      <span className="text-[10px] sm:text-xs text-blue-300 font-black uppercase tracking-wider">
+                      <span className="text-[11px] sm:text-xs text-blue-300 font-black uppercase tracking-wider">
                         {selectedTransaction.type === 'withdrawal' ? 'Submitted:' : 'Adjusted:'}
                       </span>
                       <span className="text-xs sm:text-sm text-white font-semibold">
@@ -795,7 +761,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
                         <div className="p-1.5 bg-emerald-500/20 rounded-lg">
                           <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
                         </div>
-                        <span className="text-[10px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Reviewed:</span>
+                        <span className="text-[11px] sm:text-xs text-emerald-300 font-black uppercase tracking-wider">Reviewed:</span>
                         <span className="text-xs sm:text-sm text-white font-semibold">
                           {formatDate((selectedTransaction.data as Withdrawal).audited_at!)} {formatTime((selectedTransaction.data as Withdrawal).audited_at!)}
                         </span>
@@ -888,7 +854,8 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

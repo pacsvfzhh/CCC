@@ -17,6 +17,17 @@ export interface DeviceCapabilities {
   isLowEndDevice: boolean;
 }
 
+interface NetworkInformationLike {
+  effectiveType?: string;
+}
+
+interface ExtendedNavigator extends Navigator {
+  deviceMemory?: number;
+  connection?: NetworkInformationLike;
+  mozConnection?: NetworkInformationLike;
+  webkitConnection?: NetworkInformationLike;
+}
+
 export interface PerformanceConfig {
   enableAnimations: boolean;
   enableParticles: boolean;
@@ -68,8 +79,7 @@ class DevicePerformanceDetector {
     const deviceType = this.detectDeviceType();
     const hardwareConcurrency = navigator.hardwareConcurrency || 2;
 
-    // @ts-ignore - deviceMemory is not in all browsers
-    const deviceMemory = navigator.deviceMemory as number | undefined;
+    const deviceMemory = (navigator as ExtendedNavigator).deviceMemory;
 
     const connectionSpeed = this.detectConnectionSpeed();
     const maxTextureSize = this.detectMaxTextureSize();
@@ -305,8 +315,8 @@ class DevicePerformanceDetector {
    * Detect connection speed
    */
   private detectConnectionSpeed(): 'slow' | 'medium' | 'fast' {
-    // @ts-ignore - connection is not in all browsers
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const extendedNavigator = navigator as ExtendedNavigator;
+    const connection = extendedNavigator.connection || extendedNavigator.mozConnection || extendedNavigator.webkitConnection;
 
     if (!connection) {
       return 'medium';
@@ -329,16 +339,15 @@ class DevicePerformanceDetector {
   private detectMaxTextureSize(): number | undefined {
     try {
       const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
 
       if (!gl) {
         return undefined;
       }
 
-      // @ts-ignore
       const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
       return maxTextureSize;
-    } catch (error) {
+    } catch {
       return undefined;
     }
   }
@@ -394,8 +403,6 @@ class DevicePerformanceDetector {
    */
   applyCSSOptimizations(): void {
     const capabilities = this.detectCapabilities();
-    const config = this.getPerformanceConfig();
-
     const styleId = 'device-performance-optimizations';
     let styleElement = document.getElementById(styleId) as HTMLStyleElement;
 

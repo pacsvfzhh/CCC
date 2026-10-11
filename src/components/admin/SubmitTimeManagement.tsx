@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, ChevronRight, Pencil, Save, X, CheckCircle, XCircle, Settings, Timer, Search } from 'lucide-react';
+import { Clock, Plus, Trash2, ChevronRight, Pencil, Save, X, CheckCircle, XCircle, Settings, Search } from 'lucide-react';
 import { Admin } from '../../types';
 import { supabase } from '../../lib/supabase';
 
@@ -56,7 +56,7 @@ export default function SubmitTimeManagement({ admin }: SubmitTimeManagementProp
   const loadData = useCallback(async () => {
     try {
       let adminIds: string[] = [];
-      let adminMap: Record<string, { username: string; role: string }> = {};
+      const adminMap: Record<string, { username: string; role: string }> = {};
 
       if (admin.role === 'super_admin') {
         const { data: admins } = await supabase

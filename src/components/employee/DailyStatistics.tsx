@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Calendar, CheckCircle, XCircle, DollarSign, ListChecks, BarChart3, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
+import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
 interface DailyStatisticsProps {
   employeeId: string;
@@ -40,9 +41,13 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   });
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
+  const [ownerAdminId, setOwnerAdminId] = useState<string | null>(null);
+  const resolvedCurrencyUnit = useCurrencyUnit(ownerAdminId);
+  const currencyUnit = ownerAdminId ? resolvedCurrencyUnit : '';
   const ITEMS_PER_PAGE = 7;
-  const { isMobile, isTablet, deviceType, shouldReduceAnimations } = useDeviceOptimization();
+  const { isMobile, isTablet, deviceType } = useDeviceOptimization();
   const { t } = useLanguage();
+  const loadStatisticsRef = useRef<(() => Promise<void>) | null>(null);
 
   // Tablet-specific detection
   const isTabletDevice = deviceType === 'tablet';
@@ -71,8 +76,17 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   }, [deviceType, isTablet, isMobile, isTabletDevice]);
 
   useEffect(() => {
-    loadStatistics();
-    const interval = setInterval(loadStatistics, 10000);
+    void supabase
+      .from('users')
+      .select('created_by')
+      .eq('id', employeeId)
+      .maybeSingle()
+      .then(({ data }) => setOwnerAdminId(data?.created_by || null));
+  }, [employeeId]);
+
+  useEffect(() => {
+    void loadStatisticsRef.current?.();
+    const interval = setInterval(() => { void loadStatisticsRef.current?.(); }, 10000);
     return () => clearInterval(interval);
   }, [employeeId]);
 
@@ -85,12 +99,12 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
           .from('wallet_transactions')
           .select('amount')
           .eq('user_id', employeeId)
-          .eq('type', 'tip'),
+          .in('type', ['tip', 'performance_bonus']),
         supabase
           .from('wallet_transactions')
           .select('amount, created_at')
           .eq('user_id', employeeId)
-          .eq('type', 'tip'),
+          .in('type', ['tip', 'performance_bonus']),
       ]);
 
       if (dailyResult.error) throw dailyResult.error;
@@ -180,6 +194,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
       setLoading(false);
     }
   };
+  loadStatisticsRef.current = loadStatistics;
 
   if (loading) {
     return (
@@ -195,25 +210,24 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   return (
     <>
       <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
+        .employee-daily-statistics .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }
 
-        /* Optimize animations for mobile */
         @media (max-width: 1023px) {
-          * {
+          .employee-daily-statistics * {
             animation-duration: 0s !important;
             transition-duration: 0.15s !important;
           }
 
-          .animate-pulse,
-          .animate-spin,
-          .animate-ping {
+          .employee-daily-statistics .animate-pulse,
+          .employee-daily-statistics .animate-spin,
+          .employee-daily-statistics .animate-ping {
             animation: none !important;
           }
         }
       `}</style>
-      <div className="space-y-4 pb-12 lg:pb-6">
+      <div className="employee-daily-statistics space-y-4 pb-12 lg:pb-6">
         {/* Overall Statistics Summary */}
         <div className="bg-white rounded-xl lg:rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-3 sm:p-4 lg:p-6">
@@ -222,23 +236,23 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
               <BarChart3 className="w-5 h-5 lg:w-5.5 lg:h-5.5 text-blue-600" />
               <h2 className="text-base lg:text-lg font-bold text-blue-600">{t.statistics.overview}</h2>
             </div>
-            <div className="grid gap-2.5 sm:gap-3 lg:gap-4 grid-cols-2 md:grid-cols-3">
+            <div className="grid gap-2.5 sm:gap-3 lg:gap-4 grid-cols-2 min-[720px]:grid-cols-3">
               {/* Total Revenue Card (Commission + Tips) */}
               <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-amber-50 to-white border border-amber-200 hover:border-amber-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
                     <DollarSign className="w-4 h-4 text-amber-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-amber-600/70 uppercase tracking-wider">{t.statistics.revenue}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-amber-600/70 uppercase tracking-wider">{t.statistics.revenue}</span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-sm sm:text-base font-bold text-amber-600">$</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-amber-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-amber-700 leading-none truncate"
                     style={{
                       fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_revenue.toFixed(2).length * 0.04))}rem, 1.5rem)`
                     }}
-                    title={`$${overallStats.total_revenue.toFixed(2)}`}
+                    title={`${currencyUnit} ${overallStats.total_revenue.toFixed(2)}`}
                   >
                     {overallStats.total_revenue.toFixed(2)}
                   </span>
@@ -251,16 +265,16 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
                     <TrendingUp className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-indigo-600/70 uppercase tracking-wider">{t.statistics.commission}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-indigo-600/70 uppercase tracking-wider">{t.statistics.commission}</span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-sm sm:text-base font-bold text-indigo-600">$</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-indigo-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-indigo-700 leading-none truncate"
                     style={{
                       fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_commission.toFixed(2).length * 0.04))}rem, 1.5rem)`
                     }}
-                    title={`$${overallStats.total_commission.toFixed(2)}`}
+                    title={`${currencyUnit} ${overallStats.total_commission.toFixed(2)}`}
                   >
                     {overallStats.total_commission.toFixed(2)}
                   </span>
@@ -273,16 +287,16 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-pink-100 flex items-center justify-center group-hover:bg-pink-200 transition-colors">
                     <Gift className="w-4 h-4 text-pink-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-pink-600/70 uppercase tracking-wider">{t.statistics.tips}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-pink-600/70 uppercase tracking-wider">{t.statistics.tips}</span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-sm sm:text-base font-bold text-pink-600">$</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-pink-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-pink-700 leading-none truncate"
                     style={{
                       fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_tips.toFixed(2).length * 0.04))}rem, 1.5rem)`
                     }}
-                    title={`$${overallStats.total_tips.toFixed(2)}`}
+                    title={`${currencyUnit} ${overallStats.total_tips.toFixed(2)}`}
                   >
                     {overallStats.total_tips.toFixed(2)}
                   </span>
@@ -295,7 +309,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                     <ListChecks className="w-4 h-4 text-blue-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-blue-600/70 uppercase tracking-wider">{t.statistics.orders}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-blue-600/70 uppercase tracking-wider">{t.statistics.orders}</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-blue-700 leading-none">
                   {overallStats.total_orders}
@@ -308,7 +322,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
                     <CheckCircle className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-emerald-600/70 uppercase tracking-wider">{t.statistics.success}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-emerald-600/70 uppercase tracking-wider">{t.statistics.success}</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-emerald-600 leading-none">
                   {overallStats.total_success}
@@ -321,7 +335,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
                     <XCircle className="w-4 h-4 text-red-500" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-red-500/70 uppercase tracking-wider">{t.statistics.failed}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-red-500/70 uppercase tracking-wider">{t.statistics.failed}</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-red-500 leading-none">
                   {overallStats.total_failed}
@@ -442,13 +456,13 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                             {/* Commission */}
                             <div className="flex items-center gap-1 px-2 py-1 bg-indigo-500/10 rounded-md border border-indigo-500/20">
                               <TrendingUp className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                              <span className="text-xs font-bold text-indigo-500">${stat.daily_commission.toFixed(2)}</span>
+                              <span className="text-xs font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
                             </div>
 
                             {/* Tips */}
                             <div className="flex items-center gap-1 px-2 py-1 bg-pink-500/10 rounded-md border border-pink-500/20">
                               <Gift className="w-3.5 h-3.5 text-pink-400 flex-shrink-0" />
-                              <span className="text-xs font-bold text-pink-500">${stat.daily_tips.toFixed(2)}</span>
+                              <span className="text-xs font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
                             </div>
                           </div>
 
@@ -509,13 +523,13 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                           {/* Commission */}
                           <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-500/10 rounded border border-indigo-500/20">
                             <TrendingUp className="w-3 h-3 text-indigo-400 flex-shrink-0" />
-                            <span className="text-[10px] font-bold text-indigo-500">${stat.daily_commission.toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
                           </div>
 
                           {/* Tips */}
                           <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-500/10 rounded border border-pink-500/20">
                             <Gift className="w-3 h-3 text-pink-400 flex-shrink-0" />
-                            <span className="text-[10px] font-bold text-pink-500">${stat.daily_tips.toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
                           </div>
                         </div>
 
@@ -606,14 +620,14 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                             <span className="text-sm font-bold text-red-400">{stat.failure_count}</span>
                           </td>
                           <td className="px-3 py-2.5 text-right">
-                            <span className="text-sm font-bold text-indigo-500">${stat.daily_commission.toFixed(2)}</span>
+                            <span className="text-sm font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
                           </td>
                           <td className="px-3 py-2.5 text-right">
-                            <span className="text-sm font-bold text-pink-500">${stat.daily_tips.toFixed(2)}</span>
+                            <span className="text-sm font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <span className="text-sm font-bold text-emerald-400">
-                              ${stat.daily_earnings.toFixed(2)}
+                              {currencyUnit} {stat.daily_earnings.toFixed(2)}
                             </span>
                           </td>
                         </tr>

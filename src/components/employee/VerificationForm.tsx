@@ -3,7 +3,7 @@ import { CheckCircle, Upload, User, CreditCard, AlertCircle } from 'lucide-react
 import { supabase } from '../../lib/supabase';
 import { getCurrentTimestamp } from '../../lib/dateUtils';
 import { validateImageFile } from '../../lib/fileValidation';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface VerificationFormProps {
   employeeId: string;
@@ -78,7 +78,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
         .getPublicUrl(filePath);
 
       return publicUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('File upload error:', error);
       throw error;
     }
@@ -152,7 +152,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
             audited_at: null,
             updated_at: getCurrentTimestamp(),
           })
-          .eq('id', targetId);
+          .eq('id', targetId!);
 
         if (error) throw error;
       } else {
@@ -178,9 +178,9 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
       setTimeout(() => {
         onVerificationComplete();
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting verification:', error);
-      const errorMessage = error?.message || t.verification.submitError;
+      const errorMessage = error instanceof Error ? error.message : t.verification.submitError;
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setLoading(false);
@@ -196,7 +196,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-sm sm:text-lg lg:text-xl font-bold text-gray-900 truncate">{existingRequest ? t.verification.resubmit : t.verification.title}</h2>
-          <p className="text-gray-500 text-[10px] sm:text-xs lg:text-sm line-clamp-1">{existingRequest ? t.verification.resetDesc : t.verification.subtitle}</p>
+          <p className="text-gray-500 text-[11px] sm:text-xs lg:text-sm line-clamp-1">{existingRequest ? t.verification.resetDesc : t.verification.subtitle}</p>
         </div>
       </div>
 
@@ -205,7 +205,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
           <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-xs sm:text-sm text-blue-800 flex-1 min-w-0">
             <p className="font-medium mb-1">{t.verification.whyVerify}</p>
-            <ul className="space-y-0.5 sm:space-y-1 text-[10px] sm:text-xs lg:text-sm text-blue-700">
+            <ul className="space-y-0.5 sm:space-y-1 text-[11px] sm:text-xs lg:text-sm text-blue-700">
               <li>• {t.verification.enableWithdrawals}</li>
               <li>• {t.verification.increaseSecurity}</li>
               <li>• {t.verification.complyRegulations}</li>
@@ -248,7 +248,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
             className="w-full px-3 py-2 sm:px-4 sm:py-2.5 lg:py-3 bg-gray-50 border border-gray-300 rounded-md sm:rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-xs sm:text-sm lg:text-base font-mono"
             placeholder={t.verification.walletAddressPlaceholder}
           />
-          <p className="text-gray-500 text-[10px] sm:text-xs mt-1">{t.verification.walletAddressHint}</p>
+          <p className="text-gray-500 text-[11px] sm:text-xs mt-1">{t.verification.walletAddressHint}</p>
         </div>
 
         <div>
@@ -284,9 +284,9 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
             <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-gray-700 mb-0.5 sm:mb-1">
-                {t.verification.documentsUpload} <span className="text-gray-400 text-[10px] sm:text-xs">{t.verification.optional}</span>
+                {t.verification.documentsUpload} <span className="text-gray-400 text-[11px] sm:text-xs">{t.verification.optional}</span>
               </p>
-              <p className="text-[10px] sm:text-xs text-gray-500">{t.verification.documentsUploadDesc}</p>
+              <p className="text-[11px] sm:text-xs text-gray-500">{t.verification.documentsUploadDesc}</p>
             </div>
           </div>
 
@@ -306,17 +306,17 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
                 {files.idFront ? (
                   <>
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    <span className="text-[9px] sm:text-xs text-green-600 text-center break-all line-clamp-2">{files.idFront.name}</span>
+                    <span className="text-[11px] sm:text-xs text-green-600 text-center break-all line-clamp-2">{files.idFront.name}</span>
                   </>
                 ) : existingRequest?.id_front_url ? (
                   <>
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                    <span className="text-[9px] sm:text-xs text-blue-600 text-center">{t.verification.previouslyUploaded}</span>
+                    <span className="text-[11px] sm:text-xs text-blue-600 text-center">{t.verification.previouslyUploaded}</span>
                   </>
                 ) : (
                   <>
                     <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                    <span className="text-[9px] sm:text-xs text-gray-400 group-hover:text-blue-500 transition-colors text-center">{t.verification.doc1}</span>
+                    <span className="text-[11px] sm:text-xs text-gray-400 group-hover:text-blue-500 transition-colors text-center">{t.verification.doc1}</span>
                   </>
                 )}
               </label>
@@ -337,17 +337,17 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
                 {files.idBack ? (
                   <>
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    <span className="text-[9px] sm:text-xs text-green-600 text-center break-all line-clamp-2">{files.idBack.name}</span>
+                    <span className="text-[11px] sm:text-xs text-green-600 text-center break-all line-clamp-2">{files.idBack.name}</span>
                   </>
                 ) : existingRequest?.id_back_url ? (
                   <>
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                    <span className="text-[9px] sm:text-xs text-blue-600 text-center">{t.verification.previouslyUploaded}</span>
+                    <span className="text-[11px] sm:text-xs text-blue-600 text-center">{t.verification.previouslyUploaded}</span>
                   </>
                 ) : (
                   <>
                     <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                    <span className="text-[9px] sm:text-xs text-gray-400 group-hover:text-blue-500 transition-colors text-center">{t.verification.doc2}</span>
+                    <span className="text-[11px] sm:text-xs text-gray-400 group-hover:text-blue-500 transition-colors text-center">{t.verification.doc2}</span>
                   </>
                 )}
               </label>
@@ -368,24 +368,24 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
                 {files.selfie ? (
                   <>
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    <span className="text-[9px] sm:text-xs text-green-600 text-center break-all line-clamp-2">{files.selfie.name}</span>
+                    <span className="text-[11px] sm:text-xs text-green-600 text-center break-all line-clamp-2">{files.selfie.name}</span>
                   </>
                 ) : existingRequest?.selfie_url ? (
                   <>
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                    <span className="text-[9px] sm:text-xs text-blue-600 text-center">{t.verification.previouslyUploaded}</span>
+                    <span className="text-[11px] sm:text-xs text-blue-600 text-center">{t.verification.previouslyUploaded}</span>
                   </>
                 ) : (
                   <>
                     <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                    <span className="text-[9px] sm:text-xs text-gray-400 group-hover:text-blue-500 transition-colors text-center">{t.verification.doc3}</span>
+                    <span className="text-[11px] sm:text-xs text-gray-400 group-hover:text-blue-500 transition-colors text-center">{t.verification.doc3}</span>
                   </>
                 )}
               </label>
             </div>
           </div>
 
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-2 sm:mt-3 text-center">{t.verification.fileFormatHint}</p>
+          <p className="text-[11px] sm:text-xs text-gray-500 mt-2 sm:mt-3 text-center">{t.verification.fileFormatHint}</p>
         </div>
 
         {uploadProgress && (
@@ -441,7 +441,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
           </button>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-md sm:rounded-lg p-2.5 sm:p-3 text-[10px] sm:text-xs lg:text-sm text-amber-800">
+        <div className="bg-amber-50 border border-amber-200 rounded-md sm:rounded-lg p-2.5 sm:p-3 text-[11px] sm:text-xs lg:text-sm text-amber-800">
           <p className="font-medium mb-0.5 sm:mb-1">{t.verification.importantNotice}</p>
           <p className="text-amber-700 leading-relaxed">
             {t.verification.importantNoticeMsg}
