@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History, ShieldCheck, X, Loader2 } from 'lucide-react';
+import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History, ShieldCheck, X, Loader2, ChevronRight } from 'lucide-react';
 import { supabase, formatSupabaseError } from '../../lib/supabase';
 import { Wallet, Employee, VerificationRequest } from '../../types';
 import VerificationForm from './VerificationForm';
@@ -1577,14 +1577,18 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               setShowWithdrawalHistory(true);
               onWithdrawalHistoryChange?.(true);
             }}
-            className="flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg sm:rounded-xl font-semibold transition-all duration-200 text-xs sm:text-sm shadow-sm hover:shadow-md group"
+            className="group relative inline-flex !h-[36px] !min-h-[36px] shrink-0 items-center gap-[8px] overflow-hidden whitespace-nowrap rounded-[12px] bg-gradient-to-r from-orange-500 to-amber-500 pl-[6px] pr-[12px] text-white shadow-[0_6px_16px_-6px_rgba(249,115,22,0.6)] ring-1 ring-inset ring-white/25 transition-all duration-200 hover:-translate-y-px hover:shadow-[0_10px_22px_-8px_rgba(249,115,22,0.7)] active:translate-y-0 lg:!h-[40px] lg:!min-h-[40px] lg:pl-[8px] lg:pr-[16px]"
           >
-            <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:rotate-[-15deg] transition-transform duration-200" />
-            <span className="tracking-wide text-[11px] sm:text-xs md:text-sm font-bold">{t.wallet.withdrawalHistory}</span>
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" aria-hidden="true"></span>
+            <span className="relative flex h-[24px] w-[24px] items-center justify-center rounded-[8px] bg-white/20 lg:h-[28px] lg:w-[28px]">
+              <History className="h-[14px] w-[14px] transition-transform duration-300 group-hover:-rotate-[20deg] lg:h-[16px] lg:w-[16px]" />
+            </span>
+            <span className="relative text-[12px] font-bold tracking-wide sm:text-[13px] lg:text-[14px]">{t.wallet.withdrawalHistory}</span>
+            <ChevronRight className="relative h-[14px] w-[14px] opacity-80 transition-transform duration-200 group-hover:translate-x-0.5 lg:h-[16px] lg:w-[16px]" />
           </button>
         </div>
 
-        <style>{'@keyframes wd-btn-cover{from{opacity:1}to{opacity:0}}keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}.wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
+        <style>{'@keyframes wd-btn-cover{from{opacity:1}to{opacity:0}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}.wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
         {/* Content wrapper with transition animation */}
         <div
           className="relative z-10"
