@@ -34,6 +34,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const contentInnerRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState<number | null>(null);
   const [contentResizing, setContentResizing] = useState(false);
+  const [contentRevealActive, setContentRevealActive] = useState(false);
   const { deviceType } = useDeviceOptimization();
   const loadWalletRef = useRef<(() => Promise<void>) | null>(null);
   const loadEmployeeDataRef = useRef<(() => Promise<void>) | null>(null);
@@ -392,6 +393,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
     if (openForm) setShowWithdrawalForm(true);
     if (nextMessage) setMessage(nextMessage);
+    setContentRevealActive(true);
     setEligibilityOverlayLeaving(true);
     await wait(1050);
     setCheckingEligibility(false);
@@ -1276,16 +1278,16 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         {/* Curtain animation overlay - appears during checking */}
         {checkingEligibility && (
           <>
-            <style>{'.wd-curtain{-webkit-mask-size:300% 100%;mask-size:300% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}.wd-curtain-l{-webkit-mask-image:linear-gradient(to right,#000 0%,#000 36%,transparent 64%,transparent 100%);mask-image:linear-gradient(to right,#000 0%,#000 36%,transparent 64%,transparent 100%)}.wd-curtain-r{-webkit-mask-image:linear-gradient(to left,#000 0%,#000 36%,transparent 64%,transparent 100%);mask-image:linear-gradient(to left,#000 0%,#000 36%,transparent 64%,transparent 100%)}@keyframes wd-spread-l{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-spread-r{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-recede-l{from{-webkit-mask-position:0% 0;mask-position:0% 0;opacity:1}to{-webkit-mask-position:100% 0;mask-position:100% 0;opacity:.6}}@keyframes wd-recede-r{from{-webkit-mask-position:100% 0;mask-position:100% 0;opacity:1}to{-webkit-mask-position:0% 0;mask-position:0% 0;opacity:.6}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}'}</style>
+            <style>{'.wd-curtain{-webkit-mask-size:200% 100%;mask-size:200% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}.wd-curtain-l{-webkit-mask-image:linear-gradient(to right,#000 0%,#000 38%,transparent 62%,transparent 100%);mask-image:linear-gradient(to right,#000 0%,#000 38%,transparent 62%,transparent 100%)}.wd-curtain-r{-webkit-mask-image:linear-gradient(to left,#000 0%,#000 38%,transparent 62%,transparent 100%);mask-image:linear-gradient(to left,#000 0%,#000 38%,transparent 62%,transparent 100%)}@keyframes wd-spread-l{from{-webkit-mask-position:160% 0;mask-position:160% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-spread-r{from{-webkit-mask-position:-60% 0;mask-position:-60% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-recede-l{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:160% 0;mask-position:160% 0}}@keyframes wd-recede-r{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:-60% 0;mask-position:-60% 0}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}@keyframes wd-flow{from{background-position:0% 50%}to{background-position:100% 50%}}.wd-curtain-colors{background-image:linear-gradient(90deg,#06b6d4 0%,#2563eb 22%,#1e40af 38%,#3b82f6 50%,#1e40af 62%,#2563eb 78%,#06b6d4 100%);background-size:220% 100%}'}</style>
             {/* Left curtain: colour washes in from the left with a soft feathered edge */}
             <div
-              className="wd-curtain wd-curtain-l keep-animation absolute inset-0 z-50 bg-[linear-gradient(90deg,#06b6d4_0%,#2563eb_50%,#06b6d4_100%)]"
-              style={{ animation: eligibilityOverlayLeaving ? 'wd-recede-l 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-l 1000ms cubic-bezier(0.33, 0, 0.2, 1) both' }}
+              className="wd-curtain wd-curtain-l wd-curtain-colors keep-animation absolute inset-0 z-50"
+              style={{ animation: `${eligibilityOverlayLeaving ? 'wd-recede-l 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-l 1000ms cubic-bezier(0.33, 0, 0.2, 1) both'}, wd-flow 2.6s ease-in-out infinite alternate` }}
             ></div>
             {/* Right curtain */}
             <div
-              className="wd-curtain wd-curtain-r keep-animation absolute inset-0 z-50 bg-[linear-gradient(90deg,#06b6d4_0%,#2563eb_50%,#06b6d4_100%)]"
-              style={{ animation: eligibilityOverlayLeaving ? 'wd-recede-r 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-r 1000ms cubic-bezier(0.33, 0, 0.2, 1) both' }}
+              className="wd-curtain wd-curtain-r wd-curtain-colors keep-animation absolute inset-0 z-50"
+              style={{ animation: `${eligibilityOverlayLeaving ? 'wd-recede-r 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-r 1000ms cubic-bezier(0.33, 0, 0.2, 1) both'}, wd-flow 2.6s ease-in-out infinite alternate` }}
             ></div>
 
             {/* Center loading area with progress - positioned below title */}
@@ -1490,6 +1492,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           </button>
         </div>
 
+        <style>{'@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
         {/* Content wrapper with transition animation */}
         <div
           className="relative z-10"
@@ -1505,8 +1508,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         <div ref={contentInnerRef}>
           {/* Transitioning content area */}
           {!showWithdrawalForm ? (
-            <div className={`interactive-transition ${
-              checkingEligibility ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+            <div className={`interactive-transition ${contentRevealActive ? 'wd-reveal-stagger' : ''} ${
+              checkingEligibility && !eligibilityOverlayLeaving ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
             }`}>
               {message && (
                 <div
@@ -1568,10 +1571,10 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               </button>
             </div>
           ) : (
-            <div className="space-y-3 sm:space-y-4 interactive-transition" style={{
-              animation: 'fadeIn 0.4s ease-out',
-              transformOrigin: 'center'
-            }}>
+            <div
+              className={`space-y-3 sm:space-y-4 interactive-transition ${contentRevealActive ? 'wd-reveal-stagger' : ''}`}
+              style={contentRevealActive ? undefined : { animation: 'fadeIn 0.4s ease-out', transformOrigin: 'center' }}
+            >
             {/* Withdrawal Request Header Card */}
             <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
               {/* Blue Header Banner */}
