@@ -1278,16 +1278,22 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         {/* Curtain animation overlay - appears during checking */}
         {checkingEligibility && (
           <>
-            <style>{'.wd-curtain{-webkit-mask-size:200% 100%;mask-size:200% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}.wd-curtain-l{-webkit-mask-image:linear-gradient(to right,#000 0%,#000 38%,transparent 62%,transparent 100%);mask-image:linear-gradient(to right,#000 0%,#000 38%,transparent 62%,transparent 100%)}.wd-curtain-r{-webkit-mask-image:linear-gradient(to left,#000 0%,#000 38%,transparent 62%,transparent 100%);mask-image:linear-gradient(to left,#000 0%,#000 38%,transparent 62%,transparent 100%)}@keyframes wd-spread-l{from{-webkit-mask-position:160% 0;mask-position:160% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-spread-r{from{-webkit-mask-position:-60% 0;mask-position:-60% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-recede-l{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:160% 0;mask-position:160% 0}}@keyframes wd-recede-r{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:-60% 0;mask-position:-60% 0}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}@keyframes wd-flow{from{background-position:0% 50%}to{background-position:100% 50%}}.wd-curtain-colors{background-image:linear-gradient(90deg,#06b6d4 0%,#2563eb 22%,#1e40af 38%,#3b82f6 50%,#1e40af 62%,#2563eb 78%,#06b6d4 100%);background-size:220% 100%}'}</style>
-            {/* Left curtain: colour washes in from the left with a soft feathered edge */}
+            <style>{'@keyframes wd-curtain-l-in{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}@keyframes wd-curtain-l-out{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 0 100%)}}@keyframes wd-curtain-r-in{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 0)}}@keyframes wd-curtain-r-out{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 100% 0 0)}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}'}</style>
+            {/* Left curtain: original colours over an opaque white base so nothing behind shows through */}
             <div
-              className="wd-curtain wd-curtain-l wd-curtain-colors keep-animation absolute inset-0 z-50"
-              style={{ animation: `${eligibilityOverlayLeaving ? 'wd-recede-l 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-l 1000ms cubic-bezier(0.33, 0, 0.2, 1) both'}, wd-flow 2.6s ease-in-out infinite alternate` }}
+              className="keep-animation absolute inset-0 z-50"
+              style={{
+                backgroundImage: 'linear-gradient(to right, rgba(6,182,212,0.95), rgba(37,99,235,0.9), transparent), linear-gradient(#ffffff, #ffffff)',
+                animation: eligibilityOverlayLeaving ? 'wd-curtain-l-out 900ms cubic-bezier(0.45, 0, 0.2, 1) 150ms both' : 'wd-curtain-l-in 1000ms cubic-bezier(0.22, 0.8, 0.3, 1) both',
+              }}
             ></div>
             {/* Right curtain */}
             <div
-              className="wd-curtain wd-curtain-r wd-curtain-colors keep-animation absolute inset-0 z-50"
-              style={{ animation: `${eligibilityOverlayLeaving ? 'wd-recede-r 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-r 1000ms cubic-bezier(0.33, 0, 0.2, 1) both'}, wd-flow 2.6s ease-in-out infinite alternate` }}
+              className="keep-animation absolute inset-0 z-50"
+              style={{
+                backgroundImage: 'linear-gradient(to left, rgba(37,99,235,0.95), rgba(6,182,212,0.9), transparent), linear-gradient(to right, rgba(6,182,212,0.95), rgba(37,99,235,0.9), transparent), linear-gradient(#ffffff, #ffffff)',
+                animation: eligibilityOverlayLeaving ? 'wd-curtain-r-out 900ms cubic-bezier(0.45, 0, 0.2, 1) 150ms both' : 'wd-curtain-r-in 1000ms cubic-bezier(0.22, 0.8, 0.3, 1) both',
+              }}
             ></div>
 
             {/* Center loading area with progress - positioned below title */}
