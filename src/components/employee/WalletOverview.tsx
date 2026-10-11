@@ -1114,15 +1114,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             </div>
             <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
           </div>
-          <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
-            <span className={`text-amber-600 font-bold flex-shrink-0 ${
-              isTabletDevice ? 'text-sm' : 'text-xs sm:text-base md:text-lg'
-            }`}>$</span>
+          <div
+            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+              isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
+            }`}
+            style={isTabletDevice ? { fontSize: getTabletFontSize(totalAssets) } : {}}
+          >
+            <span className="text-amber-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className={`font-bold text-gray-900 leading-tight truncate ${
-                isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
-              }`}
-              style={isTabletDevice ? { fontSize: getTabletFontSize(totalAssets) } : {}}
+              className="font-bold text-gray-900 leading-tight truncate"
               title={`$${totalAssets.toFixed(2)}`}
             >
               {totalAssets.toFixed(2)}
@@ -1138,15 +1138,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             </div>
             <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
           </div>
-          <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
-            <span className={`text-emerald-600 font-bold flex-shrink-0 ${
-              isTabletDevice ? 'text-sm' : 'text-xs sm:text-base md:text-lg'
-            }`}>$</span>
+          <div
+            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+              isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
+            }`}
+            style={isTabletDevice ? { fontSize: getTabletFontSize(wallet?.available_balance || 0) } : {}}
+          >
+            <span className="text-emerald-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className={`font-bold text-gray-900 leading-tight truncate ${
-                isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
-              }`}
-              style={isTabletDevice ? { fontSize: getTabletFontSize(wallet?.available_balance || 0) } : {}}
+              className="font-bold text-gray-900 leading-tight truncate"
               title={`$${wallet?.available_balance.toFixed(2)}`}
             >
               {(wallet?.available_balance || 0).toFixed(2)}
@@ -1162,15 +1162,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             </div>
             <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
           </div>
-          <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
-            <span className={`text-orange-600 font-bold flex-shrink-0 ${
-              isTabletDevice ? 'text-sm' : 'text-xs sm:text-base md:text-lg'
-            }`}>$</span>
+          <div
+            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+              isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
+            }`}
+            style={isTabletDevice ? { fontSize: getTabletFontSize(wallet?.frozen_balance || 0) } : {}}
+          >
+            <span className="text-orange-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className={`font-bold text-gray-900 leading-tight truncate ${
-                isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
-              }`}
-              style={isTabletDevice ? { fontSize: getTabletFontSize(wallet?.frozen_balance || 0) } : {}}
+              className="font-bold text-gray-900 leading-tight truncate"
               title={`$${wallet?.frozen_balance.toFixed(2)}`}
             >
               {(wallet?.frozen_balance || 0).toFixed(2)}
@@ -1186,15 +1186,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             </div>
             <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
           </div>
-          <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
-            <span className={`text-blue-600 font-bold flex-shrink-0 ${
-              isTabletDevice ? 'text-sm' : 'text-xs sm:text-base md:text-lg'
-            }`}>$</span>
+          <div
+            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+              isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
+            }`}
+            style={isTabletDevice ? { fontSize: getTabletFontSize(localEmployee.total_income) } : {}}
+          >
+            <span className="text-blue-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className={`font-bold text-gray-900 leading-tight truncate ${
-                isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
-              }`}
-              style={isTabletDevice ? { fontSize: getTabletFontSize(localEmployee.total_income) } : {}}
+              className="font-bold text-gray-900 leading-tight truncate"
               title={`$${localEmployee.total_income.toFixed(2)}`}
             >
               {localEmployee.total_income.toFixed(2)}
