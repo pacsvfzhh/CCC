@@ -21,6 +21,7 @@
 - 原因：公告详情等弹窗打开时把 body 固定为 `position: fixed; top: -滚动距离` 来锁定滚动，sticky 标题栏随之被推出屏幕。
 - 修复：`EmployeeDashboard.tsx` 监听 body 锁定状态写入 `--employee-scroll-lock-offset`，标题栏 `top` 使用该偏移，弹窗期间保持在顶部；覆盖所有同类滚动锁定的员工端弹窗。
 - 验证：390×844、1280×600 滚动后锁定，标题栏保持 y=0（修复前 -1266px）；typecheck、eslint、build 通过。无数据库/服务端改动，前端需用户部署。
+- 补充：钱包 Submit Withdrawal 弹窗用 `overflow: hidden` 锁定（不固定 body），平板滚动后标题栏同样被推出（-535px）。现在也监听 html/body 的 overflow 锁定，用当前滚动距离偏移；320×568、700×840、1280×600 打开时标题栏均为 y=0，关闭后正常滚动。
 
 ## 2026-10-11 · 提现确认弹窗按钮高度
 - 需求：Submit Withdrawal 确认弹窗下方两个按钮太高，与面板不协调。

@@ -133,9 +133,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   useEffect(() => {
     const body = document.body;
     const root = document.documentElement;
-    // Modal scroll locks pin <body> with a negative top, which drags the sticky header off-screen.
+    // Modal scroll locks (fixed <body> with negative top, or overflow:hidden) drag the sticky header off-screen.
     const syncScrollLockOffset = () => {
-      const offset = body.style.position === 'fixed' ? Math.max(0, -parseFloat(body.style.top || '0') || 0) : 0;
+      let offset = 0;
+      if (body.style.position === 'fixed') {
+        offset = Math.max(0, -parseFloat(body.style.top || '0') || 0);
+      } else if (body.style.overflow === 'hidden' || root.style.overflow === 'hidden') {
+        offset = Math.max(0, window.scrollY);
+      }
       const value = `${offset}px`;
       if (root.style.getPropertyValue('--employee-scroll-lock-offset') !== value) {
         root.style.setProperty('--employee-scroll-lock-offset', value);
@@ -143,6 +148,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     };
     const observer = new MutationObserver(syncScrollLockOffset);
     observer.observe(body, { attributes: true, attributeFilter: ['style'] });
+    observer.observe(root, { attributes: true, attributeFilter: ['style'] });
     syncScrollLockOffset();
     return () => {
       observer.disconnect();
