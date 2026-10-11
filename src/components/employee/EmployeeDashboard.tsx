@@ -130,6 +130,26 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     };
   }, []);
 
+  useEffect(() => {
+    const body = document.body;
+    const root = document.documentElement;
+    // Modal scroll locks pin <body> with a negative top, which drags the sticky header off-screen.
+    const syncScrollLockOffset = () => {
+      const offset = body.style.position === 'fixed' ? Math.max(0, -parseFloat(body.style.top || '0') || 0) : 0;
+      const value = `${offset}px`;
+      if (root.style.getPropertyValue('--employee-scroll-lock-offset') !== value) {
+        root.style.setProperty('--employee-scroll-lock-offset', value);
+      }
+    };
+    const observer = new MutationObserver(syncScrollLockOffset);
+    observer.observe(body, { attributes: true, attributeFilter: ['style'] });
+    syncScrollLockOffset();
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--employee-scroll-lock-offset');
+    };
+  }, []);
+
   useLayoutEffect(() => {
     const nav = employeeNavRef.current;
     if (!nav) return;
@@ -1398,7 +1418,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
         .employee-header {
           position: sticky !important;
-          top: 0 !important;
+          top: var(--employee-scroll-lock-offset, 0px) !important;
           width: 100% !important;
           border: none !important;
           border-radius: 0 !important;
