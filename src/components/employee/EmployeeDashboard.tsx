@@ -17,6 +17,8 @@ import SessionExpiredModal from './SessionExpiredModal';
 import MessageCenter from './MessageCenter';
 import LoginPopupMessages from './LoginPopupMessages';
 
+import PageLoader from './PageLoader';
+
 const AnnouncementBoard = lazy(() => import('./AnnouncementBoard'));
 const OrderSubmission = lazy(() => import('./OrderSubmission'));
 const OrderList = lazy(() => import('./OrderList'));
@@ -1246,18 +1248,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             </div>
           </div>
 
-          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+          <Suspense fallback={<PageLoader />}>
           <div className="space-y-3 sm:space-y-6">
-            <div className="sm:max-lg:pb-[88px]" style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>
+            <div className="emp-tab-pane sm:max-lg:pb-[88px]" style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>
               {loadedTabs.has('announcements') ? (
                 <AnnouncementBoard userId={employee.id} />
-              ) : isTransitioning ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : null}
+              ) : isTransitioning ? <PageLoader /> : null}
             </div>
-            <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="pb-[88px] lg:pb-24">
+            <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="emp-tab-pane pb-[88px] lg:pb-24">
               {loadedTabs.has('dispatch') ? (
                 <OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onSessionExpired={() => {
                   financialSessionInvalidRef.current = true;
@@ -1266,13 +1264,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   setActiveTab('orders');
                   setLoadedTabs(prev => new Set([...prev, 'orders']));
                 }} />
-              ) : isTransitioning ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : null}
+              ) : isTransitioning ? <PageLoader /> : null}
             </div>
-            <div className="space-y-4 sm:space-y-6 pb-[88px] lg:pb-24" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
+            <div className="emp-tab-pane space-y-4 sm:space-y-6 pb-[88px] lg:pb-24" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
               {loadedTabs.has('orders') ? (
                 <>
                   <OrderSubmission employeeId={employee.id} isActive={activeTab === 'orders'} adminId={employee.created_by} onNavigateToDispatch={() => {
@@ -1281,33 +1275,21 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   }} />
                   <OrderList employeeId={employee.id} />
                 </>
-              ) : isTransitioning ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : null}
+              ) : isTransitioning ? <PageLoader /> : null}
             </div>
-            <div className="pb-[88px] lg:pb-24" style={{ display: activeTab === 'wallet' ? 'block' : 'none' }}>
+            <div className="emp-tab-pane pb-[88px] lg:pb-24" style={{ display: activeTab === 'wallet' ? 'block' : 'none' }}>
               {loadedTabs.has('wallet') ? (
                 <WalletOverview
                   employeeId={employee.id}
                   employee={employee}
                   onWithdrawalHistoryChange={setShowWithdrawalHistory}
                 />
-              ) : isTransitioning ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : null}
+              ) : isTransitioning ? <PageLoader /> : null}
             </div>
-            <div className="pb-[88px] lg:pb-24" style={{ display: activeTab === 'statistics' ? 'block' : 'none' }}>
+            <div className="emp-tab-pane pb-[88px] lg:pb-24" style={{ display: activeTab === 'statistics' ? 'block' : 'none' }}>
               {loadedTabs.has('statistics') ? (
                 <DailyStatistics employeeId={employee.id} />
-              ) : isTransitioning ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : null}
+              ) : isTransitioning ? <PageLoader /> : null}
             </div>
           </div>
           </Suspense>

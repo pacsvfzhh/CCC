@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Calendar, CheckCircle, XCircle, DollarSign, ListChecks, BarChart3, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../lib/i18n/context';
+import PageLoader from './PageLoader';
 
 interface DailyStatisticsProps {
   employeeId: string;
@@ -169,12 +170,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl lg:rounded-2xl border border-gray-200 p-6 lg:p-8 text-center">
-        <div className="inline-flex items-center gap-2 text-gray-500">
-          <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-          <span>{t.statistics.loading}</span>
-        </div>
-      </div>
+      <PageLoader label={t.statistics.loading} />
     );
   }
 

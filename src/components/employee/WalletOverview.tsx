@@ -5,6 +5,7 @@ import { supabase, formatSupabaseError } from '../../lib/supabase';
 import { Wallet, Employee, VerificationRequest } from '../../types';
 import VerificationForm from './VerificationForm';
 import WithdrawalHistory from './WithdrawalHistory';
+import PageLoader from './PageLoader';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 import { useLanguage } from '../../lib/i18n/context';
@@ -530,9 +531,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-blue-200 p-8 text-center shadow-sm">
-        <div className="text-gray-500">{t.common.loading}</div>
-      </div>
+      <PageLoader />
     );
   }
 
