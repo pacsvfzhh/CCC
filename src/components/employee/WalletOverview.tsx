@@ -30,6 +30,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const [localEmployee, setLocalEmployee] = useState(employee);
   const [verificationRequest, setVerificationRequest] = useState<VerificationRequest | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [eligibilityOverlayLeaving, setEligibilityOverlayLeaving] = useState(false);
   const { deviceType } = useDeviceOptimization();
   const loadWalletRef = useRef<(() => Promise<void>) | null>(null);
   const loadEmployeeDataRef = useRef<(() => Promise<void>) | null>(null);
@@ -339,31 +340,36 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   };
 
   const handleRequestWithdrawal = async () => {
-    console.log('handleRequestWithdrawal called');
+    if (checkingEligibility) return;
     setMessage(null);
+    setEligibilityOverlayLeaving(false);
     setCheckingEligibility(true);
 
+    const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    let nextMessage: { type: 'success' | 'error'; text: string } | null = null;
+    let openForm = false;
+
     try {
-      const eligibility = await checkWithdrawalEligibility();
-      console.log('Eligibility check result:', eligibility);
-
-      if (!eligibility.eligible) {
-        setMessage({ type: 'error', text: eligibility.message });
-        setCheckingEligibility(false);
-        return;
+      // Keep the overlay up long enough to read as a deliberate step, even on fast networks.
+      const [eligibility] = await Promise.all([checkWithdrawalEligibility(), wait(1200)]);
+      if (eligibility.eligible) {
+        openForm = true;
+      } else {
+        nextMessage = { type: 'error', text: eligibility.message };
       }
-
-      // Add a small delay for better visual effect
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setShowWithdrawalForm(true);
-      setCheckingEligibility(false);
     } catch (error) {
       if (!isExpectedWithdrawalRejection(error)) {
         console.error('Error in handleRequestWithdrawal:', formatSupabaseError(error));
       }
-      setMessage({ type: 'error', text: describeWithdrawalError(error, t.wallet.eligibilityFailed) });
-      setCheckingEligibility(false);
+      nextMessage = { type: 'error', text: describeWithdrawalError(error, t.wallet.eligibilityFailed) };
     }
+
+    if (openForm) setShowWithdrawalForm(true);
+    if (nextMessage) setMessage(nextMessage);
+    setEligibilityOverlayLeaving(true);
+    await wait(380);
+    setCheckingEligibility(false);
+    setEligibilityOverlayLeaving(false);
   };
 
   const handleConfirmWithdrawal = async () => {
@@ -1244,18 +1250,21 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         {/* Curtain animation overlay - appears during checking */}
         {checkingEligibility && (
           <>
-            {/* Left curtain */}
-            <div className="absolute inset-0 z-50 bg-gradient-to-r from-cyan-500/95 via-blue-600/90 to-transparent origin-left animate-[curtainLeft_0.8s_ease-out_forwards]"></div>
-            {/* Right curtain */}
-            <div className="absolute inset-0 z-50 bg-gradient-to-l from-blue-600/95 via-cyan-500/90 to-transparent origin-right animate-[curtainRight_0.8s_ease-out_forwards]"></div>
-
-            {/* Center loading area with progress - positioned below title */}
-            <div className="absolute inset-0 z-50 flex items-start md:items-center justify-center pt-12 sm:pt-16 md:pt-0">
-              <div className="flex flex-col items-center gap-2 sm:gap-3 px-4 sm:px-8">
-                {/* Glowing background orb - smaller */}
-                <div className="absolute w-24 h-24 sm:w-32 sm:h-32 bg-cyan-400/20 rounded-full blur-2xl animate-pulse"></div>
-
-                {/* Rotating ring spinner - smaller */}
+            <style>{'@keyframes wd-cover-in{from{opacity:0}to{opacity:1}}@keyframes wd-cover-out{from{opacity:1}to{opacity:0}}@keyframes wd-cover-content-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes wd-cover-progress{from{transform:translateX(-100%)}to{transform:translateX(-8%)}}'}</style>
+            <div
+              className="keep-animation absolute inset-0 z-50 flex items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#1e3a8a_0%,#1d4ed8_55%,#0e7490_100%)]"
+              style={{ animation: eligibilityOverlayLeaving ? 'wd-cover-out 380ms ease-in forwards' : 'wd-cover-in 320ms ease-out forwards' }}
+              role="status"
+              aria-live="polite"
+            >
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                <div className="absolute -right-10 -top-12 h-40 w-40 rotate-12 rounded-[2rem] bg-white/[0.06]"></div>
+                <div className="absolute -bottom-14 -left-8 h-32 w-32 -rotate-6 rounded-[1.75rem] bg-white/[0.05]"></div>
+              </div>
+              <div
+                className="keep-animation relative flex flex-col items-center gap-2 sm:gap-3 px-4 sm:px-8"
+                style={{ animation: 'wd-cover-content-in 360ms ease-out 80ms both' }}
+              >
                 <div className="relative w-12 h-12 sm:w-16 sm:h-16">
                   {/* Outer ring */}
                   <div className="absolute inset-0 border-2 sm:border-3 border-white/10 rounded-full"></div>
@@ -1273,8 +1282,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
                 {/* Status text */}
                 <div className="relative text-center">
-                  <div className="text-white font-bold text-sm sm:text-base tracking-wide mb-1 animate-pulse keep-animation">{t.wallet.checkingEligibility}</div>
-                  <div className="text-cyan-300 text-xs sm:text-sm font-medium">{t.common.loading}</div>
+                  <div className="text-white font-semibold text-sm sm:text-base tracking-wide mb-1">{t.wallet.checkingEligibility}</div>
+                  <div className="text-cyan-200/90 text-xs sm:text-sm font-medium">{t.common.loading}</div>
                 </div>
 
                 {/* Progress bar */}
@@ -1282,9 +1291,12 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                   {/* Background shimmer */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_ease-in-out_infinite] keep-animation"></div>
                   {/* Progress fill */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 animate-[progressFill_0.8s_ease-out_forwards] keep-animation shadow-lg shadow-cyan-400/50"></div>
-                  {/* Glowing edge */}
-                  <div className="absolute right-0 top-0 bottom-0 w-0.5 sm:w-1 bg-white animate-[progressFill_0.8s_ease-out_forwards] keep-animation shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
+                  <div
+                    className="keep-animation absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-sky-300 to-white transition-transform duration-300 ease-out"
+                    style={eligibilityOverlayLeaving
+                      ? { transform: 'translateX(0)' }
+                      : { animation: 'wd-cover-progress 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) forwards' }}
+                  ></div>
                 </div>
               </div>
             </div>
