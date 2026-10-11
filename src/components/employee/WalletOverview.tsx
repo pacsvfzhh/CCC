@@ -1562,7 +1562,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           </button>
         </div>
 
-        <style>{'@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
+        <style>{'@keyframes wd-btn-cover{from{opacity:1}to{opacity:0}}@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
         {/* Content wrapper with transition animation */}
         <div
           className="relative z-10"
@@ -1597,20 +1597,11 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                 disabled={checkingEligibility}
                 className={`wd-reveal-skip relative w-full min-h-[44px] text-white py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold flex items-center justify-center gap-1.5 sm:gap-2 group overflow-hidden disabled:cursor-not-allowed text-sm sm:text-base transition-all duration-300 ${
                   buttonLoading
-                    ? 'bg-blue-600 cursor-wait shadow-2xl shadow-blue-500/50 ring-2 ring-white/60'
+                    ? 'keep-animation bg-blue-600 cursor-wait shadow-2xl shadow-blue-500/50'
                     : 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 hover:from-blue-500 hover:via-cyan-500 hover:to-blue-600 shadow-2xl shadow-blue-500/50 hover:shadow-cyan-500/50 hover:scale-[1.02] active:scale-[0.98]'
                 }`}
+                style={buttonLoading ? { animation: 'wd-btn-cover 1800ms cubic-bezier(0.45, 0.05, 0.35, 1) both' } : undefined}
               >
-                {/* Pulsing glow when loading */}
-                {buttonLoading && (
-                  <div className="keep-animation absolute inset-0 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 rounded-lg sm:rounded-xl blur-xl opacity-40 animate-pulse"></div>
-                )}
-
-                {/* Shimmer effect when loading */}
-                {buttonLoading && (
-                  <div className="keep-animation absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-                )}
-
                 {/* Hover effect when not loading */}
                 {!buttonLoading && (
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
