@@ -17,6 +17,10 @@
 
 ---
 
+## 2026-10-11 · 提现记录改为滚动加载
+- `WithdrawalHistory.tsx`：去掉翻页（上一页/下一页、页码），改为滚动显示；先显示一批（手机 10 条、平板/电脑 20 条），滑到底部附近显示加载动画约 0.45 秒后追加下一批，全部显示完不再出现动画。数据仍是打开时一次性读取并每 5 秒刷新，已展开的条数在刷新时保留。
+- 验证：35 条测试提现 + 2 条余额调整，手机 10→20→30→37、电脑 20→37，加载动画正常出现与消失；typecheck、eslint、build 通过。前端需用户部署。
+
 ## 2026-10-11 · 员工提现错误提示具体化、单笔待审核限制
 - 现象：CryptoBart_Tokyo 提交提现显示 "Failed to submit withdrawal request: Unknown error"。正式库日志显示真实原因为 `A pending withdrawal already exists.`（该账号 2026-09-22 已有一笔 51642.50 待审核）。前端只认 `Error` 实例，Supabase 返回的普通错误对象被当成未知错误。
 - 后端 `request_employee_withdrawal` 已有“存在 pending 提现即拒绝”的检查（正式库已核对），本次未改数据库。

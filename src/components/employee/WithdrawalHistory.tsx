@@ -1,10 +1,9 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Clock, CheckCircle, XCircle, History, ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Clock, CheckCircle, XCircle, History, ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
-import { usePaginatedList } from '../../lib/usePaginatedList';
 import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
 
 interface Withdrawal {
@@ -49,11 +48,38 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
   const { t, dateLocale } = useLanguage();
   const loadAllRecordsRef = useRef<(() => Promise<void>) | null>(null);
   const cancellationOperationIdsRef = useRef(new Map<string, string>());
-  const ITEMS_PER_PAGE = isMobile ? 10 : 20;
-  const { pageItems, page, totalPages, totalItems, hasNext, hasPrev, goNext, goPrev } = usePaginatedList({
-    items: records,
-    pageSize: ITEMS_PER_PAGE,
-  });
+  const batchSize = isMobile ? 10 : 20;
+  const [visibleCount, setVisibleCount] = useState(batchSize);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const visibleRecords = records.slice(0, visibleCount);
+  const hasMore = visibleCount < records.length;
+
+  useEffect(() => {
+    const root = scrollContainerRef.current;
+    const sentinel = loadMoreSentinelRef.current;
+    if (!root || !sentinel || !hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer.disconnect();
+      setLoadingMore(true);
+    }, { root, rootMargin: '0px 0px 160px 0px' });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, visibleCount]);
+
+  useEffect(() => {
+    if (!loadingMore) return;
+    // Short pause so the loading indicator reads as a transition instead of a flash.
+    const timer = setTimeout(() => {
+      setVisibleCount(count => count + batchSize);
+      setLoadingMore(false);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [loadingMore, batchSize]);
 
   useEffect(() => {
     void loadAllRecordsRef.current?.();
@@ -374,7 +400,8 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
         )}
 
         <div
-          className="flex-1 overflow-y-auto sm:p-6"
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto overscroll-contain sm:p-6"
           style={{
             WebkitOverflowScrolling: 'touch',
             paddingTop: isMobile ? '16px' : undefined,
@@ -401,7 +428,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
           ) : (
           <>
             <div className="space-y-2.5 sm:space-y-3">
-              {pageItems.map((record) => {
+              {visibleRecords.map((record) => {
                 const isExpanded = expandedId === record.id;
                 return (
                   <div
@@ -707,28 +734,16 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
               })}
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 px-1">
-                <button
-                  onClick={goPrev}
-                  disabled={!hasPrev}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Prev</span>
-                </button>
-                <span className="text-xs text-gray-500 font-medium">
-                  {page + 1} / {totalPages}
-                  <span className="text-gray-400 ml-1.5">({totalItems})</span>
-                </span>
-                <button
-                  onClick={goNext}
-                  disabled={!hasNext}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+            {hasMore && (
+              <div ref={loadMoreSentinelRef} className="flex items-center justify-center py-5" aria-live="polite">
+                {loadingMore ? (
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"></div>
+                    <span className="text-xs sm:text-sm">{t.common.loading}</span>
+                  </div>
+                ) : (
+                  <div className="h-4" aria-hidden="true"></div>
+                )}
               </div>
             )}
           </>
