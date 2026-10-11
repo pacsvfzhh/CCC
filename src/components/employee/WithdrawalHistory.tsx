@@ -370,10 +370,12 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
             </div>
           </div>
           <button
+            type="button"
             onClick={handleClose}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors active:scale-95 touch-manipulation"
+            aria-label={t.common.close}
+            className="flex !h-[32px] !w-[32px] !min-h-[32px] !min-w-[32px] flex-shrink-0 items-center justify-center rounded-lg bg-white/10 !p-0 text-white/80 ring-1 ring-white/15 transition-colors hover:bg-white/20 hover:text-white active:scale-95 touch-manipulation lg:!h-[40px] lg:!w-[40px] lg:!min-h-[40px] lg:!min-w-[40px] lg:rounded-xl"
           >
-            <X className="w-4 h-4 text-white/90" />
+            <X className="h-[16px] w-[16px] lg:h-[20px] lg:w-[20px]" strokeWidth={2.25} />
           </button>
         </div>
 
