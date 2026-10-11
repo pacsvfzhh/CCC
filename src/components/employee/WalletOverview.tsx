@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History } from 'lucide-react';
+import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History, ShieldCheck, X, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Wallet, Employee, VerificationRequest } from '../../types';
 import VerificationForm from './VerificationForm';
@@ -1585,83 +1585,109 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       </div>
 
       {showConfirmModal && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 10000 }}>
-          <div className="employee-modal-backdrop absolute inset-0 bg-black/50"></div>
-          <div className="employee-modal-surface relative bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md md:max-w-lg w-full overflow-hidden max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
-            {/* Blue Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-4 sm:px-6 py-3.5 sm:py-4">
-              <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <AlertCircle className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white" />
-                </div>
-                {t.wallet.submitWithdrawal}
-              </h3>
-            </div>
-
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-              {/* Amount Card */}
-              <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl p-4 sm:p-5 border border-blue-200">
-                <div className="text-center mb-3 sm:mb-4">
-                  <div className="text-xs sm:text-sm text-blue-600 mb-2 font-semibold uppercase tracking-wide">{t.wallet.withdrawalAmount}</div>
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center">
-                      <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" strokeWidth={2.5} />
-                    </div>
-                    <div className="text-3xl sm:text-4xl font-black text-gray-900">
-                      {wallet?.available_balance.toFixed(2)}
-                    </div>
-                    <span className="text-blue-600 text-sm sm:text-base font-bold">{currencyUnit}</span>
-                  </div>
-                </div>
-                <div className="pt-3 sm:pt-4 border-t border-blue-200 space-y-2">
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-gray-500">{t.wallet.amount}</span>
-                    <span className="text-emerald-600 font-bold">${wallet?.available_balance.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-gray-500">{t.wallet.afterWithdrawal}</span>
-                    <span className="text-gray-400 font-bold">$0.00</span>
-                  </div>
-                </div>
+        <div className="fixed inset-0 flex items-center justify-center p-3 sm:p-4" style={{ zIndex: 10000 }}>
+          <style>{'@keyframes wd-backdrop-in{from{opacity:0}to{opacity:1}}@keyframes wd-panel-in{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.wd-anim{animation:none!important}}'}</style>
+          <div
+            className="wd-anim employee-modal-backdrop absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"
+            style={{ animation: 'wd-backdrop-in 200ms ease-out' }}
+            onClick={() => { if (!submitting) setShowConfirmModal(false); }}
+          ></div>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdrawal-confirm-title"
+            className="wd-anim employee-modal-surface relative flex w-full max-w-md md:max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5"
+            style={{ animation: 'wd-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1)' }}
+          >
+            <div className="relative flex-shrink-0 overflow-hidden bg-[linear-gradient(135deg,#1e3a8a_0%,#1d4ed8_55%,#2563eb_100%)] px-5 pb-6 pt-4 text-white sm:px-7 sm:pb-7 sm:pt-5">
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                <div className="absolute -right-10 -top-12 h-40 w-40 rotate-12 rounded-[2rem] bg-white/[0.06]"></div>
+                <div className="absolute right-16 top-10 h-16 w-16 rotate-12 rounded-xl bg-sky-300/[0.10]"></div>
+                <div className="absolute -bottom-14 -left-8 h-32 w-32 -rotate-6 rounded-[1.75rem] bg-white/[0.05]"></div>
+                <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"></div>
               </div>
 
-              {/* Important Notice */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
-                <div className="flex items-start gap-2.5">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-amber-800 text-xs sm:text-sm font-semibold mb-1.5 sm:mb-2">
-                      {t.wallet.importantNotice}
-                    </p>
-                    <div className="text-amber-700 text-[11px] sm:text-xs space-y-2 leading-relaxed">
-                      <p>{t.wallet.noticeSubmitted}</p>
-                      <p>{t.wallet.noticeFrozen}</p>
-                      <p>{t.wallet.noticeContact}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 sm:gap-3">
+              <div className="relative flex items-center justify-between gap-3">
+                <h3 id="withdrawal-confirm-title" className="flex min-w-0 items-center gap-2.5 text-sm font-semibold tracking-wide sm:text-base">
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
+                    <ShieldCheck className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                  </span>
+                  <span className="truncate">{t.wallet.submitWithdrawal}</span>
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowConfirmModal(false)}
                   disabled={submitting}
-                  className="flex-1 min-h-[44px] bg-white hover:bg-gray-50 border border-gray-300 hover:border-gray-400 text-gray-700 py-2 px-2 rounded-lg font-medium leading-tight transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  aria-label={t.common.close}
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/15 hover:text-white disabled:opacity-40"
                 >
-                  {t.common.cancel}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmWithdrawal}
-                  disabled={submitting}
-                  className="flex-1 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white py-2 px-2 rounded-lg font-semibold leading-tight shadow-md shadow-blue-200 hover:shadow-lg hover:shadow-blue-300 transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  <Send className="w-4 h-4 shrink-0" />
-                  {submitting ? t.common.loading : t.wallet.submitWithdrawal}
+                  <X className="h-4 w-4" />
                 </button>
               </div>
+
+              <div className="relative mt-5 text-center sm:mt-6">
+                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-blue-100/80 sm:text-xs">
+                  {t.wallet.withdrawalAmount}
+                </div>
+                <div className="mt-2 flex items-baseline justify-center gap-1 font-bold leading-none tabular-nums">
+                  <span className="text-[1.75rem] text-blue-100 sm:text-[2rem]">$</span>
+                  <span className="break-all text-[2.25rem] tracking-tight sm:text-[2.75rem]">{wallet?.available_balance.toFixed(2)}</span>
+                </div>
+                <span className="mt-3 inline-flex items-center rounded-full bg-white/[0.12] px-2.5 py-0.5 text-[11px] font-semibold tracking-wider text-white/90 ring-1 ring-white/20">
+                  {currencyUnit}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5 sm:space-y-5 sm:px-7 sm:py-6">
+              <dl className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-1 text-sm sm:px-5">
+                <div className="flex items-center justify-between gap-3 py-3">
+                  <dt className="text-slate-500">{t.wallet.amount}</dt>
+                  <dd className="font-semibold tabular-nums text-slate-900">${wallet?.available_balance.toFixed(2)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-dashed border-slate-200 py-3">
+                  <dt className="text-slate-500">{t.wallet.afterWithdrawal}</dt>
+                  <dd className="font-semibold tabular-nums text-slate-400">$0.00</dd>
+                </div>
+              </dl>
+
+              <div className="relative overflow-hidden rounded-xl border border-amber-200/70 bg-amber-50/60 py-3.5 pl-4 pr-4 sm:py-4 sm:pl-5">
+                <div className="absolute inset-y-0 left-0 w-1 bg-amber-400" aria-hidden="true"></div>
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-amber-900 sm:text-sm">
+                  <Clock className="h-4 w-4 flex-shrink-0 text-amber-500" />
+                  {t.wallet.importantNotice}
+                </div>
+                <ol className="space-y-2.5">
+                  {[t.wallet.noticeSubmitted, t.wallet.noticeFrozen, t.wallet.noticeContact].map((line, index) => (
+                    <li key={index} className="flex items-start gap-2.5 text-[11px] leading-relaxed text-amber-800/90 sm:text-xs">
+                      <span className="mt-px flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">
+                        {index + 1}
+                      </span>
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+
+            <div className="flex flex-shrink-0 gap-2.5 border-t border-slate-100 bg-slate-50/80 px-5 py-3.5 sm:gap-3 sm:px-7 sm:py-4">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                disabled={submitting}
+                className="flex-1 min-h-[44px] rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm font-medium leading-tight text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t.common.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmWithdrawal}
+                disabled={submitting}
+                className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg bg-[linear-gradient(135deg,#1d4ed8_0%,#2563eb_100%)] px-2 py-2 text-sm font-semibold leading-tight text-white shadow-[0_6px_16px_-6px_rgba(37,99,235,0.6)] transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Send className="h-4 w-4 shrink-0" />}
+                {submitting ? t.common.loading : t.wallet.submitWithdrawal}
+              </button>
             </div>
           </div>
         </div>,
