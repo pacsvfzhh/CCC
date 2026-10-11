@@ -72,6 +72,13 @@ export function isFinancialAdminSessionError(error: unknown): boolean {
     || message.includes('administrator session has expired');
 }
 
+export function isEmployeeSessionEndedError(error: unknown): boolean {
+  const message = formatSupabaseError(error).toLowerCase();
+  return message.includes('employee session is invalid or expired')
+    || message.includes('employee session has expired')
+    || message.includes('invalid employee logout session');
+}
+
 export function isSupabaseTransientError(error: unknown): boolean {
   const name = error && typeof error === 'object' && 'name' in error
     ? String(error.name)

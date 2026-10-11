@@ -1,4 +1,4 @@
-import { formatSupabaseError, supabase } from './supabase';
+import { formatSupabaseError, isEmployeeSessionEndedError, supabase } from './supabase';
 import { collectLoginDeviceInfo, parseLoginDeviceInfo } from './deviceInfo';
 
 export async function getUserIP(): Promise<string> {
@@ -82,7 +82,9 @@ export async function logEmployeeLogout(
       p_device_info: deviceInfo,
     });
 
-    if (error) console.error('Error logging employee logout:', formatSupabaseError(error));
+    if (error && !isEmployeeSessionEndedError(error)) {
+      console.error('Error logging employee logout:', formatSupabaseError(error));
+    }
   } catch (error) {
     console.error('Error in logEmployeeLogout:', formatSupabaseError(error));
   }

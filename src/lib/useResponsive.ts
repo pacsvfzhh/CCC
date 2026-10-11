@@ -45,8 +45,13 @@ export function useResponsive() {
     // Use ResizeObserver for better performance
     let resizeObserver: ResizeObserver | null = null;
 
+    let resizeFrame = 0;
     if ('ResizeObserver' in window) {
-      resizeObserver = new ResizeObserver(handleResize);
+      // Re-rendering synchronously inside the callback can resize <body> again and trigger the "ResizeObserver loop" warning.
+      resizeObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(handleResize);
+      });
       resizeObserver.observe(document.body);
     }
 
@@ -57,6 +62,7 @@ export function useResponsive() {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      cancelAnimationFrame(resizeFrame);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }

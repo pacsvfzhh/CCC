@@ -109,13 +109,22 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     const header = employeeHeaderRef.current;
     if (!header) return;
 
+    let frame = 0;
     const syncHeaderHeight = () => {
-      document.documentElement.style.setProperty('--employee-header-height', `${header.getBoundingClientRect().height}px`);
+      const value = `${header.getBoundingClientRect().height}px`;
+      if (document.documentElement.style.getPropertyValue('--employee-header-height') !== value) {
+        document.documentElement.style.setProperty('--employee-header-height', value);
+      }
     };
-    const observer = new ResizeObserver(syncHeaderHeight);
+    // Writing the variable inside the observer callback resizes <body>, which triggers the "ResizeObserver loop" warning.
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(syncHeaderHeight);
+    });
     observer.observe(header);
     syncHeaderHeight();
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       document.documentElement.style.removeProperty('--employee-header-height');
     };
@@ -125,13 +134,21 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     const nav = employeeNavRef.current;
     if (!nav) return;
 
+    let frame = 0;
     const syncNavHeight = () => {
-      document.documentElement.style.setProperty('--employee-bottom-nav-height', `${nav.getBoundingClientRect().height}px`);
+      const value = `${nav.getBoundingClientRect().height}px`;
+      if (document.documentElement.style.getPropertyValue('--employee-bottom-nav-height') !== value) {
+        document.documentElement.style.setProperty('--employee-bottom-nav-height', value);
+      }
     };
-    const observer = new ResizeObserver(syncNavHeight);
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(syncNavHeight);
+    });
     observer.observe(nav);
     syncNavHeight();
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       document.documentElement.style.removeProperty('--employee-bottom-nav-height');
     };

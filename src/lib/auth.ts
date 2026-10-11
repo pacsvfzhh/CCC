@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { formatSupabaseError, isEmployeeSessionEndedError, supabase } from './supabase';
 import { tabSessionManager } from './TabSessionManager';
 import { logEmployeeLogin, logEmployeeLogout } from './loginHistoryService';
 import type { Admin, Employee } from '../types';
@@ -160,8 +160,18 @@ export async function logout(isUserInitiated: boolean = true) {
       .then(() => undefined, () => undefined);
     const operations: Array<PromiseLike<unknown>> = [];
 
-    if (auth.userType === 'employee') {
+    if (auth.userType === 'employee' && !isUserInitiated) {
+      // The server already ended this session (expired, taken over elsewhere or deactivated); stopping work or
+      // recording a logout would only be rejected, and must not touch a newer session that replaced it.
       forgetRememberedSession(auth.sessionToken);
+      operations.push(revokeFinancialSession());
+    } else if (auth.userType === 'employee') {
+      forgetRememberedSession(auth.sessionToken);
+      const reportStopError = (error: unknown) => {
+        if (!isEmployeeSessionEndedError(error)) {
+          console.error('Failed to stop employee sessions during logout:', formatSupabaseError(error));
+        }
+      };
       operations.push(
         (async () => {
           try {
@@ -171,11 +181,9 @@ export async function logout(isUserInitiated: boolean = true) {
               p_tab_id: auth.tabId,
               p_session_id: null,
             });
-            if (error) {
-              console.error('Failed to stop employee sessions during logout:', error);
-            }
+            if (error) reportStopError(error);
           } catch (error) {
-            console.error('Failed to stop employee sessions during logout:', error);
+            reportStopError(error);
           } finally {
             await revokeFinancialSession();
           }

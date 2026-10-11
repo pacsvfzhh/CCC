@@ -17,6 +17,14 @@
 
 ---
 
+## 2026-10-11 · 修复员工退出时的报错与 ResizeObserver 警告
+- 需求：控制台出现 `ResizeObserver loop completed with undelivered notifications`、`Failed to stop employee sessions during logout: [object Object]`、`Error logging employee logout: Invalid employee logout session. | 28000`。
+- 原因：①员工页在尺寸回调里同步写页头/底部导航高度变量、`useResponsive` 在回调里同步更新状态，都会立刻改变 body 尺寸，触发浏览器的循环警告。②会话已被服务器结束（过期、被其他标签页或设备顶替、其他标签页已退出、管理员停用）后关闭「会话过期」弹窗时，`logout(false)` 仍去调用结束接单和记录退出，服务器按设计拒绝（28000），前端把这种预期结果当错误打印，且直接打印对象显示成 `[object Object]`。
+- 改动：高度变量与 `useResponsive` 改在下一帧更新，值没变就不写；非用户主动退出只撤销本地凭证，不再调用结束接单和记录退出（也避免影响顶替它的新会话）；用户主动退出时若服务器回复会话已失效则不再报错，其他错误改为可读文字。新增 `isEmployeeSessionEndedError`（`src/lib/supabase.ts`）。
+- 文件：`src/lib/auth.ts`、`src/lib/loginHistoryService.ts`、`src/lib/supabase.ts`、`src/lib/useResponsive.ts`、`src/components/employee/EmployeeDashboard.tsx`
+- 数据库/服务端：无
+- 验证：模拟数据下多尺寸切换与切标签 ResizeObserver 错误 0 次；主动退出且服务器拒绝时控制台 0 条退出错误（请求仍发送）；被其他标签页踢出后关闭弹窗只调用撤销凭证、0 条错误。typecheck、eslint、build 通过。
+
 ## 2026-10-11 · 员工端统计页金额固定显示 $
 - 需求：员工端 Daily Statistics 的金额单位应固定为美元符号，不受管理员后台货币单位设置影响。
 - 改动：统计页概览卡与每日明细（手机列表、平板/电脑表格）金额一律显示 `$`，如 `$1234.56`；不再读取所属管理员的货币单位，也去掉了为此对 `users.created_by` 的查询。提交订单、钱包仍按原设置，未改。
