@@ -176,7 +176,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         setLocalEmployee(data);
       }
     } catch (error) {
-      console.error('Error loading employee data:', error);
+      console.error('Error loading employee data:', formatSupabaseError(error));
     }
   };
 
@@ -193,7 +193,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       if (error) throw error;
       setVerificationRequest(data);
     } catch (error) {
-      console.error('Error loading verification request:', error);
+      console.error('Error loading verification request:', formatSupabaseError(error));
     }
   };
 
@@ -210,7 +210,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
       setWallet(walletData);
     } catch (error) {
-      console.error('Error loading wallet:', error);
+      console.error('Error loading wallet:', formatSupabaseError(error));
     } finally {
       setLoading(false);
     }
@@ -230,6 +230,14 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       setShowVerificationForm(false);
     }
   }, [verificationRequest]);
+
+  const isExpectedWithdrawalRejection = (error: unknown) => {
+    const normalized = formatSupabaseError(error).toLowerCase();
+    return normalized.includes('pending withdrawal already exists')
+      || normalized.includes('session is invalid or expired')
+      || normalized.includes('insufficient available balance')
+      || normalized.includes('eligibility requirements are not met');
+  };
 
   const describeWithdrawalError = (error: unknown, fallback?: string) => {
     const raw = formatSupabaseError(error);
@@ -350,7 +358,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       setShowWithdrawalForm(true);
       setCheckingEligibility(false);
     } catch (error) {
-      console.error('Error in handleRequestWithdrawal:', formatSupabaseError(error));
+      if (!isExpectedWithdrawalRejection(error)) {
+        console.error('Error in handleRequestWithdrawal:', formatSupabaseError(error));
+      }
       setMessage({ type: 'error', text: describeWithdrawalError(error, t.wallet.eligibilityFailed) });
       setCheckingEligibility(false);
     }
@@ -412,7 +422,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
       loadWallet();
     } catch (error: unknown) {
-      console.error('Error in handleConfirmWithdrawal:', formatSupabaseError(error));
+      if (!isExpectedWithdrawalRejection(error)) {
+        console.error('Error in handleConfirmWithdrawal:', formatSupabaseError(error));
+      }
       withdrawalOperationIdRef.current = null;
       setMessage({ type: 'error', text: describeWithdrawalError(error) });
       setShowConfirmModal(false);
