@@ -404,7 +404,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
 
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto overscroll-contain sm:p-6"
+          className="emp-compact-panel flex-1 overflow-y-auto overscroll-contain sm:p-6"
           style={{
             WebkitOverflowScrolling: 'touch',
             paddingTop: isMobile ? '16px' : undefined,

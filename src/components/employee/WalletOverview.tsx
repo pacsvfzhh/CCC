@@ -1259,15 +1259,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4">
         {/* Total Assets Card */}
-        <div className="rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-amber-50 to-white border border-amber-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 group">
+        <div className="emp-stat-card rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-amber-50 to-white border border-amber-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 group">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 md:mb-4">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+            <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
               <WalletIcon className="w-4 h-4 text-amber-600" />
             </div>
-            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
+            <span className="emp-stat-label min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
           </div>
           <div
-            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+            className={`emp-stat-value flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
               isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
             }`}
             style={isTabletDevice ? { fontSize: getTabletFontSize(totalAssets) } : {}}
@@ -1283,15 +1283,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         </div>
 
         {/* Available Card */}
-        <div className="rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-emerald-50 to-white border border-emerald-200 hover:border-emerald-300 hover:shadow-md transition-all duration-200 group">
+        <div className="emp-stat-card rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-emerald-50 to-white border border-emerald-200 hover:border-emerald-300 hover:shadow-md transition-all duration-200 group">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 md:mb-4">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+            <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
               <DollarSign className="w-4 h-4 text-emerald-600" />
             </div>
-            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
+            <span className="emp-stat-label min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
           </div>
           <div
-            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+            className={`emp-stat-value flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
               isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
             }`}
             style={isTabletDevice ? { fontSize: getTabletFontSize(wallet?.available_balance || 0) } : {}}
@@ -1307,15 +1307,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         </div>
 
         {/* Frozen Card */}
-        <div className="rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-orange-50 to-white border border-orange-200 hover:border-orange-300 hover:shadow-md transition-all duration-200 group">
+        <div className="emp-stat-card rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-orange-50 to-white border border-orange-200 hover:border-orange-300 hover:shadow-md transition-all duration-200 group">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 md:mb-4">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+            <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
               <Lock className="w-4 h-4 text-orange-600" />
             </div>
-            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
+            <span className="emp-stat-label min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
           </div>
           <div
-            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+            className={`emp-stat-value flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
               isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
             }`}
             style={isTabletDevice ? { fontSize: getTabletFontSize(wallet?.frozen_balance || 0) } : {}}
@@ -1331,15 +1331,15 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         </div>
 
         {/* Total Earnings Card */}
-        <div className="rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-blue-50 to-white border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 group">
+        <div className="emp-stat-card rounded-xl p-3 sm:p-4 md:p-5 bg-gradient-to-b from-blue-50 to-white border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 group">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 md:mb-4">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+            <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
               <TrendingUp className="w-4 h-4 text-blue-600" />
             </div>
-            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
+            <span className="emp-stat-label min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
           </div>
           <div
-            className={`flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
+            className={`emp-stat-value flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full ${
               isTabletDevice ? '' : 'text-base sm:text-xl md:text-2xl lg:text-3xl'
             }`}
             style={isTabletDevice ? { fontSize: getTabletFontSize(localEmployee.total_income) } : {}}
@@ -1577,7 +1577,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               setShowWithdrawalHistory(true);
               onWithdrawalHistoryChange?.(true);
             }}
-            className="group relative inline-flex !h-[36px] !min-h-[36px] shrink-0 items-center gap-[8px] overflow-hidden whitespace-nowrap rounded-[12px] bg-gradient-to-r from-orange-500 to-amber-500 pl-[6px] pr-[12px] text-white shadow-[0_6px_16px_-6px_rgba(249,115,22,0.6)] ring-1 ring-inset ring-white/25 transition-all duration-200 hover:-translate-y-px hover:shadow-[0_10px_22px_-8px_rgba(249,115,22,0.7)] active:translate-y-0 lg:!h-[40px] lg:!min-h-[40px] lg:pl-[8px] lg:pr-[16px]"
+            className="emp-compact-btn group relative inline-flex !h-[36px] !min-h-[36px] shrink-0 items-center gap-[8px] overflow-hidden whitespace-nowrap rounded-[12px] bg-gradient-to-r from-orange-500 to-amber-500 pl-[6px] pr-[12px] text-white shadow-[0_6px_16px_-6px_rgba(249,115,22,0.6)] ring-1 ring-inset ring-white/25 transition-all duration-200 hover:-translate-y-px hover:shadow-[0_10px_22px_-8px_rgba(249,115,22,0.7)] active:translate-y-0 lg:!h-[40px] lg:!min-h-[40px] lg:pl-[8px] lg:pr-[16px]"
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" aria-hidden="true"></span>
             <span className="relative flex h-[24px] w-[24px] items-center justify-center rounded-[8px] bg-white/20 lg:h-[28px] lg:w-[28px]">

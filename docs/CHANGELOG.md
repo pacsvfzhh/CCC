@@ -17,6 +17,12 @@
 
 ---
 
+## 2026-10-11 · iPhone SE 等小屏（<360px）信息框与面板紧凑化
+- 方式：给各页面信息框加统一标记类（`emp-stat-card/icon/label/value/num`）、面板列表加 `emp-compact-panel`、派单页正文与按钮加 `emp-detail-text` / `emp-action-btn`、提现记录按钮加 `emp-compact-btn`，在 `index.css` 的 `max-width:359px` 区块统一收紧，360px 以上不受影响。
+- 信息框（Wallet 4 个、Daily Statistics 6 个、派单页统计与 AUTO-DISPATCH/REAL-TIME、订单页今日统计与列表 AMOUNT/VALUE/COMMISSION 标签）：内边距 9–10px、图标块 22px、大写标签 9.5px 且字距收窄（不再挤成两行）、数字 14px。
+- 面板：Withdrawal History、消息中心列表卡片的大字号降到 12.5–14px、内边距 10px、图标圆 26px；派单页订单详情正文 13→12px，Mark Completed / Report Error 不再折行；Withdrawal History 按钮 36→32px。
+- 验证：320×568 逐页截图（公告、派单、订单、统计、钱包、提现记录、消息中心）。
+
 ## 2026-10-11 · 提现记录卡片内容超出边框
 - 原因：卡片内容区缺少 `min-w-0`，审核备注/管理员备注/交易备注里不带空格的长串（如钱包地址、交易号）会把卡片撑宽，展开箭头被挤出、详情卡片超出边框。
 - `WithdrawalHistory.tsx`：内容区与标题行加 `min-w-0`，内容区 `overflow-wrap:anywhere`，长串在任意位置换行。

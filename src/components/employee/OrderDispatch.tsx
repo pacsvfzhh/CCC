@@ -2843,7 +2843,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                           </div>
                         </div>
                       ) : (
-                        <div className={`order-details-scrollbar text-gray-800 leading-[1.6] font-medium whitespace-pre-wrap break-words overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'min-h-0 flex-1 text-[13px]' : 'max-h-[140px] text-xs'}`}>
+                        <div className={`order-details-scrollbar text-gray-800 leading-[1.6] font-medium whitespace-pre-wrap break-words overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'emp-detail-text min-h-0 flex-1 text-[13px]' : 'max-h-[140px] text-xs'}`}>
                           {currentOrder.dispatch_orders.order_content}
                         </div>
                       )}
@@ -2989,7 +2989,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         <button
                           onClick={handleCompleteOrder}
                           disabled={isCompleting}
-                          className={`group relative w-full px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-xl shadow-emerald-500/30 disabled:cursor-not-allowed ${
+                          className={`emp-action-btn group relative w-full px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-xl shadow-emerald-500/30 disabled:cursor-not-allowed ${
                             performanceSettings.reduceTransitions
                               ? 'transition-opacity duration-150 active:opacity-80'
                               : 'hover:shadow-emerald-500/50 transition-all duration-200 hover:scale-105 active:scale-[0.98]'
@@ -3014,7 +3014,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                         </button>
                         <button
                           onClick={handleErrorOrder}
-                          className={`group relative w-full px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-xl shadow-rose-500/30 ${
+                          className={`emp-action-btn group relative w-full px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl font-bold text-sm md:text-base overflow-hidden shadow-xl shadow-rose-500/30 ${
                             performanceSettings.reduceTransitions
                               ? 'transition-opacity duration-150 active:opacity-80'
                               : 'hover:shadow-rose-500/50 transition-all duration-300 hover:scale-105'
@@ -3060,7 +3060,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       <button
                         onClick={handleCompleteOrder}
                         disabled={isCompleting}
-                        className="w-full min-w-0 bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 disabled:cursor-not-allowed touch-manipulation active:from-emerald-600 active:to-green-700 active:scale-[0.97] transition-transform duration-75"
+                        className="emp-action-btn w-full min-w-0 bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 disabled:cursor-not-allowed touch-manipulation active:from-emerald-600 active:to-green-700 active:scale-[0.97] transition-transform duration-75"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         {isCompleting ? (
@@ -3077,7 +3077,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       </button>
                       <button
                         onClick={handleErrorOrder}
-                        className="w-full min-w-0 bg-gradient-to-r from-rose-500 to-red-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 touch-manipulation active:from-rose-600 active:to-red-700 active:scale-[0.97] transition-transform duration-75"
+                        className="emp-action-btn w-full min-w-0 bg-gradient-to-r from-rose-500 to-red-600 text-white py-3 px-2 rounded-lg font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-1.5 touch-manipulation active:from-rose-600 active:to-red-700 active:scale-[0.97] transition-transform duration-75"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         <XCircle className="w-4 h-4 flex-shrink-0" />
@@ -3517,7 +3517,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                             <div className="w-4 h-4 rounded-md bg-blue-50 flex items-center justify-center">
                               <Package className="w-2.5 h-2.5 text-blue-500" />
                             </div>
-                            <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">{t.dispatch.autoDispatch}</span>
+                            <span className="emp-stat-label text-[11px] font-semibold text-blue-600 uppercase tracking-wider">{t.dispatch.autoDispatch}</span>
                           </div>
                           <p className="text-[11px] text-slate-500 leading-tight">{t.dispatch.ordersByPriority}</p>
                         </div>
@@ -3526,7 +3526,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                             <div className="w-4 h-4 rounded-md bg-emerald-50 flex items-center justify-center">
                               <TrendingUp className="w-2.5 h-2.5 text-emerald-500" />
                             </div>
-                            <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">{t.dispatch.realTime}</span>
+                            <span className="emp-stat-label text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">{t.dispatch.realTime}</span>
                           </div>
                           <p className="text-[11px] text-slate-500 leading-tight">{t.dispatch.instantNotifications}</p>
                         </div>
@@ -3664,8 +3664,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               </div>
               <div className="relative text-center">
-                <div className="text-xl font-black text-blue-700 tabular-nums">{stats.total}</div>
-                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.totalSmall}</div>
+                <div className="emp-stat-num text-xl font-black text-blue-700 tabular-nums">{stats.total}</div>
+                <div className="mt-0.5 min-h-[2.5em] emp-stat-label text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.totalSmall}</div>
               </div>
             </div>
 
@@ -3677,8 +3677,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               </div>
               <div className="relative text-center">
-                <div className="text-xl font-black text-emerald-700 tabular-nums">{stats.completed}</div>
-                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.doneSmall}</div>
+                <div className="emp-stat-num text-xl font-black text-emerald-700 tabular-nums">{stats.completed}</div>
+                <div className="mt-0.5 min-h-[2.5em] emp-stat-label text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.doneSmall}</div>
               </div>
             </div>
 
@@ -3690,8 +3690,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               </div>
               <div className="relative text-center">
-                <div className="text-xl font-black text-rose-700 tabular-nums">{stats.error}</div>
-                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.errorsLabel}</div>
+                <div className="emp-stat-num text-xl font-black text-rose-700 tabular-nums">{stats.error}</div>
+                <div className="mt-0.5 min-h-[2.5em] emp-stat-label text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.errorsLabel}</div>
               </div>
             </div>
 
@@ -3703,8 +3703,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               </div>
               <div className="relative text-center">
-                <div className="text-xl font-black text-cyan-700 tabular-nums">{todaySubmittedOrders}</div>
-                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.submittedSmall}</div>
+                <div className="emp-stat-num text-xl font-black text-cyan-700 tabular-nums">{todaySubmittedOrders}</div>
+                <div className="mt-0.5 min-h-[2.5em] emp-stat-label text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.submittedSmall}</div>
               </div>
             </div>
 
@@ -3716,8 +3716,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               </div>
               <div className="relative text-center">
-                <div className="text-xl font-black text-orange-700 tabular-nums">{stats.timeout}</div>
-                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.timeoutSmallLabel}</div>
+                <div className="emp-stat-num text-xl font-black text-orange-700 tabular-nums">{stats.timeout}</div>
+                <div className="mt-0.5 min-h-[2.5em] emp-stat-label text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.timeoutSmallLabel}</div>
               </div>
             </div>
 
@@ -3729,10 +3729,10 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 </div>
               </div>
               <div className="relative text-center">
-                <div className="text-xl font-black text-amber-700 tabular-nums">
+                <div className="emp-stat-num text-xl font-black text-amber-700 tabular-nums">
                   {(stats.completed + stats.error + stats.timeout) > 0 ? Math.round((stats.completed / (stats.completed + stats.error + stats.timeout)) * 100) : 0}%
                 </div>
-                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.successRateLabel}</div>
+                <div className="mt-0.5 min-h-[2.5em] emp-stat-label text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.successRateLabel}</div>
               </div>
             </div>
           </div>

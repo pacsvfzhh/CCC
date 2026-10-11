@@ -427,7 +427,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
 
         {/* Message List */}
         <div className="relative flex-1 overflow-y-auto overscroll-y-contain">
-          <div className="px-4 lg:px-6 py-4 pb-8 space-y-3">
+          <div className="emp-compact-panel px-4 lg:px-6 py-4 pb-8 space-y-3">
             {failedReadIds.size > 0 && (
               <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
                 <span>{t.messages.readSyncFailed}</span>

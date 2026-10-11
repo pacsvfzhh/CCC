@@ -205,14 +205,14 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
             </div>
             <div className="grid gap-2.5 sm:gap-3 lg:gap-4 grid-cols-2 min-[720px]:grid-cols-3">
               {/* Total Revenue Card (Commission + Tips) */}
-              <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-amber-50 to-white border border-amber-200 hover:border-amber-300 hover:shadow-sm transition-all duration-200 group">
+              <div className="emp-stat-card rounded-xl p-3 sm:p-4 bg-gradient-to-b from-amber-50 to-white border border-amber-200 hover:border-amber-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+                  <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
                     <DollarSign className="w-4 h-4 text-amber-600" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-semibold text-amber-600/70 uppercase tracking-wider">{t.statistics.revenue}</span>
+                  <span className="emp-stat-label text-[11px] sm:text-xs font-semibold text-amber-600/70 uppercase tracking-wider">{t.statistics.revenue}</span>
                 </div>
-                <div className="flex min-w-0 items-baseline gap-0.5" style={{
+                <div className="emp-stat-value flex min-w-0 items-baseline gap-0.5" style={{
                   fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_revenue.toFixed(2).length * 0.04))}rem, 1.5rem)`
                 }}>
                   <span className="shrink-0 text-[1.15em] font-bold leading-none text-amber-600">{currencyUnit}</span>
@@ -226,14 +226,14 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
               </div>
 
               {/* Commission Card */}
-              <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-indigo-50 to-white border border-indigo-200 hover:border-indigo-300 hover:shadow-sm transition-all duration-200 group">
+              <div className="emp-stat-card rounded-xl p-3 sm:p-4 bg-gradient-to-b from-indigo-50 to-white border border-indigo-200 hover:border-indigo-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                  <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
                     <TrendingUp className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-semibold text-indigo-600/70 uppercase tracking-wider">{t.statistics.commission}</span>
+                  <span className="emp-stat-label text-[11px] sm:text-xs font-semibold text-indigo-600/70 uppercase tracking-wider">{t.statistics.commission}</span>
                 </div>
-                <div className="flex min-w-0 items-baseline gap-0.5" style={{
+                <div className="emp-stat-value flex min-w-0 items-baseline gap-0.5" style={{
                   fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_commission.toFixed(2).length * 0.04))}rem, 1.5rem)`
                 }}>
                   <span className="shrink-0 text-[1.15em] font-bold leading-none text-indigo-600">{currencyUnit}</span>
@@ -247,14 +247,14 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
               </div>
 
               {/* Tips Card */}
-              <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-pink-50 to-white border border-pink-200 hover:border-pink-300 hover:shadow-sm transition-all duration-200 group">
+              <div className="emp-stat-card rounded-xl p-3 sm:p-4 bg-gradient-to-b from-pink-50 to-white border border-pink-200 hover:border-pink-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-pink-100 flex items-center justify-center group-hover:bg-pink-200 transition-colors">
+                  <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-pink-100 flex items-center justify-center group-hover:bg-pink-200 transition-colors">
                     <Gift className="w-4 h-4 text-pink-600" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-semibold text-pink-600/70 uppercase tracking-wider">{t.statistics.tips}</span>
+                  <span className="emp-stat-label text-[11px] sm:text-xs font-semibold text-pink-600/70 uppercase tracking-wider">{t.statistics.tips}</span>
                 </div>
-                <div className="flex min-w-0 items-baseline gap-0.5" style={{
+                <div className="emp-stat-value flex min-w-0 items-baseline gap-0.5" style={{
                   fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_tips.toFixed(2).length * 0.04))}rem, 1.5rem)`
                 }}>
                   <span className="shrink-0 text-[1.15em] font-bold leading-none text-pink-600">{currencyUnit}</span>
@@ -268,40 +268,40 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
               </div>
 
               {/* Orders Card */}
-              <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-blue-50 to-white border border-blue-200 hover:border-blue-300 hover:shadow-sm transition-all duration-200 group">
+              <div className="emp-stat-card rounded-xl p-3 sm:p-4 bg-gradient-to-b from-blue-50 to-white border border-blue-200 hover:border-blue-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                     <ListChecks className="w-4 h-4 text-blue-600" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-semibold text-blue-600/70 uppercase tracking-wider">{t.statistics.orders}</span>
+                  <span className="emp-stat-label text-[11px] sm:text-xs font-semibold text-blue-600/70 uppercase tracking-wider">{t.statistics.orders}</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-blue-700 leading-none">
+                <div className="emp-stat-value text-xl sm:text-2xl font-bold text-blue-700 leading-none">
                   {overallStats.total_orders}
                 </div>
               </div>
 
               {/* Success Card */}
-              <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-emerald-50 to-white border border-emerald-200 hover:border-emerald-300 hover:shadow-sm transition-all duration-200 group">
+              <div className="emp-stat-card rounded-xl p-3 sm:p-4 bg-gradient-to-b from-emerald-50 to-white border border-emerald-200 hover:border-emerald-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                  <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
                     <CheckCircle className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-semibold text-emerald-600/70 uppercase tracking-wider">{t.statistics.success}</span>
+                  <span className="emp-stat-label text-[11px] sm:text-xs font-semibold text-emerald-600/70 uppercase tracking-wider">{t.statistics.success}</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-emerald-600 leading-none">
+                <div className="emp-stat-value text-xl sm:text-2xl font-bold text-emerald-600 leading-none">
                   {overallStats.total_success}
                 </div>
               </div>
 
               {/* Failed Card */}
-              <div className="rounded-xl p-3 sm:p-4 bg-gradient-to-b from-red-50 to-white border border-red-200 hover:border-red-300 hover:shadow-sm transition-all duration-200 group">
+              <div className="emp-stat-card rounded-xl p-3 sm:p-4 bg-gradient-to-b from-red-50 to-white border border-red-200 hover:border-red-300 hover:shadow-sm transition-all duration-200 group">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                  <div className="emp-stat-icon w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
                     <XCircle className="w-4 h-4 text-red-500" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-semibold text-red-500/70 uppercase tracking-wider">{t.statistics.failed}</span>
+                  <span className="emp-stat-label text-[11px] sm:text-xs font-semibold text-red-500/70 uppercase tracking-wider">{t.statistics.failed}</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-red-500 leading-none">
+                <div className="emp-stat-value text-xl sm:text-2xl font-bold text-red-500 leading-none">
                   {overallStats.total_failed}
                 </div>
               </div>
