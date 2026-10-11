@@ -28,6 +28,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [messageLeaving, setMessageLeaving] = useState(false);
+  const messageWrapRef = useRef<HTMLDivElement>(null);
   const [localEmployee, setLocalEmployee] = useState(employee);
   const [verificationRequest, setVerificationRequest] = useState<VerificationRequest | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
@@ -150,9 +152,31 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     };
   }, [employeeId]);
 
+  useLayoutEffect(() => {
+    const el = messageWrapRef.current;
+    if (!el) return;
+    if (!messageLeaving) {
+      el.style.height = '';
+      return;
+    }
+    el.style.height = `${el.offsetHeight}px`;
+    void el.offsetHeight;
+    el.style.height = '0px';
+  }, [messageLeaving]);
+
+  useEffect(() => {
+    if (!messageLeaving) return;
+    const timer = setTimeout(() => {
+      setMessage(null);
+      setMessageLeaving(false);
+      setContentResizing(false);
+    }, 520);
+    return () => clearTimeout(timer);
+  }, [messageLeaving]);
+
   useEffect(() => {
     if (message) {
-      const timer = setTimeout(() => setMessage(null), message.type === 'error' ? 8000 : 4000);
+      const timer = setTimeout(() => setMessageLeaving(true), message.type === 'error' ? 8000 : 4000);
       return () => clearTimeout(timer);
     }
   }, [message]);
@@ -386,7 +410,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const handleRequestWithdrawal = async () => {
     if (checkingEligibility) return;
     resizeArmedRef.current = true;
-    setMessage(null);
+    if (message) setMessageLeaving(true);
     setEligibilityOverlayLeaving(false);
     setCheckingEligibility(true);
 
@@ -1566,7 +1590,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           className="relative z-10"
           style={{
             height: contentHeight ?? undefined,
-            transition: contentResizing ? 'height 640ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+            transition: contentResizing && !messageLeaving ? 'height 640ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
             overflow: contentResizing ? 'hidden' : undefined,
           }}
           onTransitionEnd={(event) => {
@@ -1579,14 +1603,27 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className={contentRevealActive ? 'wd-reveal-stagger' : ''}>
               {message && (
                 <div
-                  className={`rounded-lg p-2.5 sm:p-3 md:p-4 text-[11px] sm:text-xs md:text-sm flex items-start gap-1.5 sm:gap-2 md:gap-3 mb-3 sm:mb-4 ${
-                    message.type === 'success'
-                      ? 'bg-green-500/10 border border-green-500/50 text-green-400'
-                      : 'bg-red-500/10 border border-red-500/50 text-red-400'
-                  }`}
+                  ref={messageWrapRef}
+                  className="overflow-hidden"
+                  style={{ transition: 'height 500ms cubic-bezier(0.22, 1, 0.36, 1)' }}
                 >
-                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5" />
-                  <span className="flex-1 leading-tight">{message.text}</span>
+                  <div
+                    className="transition-opacity duration-300 ease-out"
+                    style={{ opacity: messageLeaving ? 0 : 1 }}
+                  >
+                    <div className="pb-3 sm:pb-4">
+                      <div
+                        className={`rounded-lg p-2.5 sm:p-3 md:p-4 text-[11px] sm:text-xs md:text-sm flex items-start gap-1.5 sm:gap-2 md:gap-3 ${
+                          message.type === 'success'
+                            ? 'bg-green-500/10 border border-green-500/50 text-green-400'
+                            : 'bg-red-500/10 border border-red-500/50 text-red-400'
+                        }`}
+                      >
+                        <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5" />
+                        <span className="flex-1 leading-tight">{message.text}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
