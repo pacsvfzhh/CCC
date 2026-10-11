@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Calendar, CheckCircle, XCircle, DollarSign, ListChecks, BarChart3, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useLanguage } from '../../lib/i18n/context';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
@@ -45,12 +44,8 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   const resolvedCurrencyUnit = useCurrencyUnit(ownerAdminId);
   const currencyUnit = ownerAdminId ? resolvedCurrencyUnit : '';
   const ITEMS_PER_PAGE = 7;
-  const { isMobile, isTablet, deviceType } = useDeviceOptimization();
   const { t } = useLanguage();
   const loadStatisticsRef = useRef<(() => Promise<void>) | null>(null);
-
-  // Tablet-specific detection
-  const isTabletDevice = deviceType === 'tablet';
 
   // Pagination for mobile/tablet
   const totalPages = Math.ceil(dailyStats.length / ITEMS_PER_PAGE);
@@ -60,20 +55,6 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   );
   const canGoPrev = currentPage > 0;
   const canGoNext = currentPage < totalPages - 1;
-
-  // Debug logging for device detection
-  useEffect(() => {
-    console.log('[DailyStatistics] 设备检测信息:', {
-      deviceType,
-      isTablet,
-      isMobile,
-      isTabletDevice,
-      windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
-      userAgent: navigator.userAgent,
-      maxTouchPoints: navigator.maxTouchPoints
-    });
-  }, [deviceType, isTablet, isMobile, isTabletDevice]);
 
   useEffect(() => {
     void supabase
@@ -366,7 +347,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                 </div>
                 {/* Desktop: show day count on right */}
                 {dailyStats.length > 0 && dailyStats.length <= ITEMS_PER_PAGE && (
-                  <div className="hidden lg:block text-sm text-blue-100 font-medium">
+                  <div className="hidden md:block text-sm text-blue-100 font-medium">
                     {dailyStats.length} {dailyStats.length === 1 ? t.statistics.day : t.statistics.days}
                   </div>
                 )}
@@ -374,7 +355,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
             </div>
             {/* Pagination sub-bar - mobile/tablet only */}
             {dailyStats.length > ITEMS_PER_PAGE && (
-              <div className="lg:hidden relative flex items-center justify-between px-4 py-0.5 bg-gradient-to-r from-blue-900/30 via-blue-800/20 to-blue-900/30 border-t border-white/10">
+              <div className="md:hidden relative flex items-center justify-between px-4 py-0.5 bg-gradient-to-r from-blue-900/30 via-blue-800/20 to-blue-900/30 border-t border-white/10">
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                   <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-16 h-16 bg-sky-400/8 rounded-full blur-md"></div>
                   <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-300/8 rounded-full blur-md"></div>
@@ -411,78 +392,8 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
             </div>
           ) : (
             <>
-              {/* Tablet View - Compact List with Refined Design */}
-              {isTabletDevice && (
-                <div className="relative space-y-2">
-                  {paginatedStats.map((stat, index) => (
-                    <div
-                      key={`tablet-${stat.date}-${index}`}
-                      className="relative bg-gray-50 rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md hover:bg-blue-50 transition-all duration-200"
-                      style={{ willChange: 'auto' }}
-                    >
-                      <div className="relative px-3 py-2.5">
-                        {/* First Row: Date and Total Orders - Compact spacing */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 bg-blue-500/10 rounded-md">
-                              <Calendar className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                            </div>
-                            <span className="text-sm font-bold text-gray-900 tracking-wide">{stat.date}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 rounded-md border border-blue-500/20">
-                            <TrendingUp className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                            <span className="text-sm font-bold text-blue-700">{stat.total_orders}</span>
-                          </div>
-                        </div>
-
-                        {/* Second Row: Success, Failed - Compact horizontal layout */}
-                        <div className="flex items-center gap-2 mb-2">
-                          {/* Success - Compact */}
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 rounded-md border border-green-500/20">
-                            <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                            <span className="text-sm font-bold text-green-400">{stat.success_count}</span>
-                          </div>
-
-                          {/* Failed - Compact */}
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 rounded-md border border-red-500/20">
-                            <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                            <span className="text-sm font-bold text-red-400">{stat.failure_count}</span>
-                          </div>
-                        </div>
-
-                        {/* Third Row: Commission, Tips, Earnings */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            {/* Commission */}
-                            <div className="flex items-center gap-1 px-2 py-1 bg-indigo-500/10 rounded-md border border-indigo-500/20">
-                              <TrendingUp className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                              <span className="text-xs font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
-                            </div>
-
-                            {/* Tips */}
-                            <div className="flex items-center gap-1 px-2 py-1 bg-pink-500/10 rounded-md border border-pink-500/20">
-                              <Gift className="w-3.5 h-3.5 text-pink-400 flex-shrink-0" />
-                              <span className="text-xs font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
-                            </div>
-                          </div>
-
-                          {/* Earnings - Total */}
-                          <div className="flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-emerald-500/12 to-teal-500/12 rounded-md border border-emerald-500/25">
-                            <DollarSign className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                            <span className="text-sm font-black text-emerald-400 whitespace-nowrap tracking-wide">
-                              {stat.daily_earnings.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Mobile View - Optimized */}
-              {!isTabletDevice && (
-                <div className="relative lg:hidden space-y-1.5">
+                <div className="relative md:hidden space-y-1.5">
                 {paginatedStats.map((stat, index) => (
                   <div
                     key={`${stat.date}-${index}`}
@@ -545,55 +456,53 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   </div>
                 ))}
                 </div>
-              )}
 
               {/* Desktop View */}
-              {!isTabletDevice && (
-                <div className="hidden lg:block overflow-hidden rounded-xl border border-gray-200">
-                <div className="max-h-[450px] overflow-y-auto hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200">
+                <div className="max-h-[450px] overflow-auto hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   <table className="w-full">
                     <thead className="sticky top-0 z-10">
                       <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-left px-4 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <th className="text-left px-3 lg:px-4 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                            <Calendar className="hidden lg:block w-3.5 h-3.5 shrink-0 text-blue-400" />
                             {t.statistics.date}
                           </div>
                         </th>
-                        <th className="text-center px-3 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <th className="text-center px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-center gap-1.5">
-                            <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+                            <TrendingUp className="hidden lg:block w-3.5 h-3.5 shrink-0 text-blue-400" />
                             {t.statistics.totalOrders}
                           </div>
                         </th>
-                        <th className="text-center px-3 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <th className="text-center px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-center gap-1.5">
-                            <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                            <CheckCircle className="hidden lg:block w-3.5 h-3.5 shrink-0 text-green-400" />
                             {t.statistics.successOrders}
                           </div>
                         </th>
-                        <th className="text-center px-3 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <th className="text-center px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-center gap-1.5">
-                            <XCircle className="w-3.5 h-3.5 text-red-400" />
+                            <XCircle className="hidden lg:block w-3.5 h-3.5 shrink-0 text-red-400" />
                             {t.statistics.failedOrders}
                           </div>
                         </th>
-                        <th className="text-right px-3 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <th className="text-right px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-end gap-1.5">
-                            <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-                            {t.statistics.commission}
+                            <TrendingUp className="hidden lg:block w-3.5 h-3.5 shrink-0 text-indigo-400" />
+                            <span>{t.statistics.commission}{currencyUnit && <span className="block text-[10px] font-semibold normal-case text-gray-400 lg:hidden">{currencyUnit}</span>}</span>
                           </div>
                         </th>
-                        <th className="text-right px-3 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <th className="text-right px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-end gap-1.5">
-                            <Gift className="w-3.5 h-3.5 text-pink-400" />
-                            {t.statistics.tips}
+                            <Gift className="hidden lg:block w-3.5 h-3.5 shrink-0 text-pink-400" />
+                            <span>{t.statistics.tips}{currencyUnit && <span className="block text-[10px] font-semibold normal-case text-gray-400 lg:hidden">{currencyUnit}</span>}</span>
                           </div>
                         </th>
-                        <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <th className="text-right px-3 lg:px-4 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-end gap-1.5">
-                            <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                            {t.statistics.earned}
+                            <DollarSign className="hidden lg:block w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                            <span>{t.statistics.earned}{currencyUnit && <span className="block text-[10px] font-semibold normal-case text-gray-400 lg:hidden">{currencyUnit}</span>}</span>
                           </div>
                         </th>
                       </tr>
@@ -604,30 +513,30 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                           key={`${stat.date}-${index}`}
                           className="border-b border-gray-200 hover:bg-blue-50 transition-colors"
                         >
-                          <td className="px-4 py-2.5">
+                          <td className="px-3 lg:px-4 py-2.5 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               <div className="w-1 h-1 rounded-full bg-blue-400"></div>
-                              <span className="text-sm text-gray-700 font-medium">{stat.date}</span>
+                              <span className="text-[13px] lg:text-sm text-gray-700 font-medium">{stat.date}</span>
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-center">
-                            <span className="text-sm font-bold text-gray-900">{stat.total_orders}</span>
+                          <td className="px-2 lg:px-3 py-2.5 text-center">
+                            <span className="text-[13px] lg:text-sm font-bold text-gray-900">{stat.total_orders}</span>
                           </td>
-                          <td className="px-3 py-2.5 text-center">
-                            <span className="text-sm font-bold text-green-400">{stat.success_count}</span>
+                          <td className="px-2 lg:px-3 py-2.5 text-center">
+                            <span className="text-[13px] lg:text-sm font-bold text-green-400">{stat.success_count}</span>
                           </td>
-                          <td className="px-3 py-2.5 text-center">
-                            <span className="text-sm font-bold text-red-400">{stat.failure_count}</span>
+                          <td className="px-2 lg:px-3 py-2.5 text-center">
+                            <span className="text-[13px] lg:text-sm font-bold text-red-400">{stat.failure_count}</span>
                           </td>
-                          <td className="px-3 py-2.5 text-right">
-                            <span className="text-sm font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
+                          <td className="px-2 lg:px-3 py-2.5 text-right whitespace-nowrap">
+                            <span className="text-[13px] lg:text-sm font-bold text-indigo-500"><span className="hidden lg:inline">{currencyUnit} </span>{stat.daily_commission.toFixed(2)}</span>
                           </td>
-                          <td className="px-3 py-2.5 text-right">
-                            <span className="text-sm font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
+                          <td className="px-2 lg:px-3 py-2.5 text-right whitespace-nowrap">
+                            <span className="text-[13px] lg:text-sm font-bold text-pink-500"><span className="hidden lg:inline">{currencyUnit} </span>{stat.daily_tips.toFixed(2)}</span>
                           </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className="text-sm font-bold text-emerald-400">
-                              {currencyUnit} {stat.daily_earnings.toFixed(2)}
+                          <td className="px-3 lg:px-4 py-2.5 text-right whitespace-nowrap">
+                            <span className="text-[13px] lg:text-sm font-bold text-emerald-400">
+                              <span className="hidden lg:inline">{currencyUnit} </span>{stat.daily_earnings.toFixed(2)}
                             </span>
                           </td>
                         </tr>
@@ -636,7 +545,6 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   </table>
                 </div>
                 </div>
-              )}
             </>
           )}
           </div>

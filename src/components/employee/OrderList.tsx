@@ -269,71 +269,71 @@ export default function OrderList({ employeeId }: OrderListProps) {
           {/* Stats Grid */}
           <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-5">
             {/* Total */}
-            <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-blue-50 via-white to-sky-50/50 border border-blue-100/80 ring-1 ring-blue-50 group hover:border-blue-200 hover:shadow-md hover:shadow-blue-100/50 transition-all duration-200">
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+            <div className="relative flex flex-col items-center text-center rounded-xl px-1.5 py-2.5 sm:block sm:text-left sm:p-3.5 bg-gradient-to-br from-blue-50 via-white to-sky-50/50 border border-blue-100/80 ring-1 ring-blue-50 group hover:border-blue-200 hover:shadow-md hover:shadow-blue-100/50 transition-all duration-200">
+              <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-x-1.5 sm:gap-y-1 sm:mb-2">
+                <div className="order-1 mb-1.5 shrink-0 sm:mb-0 w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
                   <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-blue-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.total}</span>
+                <span className="order-3 mt-1 min-h-[2.5em] sm:mt-0 sm:min-h-0 min-w-0 max-w-full text-[11px] font-semibold text-blue-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.total}</span>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 leading-none">{todayStats.total}</div>
+              <div className="order-2 text-xl sm:text-2xl font-bold text-gray-900 leading-none">{todayStats.total}</div>
             </div>
 
             {/* Success */}
-            <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 border border-emerald-100/80 ring-1 ring-emerald-50 group hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-100/50 transition-all duration-200">
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-200">
+            <div className="relative flex flex-col items-center text-center rounded-xl px-1.5 py-2.5 sm:block sm:text-left sm:p-3.5 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 border border-emerald-100/80 ring-1 ring-emerald-50 group hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-100/50 transition-all duration-200">
+              <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-x-1.5 sm:gap-y-1 sm:mb-2">
+                <div className="order-1 mb-1.5 shrink-0 sm:mb-0 w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-200">
                   <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-emerald-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.success}</span>
+                <span className="order-3 mt-1 min-h-[2.5em] sm:mt-0 sm:min-h-0 min-w-0 max-w-full text-[11px] font-semibold text-emerald-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.success}</span>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-emerald-600 leading-none">{todayStats.success}</div>
+              <div className="order-2 text-xl sm:text-2xl font-bold text-emerald-600 leading-none">{todayStats.success}</div>
             </div>
 
             {/* Failed */}
-            <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-rose-50 via-white to-red-50/50 border border-rose-100/80 ring-1 ring-rose-50 group hover:border-rose-200 hover:shadow-md hover:shadow-rose-100/50 transition-all duration-200">
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-sm shadow-rose-200">
+            <div className="relative flex flex-col items-center text-center rounded-xl px-1.5 py-2.5 sm:block sm:text-left sm:p-3.5 bg-gradient-to-br from-rose-50 via-white to-red-50/50 border border-rose-100/80 ring-1 ring-rose-50 group hover:border-rose-200 hover:shadow-md hover:shadow-rose-100/50 transition-all duration-200">
+              <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-x-1.5 sm:gap-y-1 sm:mb-2">
+                <div className="order-1 mb-1.5 shrink-0 sm:mb-0 w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-sm shadow-rose-200">
                   <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-rose-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.failed}</span>
+                <span className="order-3 mt-1 min-h-[2.5em] sm:mt-0 sm:min-h-0 min-w-0 max-w-full text-[11px] font-semibold text-rose-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.failed}</span>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-rose-500 leading-none">{todayStats.failure}</div>
+              <div className="order-2 text-xl sm:text-2xl font-bold text-rose-500 leading-none">{todayStats.failure}</div>
             </div>
 
             {/* Pending */}
-            <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-amber-50 via-white to-orange-50/50 border border-amber-100/80 ring-1 ring-amber-50 group hover:border-amber-200 hover:shadow-md hover:shadow-amber-100/50 transition-all duration-200">
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm shadow-amber-200">
+            <div className="relative flex flex-col items-center text-center rounded-xl px-1.5 py-2.5 sm:block sm:text-left sm:p-3.5 bg-gradient-to-br from-amber-50 via-white to-orange-50/50 border border-amber-100/80 ring-1 ring-amber-50 group hover:border-amber-200 hover:shadow-md hover:shadow-amber-100/50 transition-all duration-200">
+              <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-x-1.5 sm:gap-y-1 sm:mb-2">
+                <div className="order-1 mb-1.5 shrink-0 sm:mb-0 w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm shadow-amber-200">
                   <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-amber-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.pending}</span>
+                <span className="order-3 mt-1 min-h-[2.5em] sm:mt-0 sm:min-h-0 min-w-0 max-w-full text-[11px] font-semibold text-amber-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.pending}</span>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-amber-600 leading-none">{todayStats.processing}</div>
+              <div className="order-2 text-xl sm:text-2xl font-bold text-amber-600 leading-none">{todayStats.processing}</div>
             </div>
 
             {/* Rate */}
-            <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-cyan-50 via-white to-sky-50/50 border border-cyan-100/80 ring-1 ring-cyan-50 group hover:border-cyan-200 hover:shadow-md hover:shadow-cyan-100/50 transition-all duration-200">
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 flex items-center justify-center shadow-sm shadow-cyan-200">
+            <div className="relative flex flex-col items-center text-center rounded-xl px-1.5 py-2.5 sm:block sm:text-left sm:p-3.5 bg-gradient-to-br from-cyan-50 via-white to-sky-50/50 border border-cyan-100/80 ring-1 ring-cyan-50 group hover:border-cyan-200 hover:shadow-md hover:shadow-cyan-100/50 transition-all duration-200">
+              <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-x-1.5 sm:gap-y-1 sm:mb-2">
+                <div className="order-1 mb-1.5 shrink-0 sm:mb-0 w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 flex items-center justify-center shadow-sm shadow-cyan-200">
                   <Percent className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-cyan-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.rate}</span>
+                <span className="order-3 mt-1 min-h-[2.5em] sm:mt-0 sm:min-h-0 min-w-0 max-w-full text-[11px] font-semibold text-cyan-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.rate}</span>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-cyan-600 leading-none">
+              <div className="order-2 text-xl sm:text-2xl font-bold text-cyan-600 leading-none">
                 {(todayStats.success + todayStats.failure) > 0 ? `${((todayStats.success / (todayStats.success + todayStats.failure)) * 100).toFixed(0)}%` : '0%'}
               </div>
             </div>
 
             {/* Earned */}
-            <div className="relative rounded-xl p-2.5 sm:p-3.5 bg-gradient-to-br from-teal-50 via-white to-emerald-50/50 border border-teal-100/80 ring-1 ring-teal-50 group hover:border-teal-200 hover:shadow-md hover:shadow-teal-100/50 transition-all duration-200">
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm shadow-teal-200">
+            <div className="relative flex flex-col items-center text-center rounded-xl px-1.5 py-2.5 sm:block sm:text-left sm:p-3.5 bg-gradient-to-br from-teal-50 via-white to-emerald-50/50 border border-teal-100/80 ring-1 ring-teal-50 group hover:border-teal-200 hover:shadow-md hover:shadow-teal-100/50 transition-all duration-200">
+              <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-x-1.5 sm:gap-y-1 sm:mb-2">
+                <div className="order-1 mb-1.5 shrink-0 sm:mb-0 w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm shadow-teal-200">
                   <DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-teal-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.earned}</span>
+                <span className="order-3 mt-1 min-h-[2.5em] sm:mt-0 sm:min-h-0 min-w-0 max-w-full text-[11px] font-semibold text-teal-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.earned}</span>
               </div>
-              <div className="flex items-baseline gap-0.5 min-w-0">
+              <div className="order-2 flex max-w-full items-baseline justify-center gap-0.5 min-w-0 sm:justify-start">
                 <span className="text-sm sm:text-base font-bold text-teal-600">$</span>
                 <span
                   className="font-bold text-teal-600 leading-none truncate"

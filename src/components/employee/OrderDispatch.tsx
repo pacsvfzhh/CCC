@@ -3573,8 +3573,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       </div>
 
       {/* Order Assignment System Header - Premium Light Theme */}
-      {/* DESKTOP: Full header (desktop only - lg and up) */}
-      <div className="hidden lg:block relative overflow-hidden rounded-2xl p-8 mb-8 bg-white border border-gray-200/80 shadow-sm">
+      {/* Tablet and desktop: full header */}
+      <div className="hidden md:block relative overflow-hidden rounded-2xl p-6 mb-6 lg:p-8 lg:mb-8 bg-white border border-gray-200/80 shadow-sm">
         {/* Subtle background pattern */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)',
@@ -3585,19 +3585,19 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-50 via-transparent to-transparent rounded-full"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-50/50 via-transparent to-transparent rounded-full"></div>
 
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center space-x-6">
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-1 items-center gap-4 lg:gap-6">
             {/* Icon */}
             <div className="relative">
               <div className="absolute -inset-2 bg-blue-500/10 rounded-2xl blur-xl"></div>
-              <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Package className="w-9 h-9 text-white" />
+              <div className="relative w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Package className="w-8 h-8 lg:w-9 lg:h-9 text-white" />
               </div>
             </div>
 
-            <div className="flex-1">
-              <h2 className="text-3xl font-black text-blue-600 tracking-tight mb-1.5">{t.dispatch.orderAssignmentSystem}</h2>
-              <div className="flex items-center space-x-3 text-sm">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-2xl lg:text-3xl font-black text-blue-600 tracking-tight mb-1.5">{t.dispatch.orderAssignmentSystem}</h2>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] lg:text-sm">
                 <div className="flex items-center space-x-2">
                   <div className="relative">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping absolute opacity-75"></div>
@@ -3614,7 +3614,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           </div>
 
           {/* Network Status Badge */}
-          <div className="flex items-center space-x-3 px-5 py-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+          <div className="flex shrink-0 items-center space-x-3 px-4 py-2.5 lg:px-5 lg:py-3 bg-emerald-50 border border-emerald-200 rounded-xl">
             <div className="relative">
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-ping absolute opacity-75"></div>
               <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
@@ -3622,48 +3622,6 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             <div>
               <div className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.networkStatus}</div>
               <div className="text-sm font-black text-emerald-600 tracking-wide">{t.dispatch.networkOnline}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* TABLET: Optimized horizontal layout for tablets */}
-      <div className="hidden md:block lg:hidden relative overflow-hidden rounded-xl p-5 mb-6 bg-white border border-gray-200/80 shadow-sm">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(37,99,235,1) 1px, transparent 1px)',
-          backgroundSize: '28px 28px'
-        }}></div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-50 via-transparent to-transparent rounded-full"></div>
-
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/15">
-                <Package className="w-7 h-7 text-white" />
-              </div>
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-blue-600 tracking-tight">{t.dispatch.orderAssignmentSystem}</h2>
-              <div className="flex items-center space-x-2 text-xs mt-1">
-                <div className="flex items-center space-x-1.5">
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-gray-500 font-medium">{t.dispatch.globalSupplyChain}</span>
-                </div>
-                <span className="text-gray-300">|</span>
-                <span className="text-gray-500 font-medium">{t.dispatch.crossBorderLogistics}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2.5 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg flex-shrink-0">
-            <div className="relative">
-              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping absolute opacity-75"></div>
-              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
-            </div>
-            <div>
-              <div className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{t.dispatch.statusLabel}</div>
-              <div className="text-sm font-black text-emerald-600 leading-tight">{t.dispatch.onlineUpper}</div>
             </div>
           </div>
         </div>
@@ -3697,9 +3655,9 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
         {/* Stats Grid Section */}
         <div className="relative p-3.5">
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-3 gap-2 xs:gap-2.5">
             {/* Today Total */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white border border-blue-100/80 rounded-xl p-2.5 shadow-sm">
+            <div className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white border border-blue-100/80 rounded-xl px-1.5 py-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
                 <div className="w-7 h-7 shrink-0 bg-blue-100 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
@@ -3707,12 +3665,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-blue-700 tabular-nums">{stats.total}</div>
-                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.totalSmall}</div>
+                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.totalSmall}</div>
               </div>
             </div>
 
             {/* Completed */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-emerald-50 to-white border border-emerald-100/80 rounded-xl p-2.5 shadow-sm">
+            <div className="relative overflow-hidden bg-gradient-to-b from-emerald-50 to-white border border-emerald-100/80 rounded-xl px-1.5 py-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
                 <div className="w-7 h-7 shrink-0 bg-emerald-100 rounded-lg flex items-center justify-center">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
@@ -3720,12 +3678,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-emerald-700 tabular-nums">{stats.completed}</div>
-                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.doneSmall}</div>
+                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.doneSmall}</div>
               </div>
             </div>
 
             {/* Error Orders */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-rose-50 to-white border border-rose-100/80 rounded-xl p-2.5 shadow-sm">
+            <div className="relative overflow-hidden bg-gradient-to-b from-rose-50 to-white border border-rose-100/80 rounded-xl px-1.5 py-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
                 <div className="w-7 h-7 shrink-0 bg-rose-100 rounded-lg flex items-center justify-center">
                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
@@ -3733,12 +3691,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-rose-700 tabular-nums">{stats.error}</div>
-                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.errorsLabel}</div>
+                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.errorsLabel}</div>
               </div>
             </div>
 
             {/* Submitted Orders */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-cyan-50 to-white border border-cyan-100/80 rounded-xl p-2.5 shadow-sm">
+            <div className="relative overflow-hidden bg-gradient-to-b from-cyan-50 to-white border border-cyan-100/80 rounded-xl px-1.5 py-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
                 <div className="w-7 h-7 shrink-0 bg-cyan-100 rounded-lg flex items-center justify-center">
                   <Send className="w-3.5 h-3.5 text-cyan-600" />
@@ -3746,12 +3704,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-cyan-700 tabular-nums">{todaySubmittedOrders}</div>
-                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.submittedSmall}</div>
+                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.submittedSmall}</div>
               </div>
             </div>
 
             {/* Timeout Orders */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-orange-50 to-white border border-orange-100/80 rounded-xl p-2.5 shadow-sm">
+            <div className="relative overflow-hidden bg-gradient-to-b from-orange-50 to-white border border-orange-100/80 rounded-xl px-1.5 py-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
                 <div className="w-7 h-7 shrink-0 bg-orange-100 rounded-lg flex items-center justify-center">
                   <Clock className="w-3.5 h-3.5 text-orange-600" />
@@ -3759,12 +3717,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               </div>
               <div className="relative text-center">
                 <div className="text-xl font-black text-orange-700 tabular-nums">{stats.timeout}</div>
-                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.timeoutSmallLabel}</div>
+                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.timeoutSmallLabel}</div>
               </div>
             </div>
 
             {/* Success Rate */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-amber-50 to-white border border-amber-100/80 rounded-xl p-2.5 shadow-sm">
+            <div className="relative overflow-hidden bg-gradient-to-b from-amber-50 to-white border border-amber-100/80 rounded-xl px-1.5 py-2.5 shadow-sm">
               <div className="relative flex items-center justify-center mb-1.5">
                 <div className="w-7 h-7 shrink-0 bg-amber-100 rounded-lg flex items-center justify-center">
                   <Zap className="w-3.5 h-3.5 text-amber-600" />
@@ -3774,7 +3732,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 <div className="text-xl font-black text-amber-700 tabular-nums">
                   {(stats.completed + stats.error + stats.timeout) > 0 ? Math.round((stats.completed / (stats.completed + stats.error + stats.timeout)) * 100) : 0}%
                 </div>
-                <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">{t.dispatch.successRateLabel}</div>
+                <div className="mt-0.5 min-h-[2.5em] text-[11px] text-slate-500 font-semibold uppercase tracking-wide leading-tight break-words hyphens-auto sm:min-h-0">{t.dispatch.successRateLabel}</div>
               </div>
             </div>
           </div>
@@ -3783,10 +3741,10 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       {/* Stats Cards - Premium Light Theme */}
       <div className="relative">
-        {/* DESKTOP: Full cards in grid (desktop only - lg and up) */}
-        <div className="hidden lg:grid relative grid-cols-3 xl:grid-cols-6 gap-4" style={{ zIndex: 1 }}>
+        {/* Tablet and desktop: full cards (3 columns until xl) */}
+        <div className="hidden md:grid relative grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4" style={{ zIndex: 1 }}>
         {/* TODAY TOTAL */}
-        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/50 hover:-translate-y-1">
+        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-4 lg:p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/50 hover:-translate-y-1">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
@@ -3802,7 +3760,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         </div>
 
         {/* COMPLETED */}
-        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-emerald-100/50 hover:-translate-y-1">
+        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-4 lg:p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-emerald-100/50 hover:-translate-y-1">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
@@ -3818,7 +3776,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         </div>
 
         {/* ERROR ORDERS */}
-        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-rose-100/50 hover:-translate-y-1">
+        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-4 lg:p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-rose-100/50 hover:-translate-y-1">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-rose-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-rose-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
@@ -3834,7 +3792,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         </div>
 
         {/* SUBMITTED ORDERS */}
-        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-cyan-100/50 hover:-translate-y-1">
+        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-4 lg:p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-cyan-100/50 hover:-translate-y-1">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
@@ -3850,7 +3808,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         </div>
 
         {/* TIMEOUT ORDERS */}
-        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-orange-100/50 hover:-translate-y-1">
+        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-4 lg:p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-orange-100/50 hover:-translate-y-1">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
@@ -3866,7 +3824,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         </div>
 
         {/* SUCCESS RATE */}
-        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-amber-100/50 hover:-translate-y-1">
+        <div className="group relative bg-white border border-gray-200/80 rounded-2xl p-4 lg:p-5 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-amber-100/50 hover:-translate-y-1">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-amber-400 rounded-t-2xl"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative">
@@ -3884,100 +3842,6 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         </div>
         </div>
 
-        {/* TABLET: Compact 5-column layout optimized for tablets */}
-        <div className="hidden md:grid lg:hidden relative grid-cols-3 gap-2.5" style={{ zIndex: 1 }}>
-          {/* TODAY TOTAL */}
-          <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-blue-100/50 hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-xl"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.totalLabel}</span>
-                <div className="w-7 h-7 shrink-0 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
-                  <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.total}</div>
-              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.assignmentsLabel}</div>
-            </div>
-          </div>
-
-          {/* COMPLETED */}
-          <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-emerald-100/50 hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-t-xl"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.doneLabel}</span>
-                <div className="w-7 h-7 shrink-0 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.completed}</div>
-              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.completedSmall}</div>
-            </div>
-          </div>
-
-          {/* ERROR ORDERS */}
-          <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-rose-100/50 hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-400 rounded-t-xl"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.errorLabel}</span>
-                <div className="w-7 h-7 shrink-0 bg-rose-50 rounded-lg flex items-center justify-center border border-rose-100">
-                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.error}</div>
-              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.errorsSmall}</div>
-            </div>
-          </div>
-
-          {/* SUBMITTED ORDERS */}
-          <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-cyan-100/50 hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-t-xl"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.submittedLabel}</span>
-                <div className="w-7 h-7 shrink-0 bg-cyan-50 rounded-lg flex items-center justify-center border border-cyan-100">
-                  <Send className="w-3.5 h-3.5 text-cyan-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{todaySubmittedOrders}</div>
-              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.submittedSmall}</div>
-            </div>
-          </div>
-
-          {/* TIMEOUT ORDERS */}
-          <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-orange-100/50 hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-xl"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.timeoutLabel}</span>
-                <div className="w-7 h-7 shrink-0 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-100">
-                  <Clock className="w-3.5 h-3.5 text-orange-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">{stats.timeout}</div>
-              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.timeoutSmall}</div>
-            </div>
-          </div>
-
-          {/* SUCCESS RATE */}
-          <div className="group relative bg-white border border-gray-200/80 rounded-xl p-3.5 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-amber-100/50 hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 to-amber-400 rounded-t-xl"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="min-w-0 text-gray-500 text-[11px] font-bold uppercase tracking-wider leading-tight break-words hyphens-auto">{t.dispatch.successRateLabel}</span>
-                <div className="w-7 h-7 shrink-0 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
-                  <Zap className="w-3.5 h-3.5 text-amber-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-gray-900 mb-0.5 tabular-nums">
-                {(stats.completed + stats.error + stats.timeout) > 0 ? Math.round((stats.completed / (stats.completed + stats.error + stats.timeout)) * 100) : 0}%
-              </div>
-              <div className="text-[11px] text-gray-400 font-medium">{t.dispatch.successSmall}</div>
-            </div>
-          </div>
-        </div>
       </div>
 
 
