@@ -1619,9 +1619,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                   onClick={() => setShowConfirmModal(false)}
                   disabled={submitting}
                   aria-label={t.common.close}
-                  className="-mr-1 flex !h-[40px] !w-[40px] !min-h-[40px] !min-w-[40px] flex-shrink-0 items-center justify-center rounded-xl bg-white/10 !p-0 text-white/80 ring-1 ring-white/15 transition-colors hover:bg-white/20 hover:text-white disabled:opacity-40"
+                  className="flex !h-[32px] !w-[32px] !min-h-[32px] !min-w-[32px] flex-shrink-0 items-center justify-center rounded-lg bg-white/10 lg:-mr-1 lg:!h-[40px] lg:!w-[40px] lg:!min-h-[40px] lg:!min-w-[40px] lg:rounded-xl !p-0 text-white/80 ring-1 ring-white/15 transition-colors hover:bg-white/20 hover:text-white disabled:opacity-40"
                 >
-                  <X className="h-[20px] w-[20px]" strokeWidth={2.25} />
+                  <X className="h-[16px] w-[16px] lg:h-[20px] lg:w-[20px]" strokeWidth={2.25} />
                 </button>
               </div>
 
