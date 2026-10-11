@@ -128,7 +128,7 @@ const es = {
     eligibilityAnd: ' Y ',
     eligibilityOr: ' O ',
     withdrawalRequestFailed: (errorMsg: string) => `Error al enviar la solicitud de retiro: ${errorMsg}`,
-    unknownError: 'Error desconocido',
+    unknownError: 'Error desconocido', pendingWithdrawalExists: "Ya tienes una solicitud de retiro en revisión. Espera a que sea aprobada o rechazada, o cancélala en el Historial de retiros, antes de enviar una nueva.", withdrawalSessionExpired: "Tu sesión ha expirado. Inicia sesión de nuevo e inténtalo otra vez.", withdrawalRequirementsNotMet: "Todavía no cumples los requisitos de retiro.",
     insufficientBalanceError: 'Saldo insuficiente',
   },
   verification: {

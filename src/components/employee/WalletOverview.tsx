@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History, ShieldCheck, X, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, formatSupabaseError } from '../../lib/supabase';
 import { Wallet, Employee, VerificationRequest } from '../../types';
 import VerificationForm from './VerificationForm';
 import WithdrawalHistory from './WithdrawalHistory';
@@ -143,7 +143,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
   useEffect(() => {
     if (message) {
-      const timer = setTimeout(() => setMessage(null), 4000);
+      const timer = setTimeout(() => setMessage(null), message.type === 'error' ? 8000 : 4000);
       return () => clearTimeout(timer);
     }
   }, [message]);
@@ -231,10 +231,31 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     }
   }, [verificationRequest]);
 
+  const describeWithdrawalError = (error: unknown, fallback?: string) => {
+    const raw = formatSupabaseError(error);
+    const normalized = raw.toLowerCase();
+    if (normalized.includes('pending withdrawal already exists')) return t.wallet.pendingWithdrawalExists;
+    if (normalized.includes('session is invalid or expired')) return t.wallet.withdrawalSessionExpired;
+    if (normalized.includes('insufficient available balance')) return t.wallet.insufficientBalanceError;
+    if (normalized.includes('eligibility requirements are not met')) return t.wallet.withdrawalRequirementsNotMet;
+    const message = error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string'
+      ? ((error as { message: string }).message.trim() || null)
+      : null;
+    return fallback ?? t.wallet.withdrawalRequestFailed(message || (raw.startsWith('Unknown') ? t.wallet.unknownError : raw));
+  };
+
   const checkWithdrawalEligibility = async () => {
-    console.log('Starting withdrawal eligibility check...');
-    console.log('Employee verified:', localEmployee.is_verified);
-    console.log('Wallet balance:', wallet?.available_balance);
+    const { data: pendingWithdrawals, error: pendingError } = await supabase
+      .from('withdrawals')
+      .select('id')
+      .eq('user_id', employeeId)
+      .eq('status', 'pending')
+      .limit(1);
+    if (pendingError) throw pendingError;
+    if (pendingWithdrawals && pendingWithdrawals.length > 0) {
+      return { eligible: false, message: t.wallet.pendingWithdrawalExists };
+    }
+
     const financialSession = getEmployeeFinancialSession();
     const { data: policy, error } = await supabase.rpc('get_employee_withdrawal_policy_secure', {
       p_user_id: employeeId,
@@ -329,8 +350,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       setShowWithdrawalForm(true);
       setCheckingEligibility(false);
     } catch (error) {
-      console.error('Error in handleRequestWithdrawal:', error);
-      setMessage({ type: 'error', text: t.wallet.eligibilityFailed });
+      console.error('Error in handleRequestWithdrawal:', formatSupabaseError(error));
+      setMessage({ type: 'error', text: describeWithdrawalError(error, t.wallet.eligibilityFailed) });
       setCheckingEligibility(false);
     }
   };
@@ -391,9 +412,12 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
       loadWallet();
     } catch (error: unknown) {
-      console.error('Error in handleConfirmWithdrawal:', error);
-      setMessage({ type: 'error', text: t.wallet.withdrawalRequestFailed(error instanceof Error ? error.message : t.wallet.unknownError) });
+      console.error('Error in handleConfirmWithdrawal:', formatSupabaseError(error));
+      withdrawalOperationIdRef.current = null;
+      setMessage({ type: 'error', text: describeWithdrawalError(error) });
       setShowConfirmModal(false);
+      setShowWithdrawalForm(false);
+      loadWallet();
     } finally {
       setSubmitting(false);
     }

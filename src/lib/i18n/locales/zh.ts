@@ -128,7 +128,7 @@ const zh = {
     eligibilityAnd: ' 且 ',
     eligibilityOr: ' 或 ',
     withdrawalRequestFailed: (errorMsg: string) => `提交提款请求失败：${errorMsg}`,
-    unknownError: '未知错误',
+    unknownError: '未知错误', pendingWithdrawalExists: "您已有一笔提现申请正在审核中。请等待审核通过或被拒绝，或在提现记录中取消后，再重新申请。", withdrawalSessionExpired: "登录已过期，请重新登录后再试。", withdrawalRequirementsNotMet: "暂未满足提现条件。",
     insufficientBalanceError: '余额不足',
   },
   verification: {

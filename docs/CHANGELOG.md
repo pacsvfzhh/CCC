@@ -17,6 +17,13 @@
 
 ---
 
+## 2026-10-11 · 员工提现错误提示具体化、单笔待审核限制
+- 现象：CryptoBart_Tokyo 提交提现显示 "Failed to submit withdrawal request: Unknown error"。正式库日志显示真实原因为 `A pending withdrawal already exists.`（该账号 2026-09-22 已有一笔 51642.50 待审核）。前端只认 `Error` 实例，Supabase 返回的普通错误对象被当成未知错误。
+- 后端 `request_employee_withdrawal` 已有“存在 pending 提现即拒绝”的检查（正式库已核对），本次未改数据库。
+- `WalletOverview.tsx`：点击提现和确认提交前先查询本人 pending 提现，有则直接提示“已有审核中的提现，请等待通过/拒绝或在提现记录中取消后再申请”，不再打开表单；后端错误映射为具体文案（已有待审核提现、登录过期、余额不足、未满足提现条件），其他错误显示后端原文而非 Unknown error；错误提示停留 8 秒。
+- 10 种语言新增 `pendingWithdrawalExists`、`withdrawalSessionExpired`、`withdrawalRequirementsNotMet`。
+- 验证：模拟有 pending 提现被拦截、后端返回 pending 错误、后端返回其他错误三种情况；typecheck、eslint、build 通过。前端需用户部署。
+
 ## 2026-10-11 · 提现确认弹窗重新设计
 - `WalletOverview.tsx` 确认弹窗：深蓝渐变头部承载金额（带几何色块装饰与 USDC 标签）、收据式金额明细、编号三步的重要提示、固定底部按钮栏；新增右上角关闭、点击遮罩关闭（提交中禁用）、提交中转圈图标、轻量进场动画（尊重减少动画设置）。
 - 验证：320×568、390×844、700×840、1280×800 截图；typecheck、eslint、build 通过。文案与提交逻辑不变，无数据库/服务端改动。

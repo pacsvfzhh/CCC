@@ -137,7 +137,7 @@ const hi = {
     eligibilityAnd: ' और ',
     eligibilityOr: ' या ',
     withdrawalRequestFailed: (errorMsg: string) => `निकासी अनुरोध जमा करने में विफल: ${errorMsg}`,
-    unknownError: 'अज्ञात त्रुटि',
+    unknownError: 'अज्ञात त्रुटि', pendingWithdrawalExists: "आपका एक निकासी अनुरोध पहले से समीक्षा में है। नया अनुरोध भेजने से पहले उसके स्वीकृत या अस्वीकृत होने की प्रतीक्षा करें, या उसे निकासी इतिहास में रद्द करें।", withdrawalSessionExpired: "आपका सत्र समाप्त हो गया है। कृपया फिर से लॉग इन करके पुनः प्रयास करें।", withdrawalRequirementsNotMet: "आप अभी निकासी की शर्तें पूरी नहीं करते हैं।",
     insufficientBalanceError: 'अपर्याप्त शेष राशि',
   },
 

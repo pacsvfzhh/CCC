@@ -137,7 +137,7 @@ const en = {
     eligibilityAnd: ' AND ',
     eligibilityOr: ' OR ',
     withdrawalRequestFailed: (errorMsg: string) => `Failed to submit withdrawal request: ${errorMsg}`,
-    unknownError: 'Unknown error',
+    unknownError: 'Unknown error', pendingWithdrawalExists: "You already have a withdrawal request under review. Wait until it is approved or rejected, or cancel it in Withdrawal History, before submitting a new one.", withdrawalSessionExpired: "Your session has expired. Please log in again and try again.", withdrawalRequirementsNotMet: "You do not meet the withdrawal requirements yet.",
     insufficientBalanceError: 'Insufficient balance',
   },
 
