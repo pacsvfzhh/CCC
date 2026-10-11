@@ -1331,14 +1331,6 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           ? 'border-cyan-300 shadow-[0_0_0_4px_rgba(103,232,249,0.18),0_14px_32px_-14px_rgba(37,99,235,0.35)]'
           : 'border-gray-200 shadow-sm'
       }`}>
-        {contentResizing && (
-          <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden" aria-hidden="true">
-            <div
-              className="keep-animation absolute inset-x-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(186,230,253,0.35)_45%,rgba(224,242,254,0.5)_50%,rgba(186,230,253,0.35)_55%,transparent)]"
-              style={{ animation: 'wd-resize-sweep 760ms cubic-bezier(0.22, 1, 0.36, 1) both' }}
-            ></div>
-          </div>
-        )}
         {/* Curtain animation overlay - appears during checking */}
         {checkingEligibility && (
           <>
@@ -1562,19 +1554,25 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           </button>
         </div>
 
-        <style>{'@keyframes wd-btn-cover{from{opacity:1}to{opacity:0}}@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
+        <style>{'@keyframes wd-btn-cover{from{opacity:1}to{opacity:0}}keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}.wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
         {/* Content wrapper with transition animation */}
         <div
           className="relative z-10"
           style={{
             height: contentHeight ?? undefined,
-            transition: 'height 520ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'height 640ms cubic-bezier(0.22, 1, 0.36, 1)',
             overflow: contentResizing ? 'hidden' : undefined,
           }}
           onTransitionEnd={(event) => {
             if (event.target === event.currentTarget && event.propertyName === 'height') setContentResizing(false);
           }}
         >
+        <div
+          className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 h-14 bg-gradient-to-b from-white/0 via-white/70 to-white transition-opacity ease-out ${
+            contentResizing ? 'opacity-100 duration-200' : 'opacity-0 duration-500'
+          }`}
+          aria-hidden="true"
+        ></div>
         <div ref={contentInnerRef}>
           {/* Transitioning content area */}
           {!showWithdrawalForm ? (
