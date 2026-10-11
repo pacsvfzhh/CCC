@@ -31,6 +31,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const [verificationRequest, setVerificationRequest] = useState<VerificationRequest | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [eligibilityOverlayLeaving, setEligibilityOverlayLeaving] = useState(false);
+  const contentInnerRef = useRef<HTMLDivElement>(null);
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
+  const [contentResizing, setContentResizing] = useState(false);
   const { deviceType } = useDeviceOptimization();
   const loadWalletRef = useRef<(() => Promise<void>) | null>(null);
   const loadEmployeeDataRef = useRef<(() => Promise<void>) | null>(null);
@@ -163,6 +166,29 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       html.style.overflow = originalHtmlOverflow;
     };
   }, [showConfirmModal]);
+
+  useLayoutEffect(() => {
+    const inner = contentInnerRef.current;
+    if (!inner) return;
+    let frame = 0;
+    let lastHeight = inner.offsetHeight;
+    setContentHeight(lastHeight);
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const nextHeight = inner.offsetHeight;
+        if (nextHeight === lastHeight) return;
+        lastHeight = nextHeight;
+        setContentResizing(true);
+        setContentHeight(nextHeight);
+      });
+    });
+    observer.observe(inner);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [loading]);
 
   const loadEmployeeData = async () => {
     try {
@@ -367,7 +393,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     if (openForm) setShowWithdrawalForm(true);
     if (nextMessage) setMessage(nextMessage);
     setEligibilityOverlayLeaving(true);
-    await wait(820);
+    await wait(1050);
     setCheckingEligibility(false);
     setEligibilityOverlayLeaving(false);
   };
@@ -1250,22 +1276,22 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         {/* Curtain animation overlay - appears during checking */}
         {checkingEligibility && (
           <>
-            <style>{'@keyframes wd-curtain-l-in{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 calc(50% - 1px) 0 0)}}@keyframes wd-curtain-r-in{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 calc(50% - 1px))}}@keyframes wd-curtain-l-out{from{clip-path:inset(0 calc(50% - 1px) 0 0)}to{clip-path:inset(0 100% 0 0)}}@keyframes wd-curtain-r-out{from{clip-path:inset(0 0 0 calc(50% - 1px))}to{clip-path:inset(0 0 0 100%)}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}'}</style>
-            {/* Left curtain */}
+            <style>{'.wd-curtain{-webkit-mask-size:300% 100%;mask-size:300% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}.wd-curtain-l{-webkit-mask-image:linear-gradient(to right,#000 0%,#000 36%,transparent 64%,transparent 100%);mask-image:linear-gradient(to right,#000 0%,#000 36%,transparent 64%,transparent 100%)}.wd-curtain-r{-webkit-mask-image:linear-gradient(to left,#000 0%,#000 36%,transparent 64%,transparent 100%);mask-image:linear-gradient(to left,#000 0%,#000 36%,transparent 64%,transparent 100%)}@keyframes wd-spread-l{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-spread-r{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-recede-l{from{-webkit-mask-position:0% 0;mask-position:0% 0;opacity:1}to{-webkit-mask-position:100% 0;mask-position:100% 0;opacity:.6}}@keyframes wd-recede-r{from{-webkit-mask-position:100% 0;mask-position:100% 0;opacity:1}to{-webkit-mask-position:0% 0;mask-position:0% 0;opacity:.6}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}'}</style>
+            {/* Left curtain: colour washes in from the left with a soft feathered edge */}
             <div
-              className="keep-animation absolute inset-0 z-50 bg-gradient-to-r from-cyan-500 via-blue-600 to-blue-600"
-              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-l-out 650ms cubic-bezier(0.65, 0, 0.35, 1) 150ms both' : 'wd-curtain-l-in 750ms cubic-bezier(0.65, 0, 0.35, 1) both' }}
+              className="wd-curtain wd-curtain-l keep-animation absolute inset-0 z-50 bg-[linear-gradient(90deg,#06b6d4_0%,#2563eb_50%,#06b6d4_100%)]"
+              style={{ animation: eligibilityOverlayLeaving ? 'wd-recede-l 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-l 1000ms cubic-bezier(0.33, 0, 0.2, 1) both' }}
             ></div>
             {/* Right curtain */}
             <div
-              className="keep-animation absolute inset-0 z-50 bg-gradient-to-l from-cyan-500 via-blue-600 to-blue-600"
-              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-r-out 650ms cubic-bezier(0.65, 0, 0.35, 1) 150ms both' : 'wd-curtain-r-in 750ms cubic-bezier(0.65, 0, 0.35, 1) both' }}
+              className="wd-curtain wd-curtain-r keep-animation absolute inset-0 z-50 bg-[linear-gradient(90deg,#06b6d4_0%,#2563eb_50%,#06b6d4_100%)]"
+              style={{ animation: eligibilityOverlayLeaving ? 'wd-recede-r 900ms cubic-bezier(0.45, 0, 0.25, 1) 120ms both' : 'wd-spread-r 1000ms cubic-bezier(0.33, 0, 0.2, 1) both' }}
             ></div>
 
             {/* Center loading area with progress - positioned below title */}
             <div
               className="keep-animation absolute inset-0 z-50 flex items-start md:items-center justify-center pt-12 sm:pt-16 md:pt-0"
-              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-content-out 200ms ease-in both' : 'wd-curtain-content-in 400ms ease-out 500ms both' }}
+              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-content-out 260ms ease-in both' : 'wd-curtain-content-in 500ms ease-out 650ms both' }}
               role="status"
               aria-live="polite"
             >
@@ -1300,7 +1326,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                   {/* Background shimmer */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_ease-in-out_infinite] keep-animation"></div>
                   {/* Progress fill */}
-                  <div className="keep-animation absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 shadow-lg shadow-cyan-400/50" style={{ animation: 'progressFill 1.8s ease-out 500ms both' }}>
+                  <div className="keep-animation absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 shadow-lg shadow-cyan-400/50" style={{ animation: 'progressFill 1.6s ease-out 650ms both' }}>
                     {/* Glowing edge */}
                     <div className="absolute inset-y-0 right-0 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" style={{ width: 3 }}></div>
                   </div>
@@ -1465,7 +1491,18 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         </div>
 
         {/* Content wrapper with transition animation */}
-        <div className="relative z-10">
+        <div
+          className="relative z-10"
+          style={{
+            height: contentHeight ?? undefined,
+            transition: 'height 520ms cubic-bezier(0.22, 1, 0.36, 1)',
+            overflow: contentResizing ? 'hidden' : undefined,
+          }}
+          onTransitionEnd={(event) => {
+            if (event.target === event.currentTarget && event.propertyName === 'height') setContentResizing(false);
+          }}
+        >
+        <div ref={contentInnerRef}>
           {/* Transitioning content area */}
           {!showWithdrawalForm ? (
             <div className={`interactive-transition ${
@@ -1635,6 +1672,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             </div>
           </div>
           )}
+        </div>
         </div>
         </div>
       </div>
