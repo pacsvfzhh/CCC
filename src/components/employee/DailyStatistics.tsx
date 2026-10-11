@@ -216,13 +216,12 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   </div>
                   <span className="text-[11px] sm:text-xs font-semibold text-amber-600/70 uppercase tracking-wider">{t.statistics.revenue}</span>
                 </div>
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-[11px] sm:text-xs font-bold text-amber-600">{currencyUnit}</span>
+                <div className="flex min-w-0 items-baseline gap-0.5" style={{
+                  fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_revenue.toFixed(2).length * 0.04))}rem, 1.5rem)`
+                }}>
+                  <span className="shrink-0 text-[1.15em] font-bold leading-none text-amber-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-amber-700 leading-none truncate"
-                    style={{
-                      fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_revenue.toFixed(2).length * 0.04))}rem, 1.5rem)`
-                    }}
                     title={`${currencyUnit}${overallStats.total_revenue.toFixed(2)}`}
                   >
                     {overallStats.total_revenue.toFixed(2)}
@@ -238,13 +237,12 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   </div>
                   <span className="text-[11px] sm:text-xs font-semibold text-indigo-600/70 uppercase tracking-wider">{t.statistics.commission}</span>
                 </div>
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-[11px] sm:text-xs font-bold text-indigo-600">{currencyUnit}</span>
+                <div className="flex min-w-0 items-baseline gap-0.5" style={{
+                  fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_commission.toFixed(2).length * 0.04))}rem, 1.5rem)`
+                }}>
+                  <span className="shrink-0 text-[1.15em] font-bold leading-none text-indigo-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-indigo-700 leading-none truncate"
-                    style={{
-                      fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_commission.toFixed(2).length * 0.04))}rem, 1.5rem)`
-                    }}
                     title={`${currencyUnit}${overallStats.total_commission.toFixed(2)}`}
                   >
                     {overallStats.total_commission.toFixed(2)}
@@ -260,13 +258,12 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                   </div>
                   <span className="text-[11px] sm:text-xs font-semibold text-pink-600/70 uppercase tracking-wider">{t.statistics.tips}</span>
                 </div>
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-[11px] sm:text-xs font-bold text-pink-600">{currencyUnit}</span>
+                <div className="flex min-w-0 items-baseline gap-0.5" style={{
+                  fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_tips.toFixed(2).length * 0.04))}rem, 1.5rem)`
+                }}>
+                  <span className="shrink-0 text-[1.15em] font-bold leading-none text-pink-600">{currencyUnit}</span>
                   <span
                     className="font-bold text-pink-700 leading-none truncate"
-                    style={{
-                      fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_tips.toFixed(2).length * 0.04))}rem, 1.5rem)`
-                    }}
                     title={`${currencyUnit}${overallStats.total_tips.toFixed(2)}`}
                   >
                     {overallStats.total_tips.toFixed(2)}
@@ -459,38 +456,38 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                             {t.statistics.date}
                           </div>
                         </th>
-                        <th className="text-center px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <th className="text-left px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
+                          <div className="flex items-center gap-1.5">
                             <TrendingUp className="hidden lg:block w-3.5 h-3.5 shrink-0 text-blue-400" />
                             {t.statistics.totalOrders}
                           </div>
                         </th>
-                        <th className="text-center px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <th className="text-left px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
+                          <div className="flex items-center gap-1.5">
                             <CheckCircle className="hidden lg:block w-3.5 h-3.5 shrink-0 text-green-400" />
                             {t.statistics.successOrders}
                           </div>
                         </th>
-                        <th className="text-center px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <th className="text-left px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
+                          <div className="flex items-center gap-1.5">
                             <XCircle className="hidden lg:block w-3.5 h-3.5 shrink-0 text-red-400" />
                             {t.statistics.failedOrders}
                           </div>
                         </th>
-                        <th className="text-right px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <th className="text-left px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
+                          <div className="flex items-center gap-1.5">
                             <TrendingUp className="hidden lg:block w-3.5 h-3.5 shrink-0 text-indigo-400" />
                             {t.statistics.commission}
                           </div>
                         </th>
-                        <th className="text-right px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <th className="text-left px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
+                          <div className="flex items-center gap-1.5">
                             <Gift className="hidden lg:block w-3.5 h-3.5 shrink-0 text-pink-400" />
                             {t.statistics.tips}
                           </div>
                         </th>
-                        <th className="text-right px-3 lg:px-4 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <th className="text-left px-3 lg:px-4 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
+                          <div className="flex items-center gap-1.5">
                             <DollarSign className="hidden lg:block w-3.5 h-3.5 shrink-0 text-emerald-400" />
                             {t.statistics.earned}
                           </div>
@@ -509,22 +506,22 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                               <span className="text-[13px] lg:text-sm text-gray-700 font-medium">{stat.date}</span>
                             </div>
                           </td>
-                          <td className="px-2 lg:px-3 py-2.5 text-center">
+                          <td className="px-2 lg:px-3 py-2.5">
                             <span className="text-[13px] lg:text-sm font-bold text-gray-900">{stat.total_orders}</span>
                           </td>
-                          <td className="px-2 lg:px-3 py-2.5 text-center">
+                          <td className="px-2 lg:px-3 py-2.5">
                             <span className="text-[13px] lg:text-sm font-bold text-green-400">{stat.success_count}</span>
                           </td>
-                          <td className="px-2 lg:px-3 py-2.5 text-center">
+                          <td className="px-2 lg:px-3 py-2.5">
                             <span className="text-[13px] lg:text-sm font-bold text-red-400">{stat.failure_count}</span>
                           </td>
-                          <td className="px-2 lg:px-3 py-2.5 text-right whitespace-nowrap">
+                          <td className="px-2 lg:px-3 py-2.5 whitespace-nowrap">
                             <span className="text-[13px] lg:text-sm font-bold text-indigo-500">{currencyUnit}{stat.daily_commission.toFixed(2)}</span>
                           </td>
-                          <td className="px-2 lg:px-3 py-2.5 text-right whitespace-nowrap">
+                          <td className="px-2 lg:px-3 py-2.5 whitespace-nowrap">
                             <span className="text-[13px] lg:text-sm font-bold text-pink-500">{currencyUnit}{stat.daily_tips.toFixed(2)}</span>
                           </td>
-                          <td className="px-3 lg:px-4 py-2.5 text-right whitespace-nowrap">
+                          <td className="px-3 lg:px-4 py-2.5 whitespace-nowrap">
                             <span className="text-[13px] lg:text-sm font-bold text-emerald-400">
                               {currencyUnit}{stat.daily_earnings.toFixed(2)}
                             </span>

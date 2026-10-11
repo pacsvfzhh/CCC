@@ -17,6 +17,13 @@
 
 ---
 
+## 2026-10-11 · 统计页每日明细左对齐、概览 $ 加大
+- 需求：Daily Breakdown 每列数据靠左对齐；Overview 信息框里的 $ 要比旁边数字稍大。
+- 改动：平板/电脑的每日明细表格所有表头与数据改为左对齐（原来日期左、数量居中、金额靠右）；概览收入/佣金/小费的 $ 跟随金额字号并放大到 1.15 倍（原为 11–12px 小字）。
+- 文件：`src/components/employee/DailyStatistics.tsx`
+- 数据库/服务端：无
+- 验证：320/700/1180 宽截图核对；typecheck、eslint、build 通过。
+
 ## 2026-10-11 · 修复员工退出时的报错与 ResizeObserver 警告
 - 需求：控制台出现 `ResizeObserver loop completed with undelivered notifications`、`Failed to stop employee sessions during logout: [object Object]`、`Error logging employee logout: Invalid employee logout session. | 28000`。
 - 原因：①员工页在尺寸回调里同步写页头/底部导航高度变量、`useResponsive` 在回调里同步更新状态，都会立刻改变 body 尺寸，触发浏览器的循环警告。②会话已被服务器结束（过期、被其他标签页或设备顶替、其他标签页已退出、管理员停用）后关闭「会话过期」弹窗时，`logout(false)` 仍去调用结束接单和记录退出，服务器按设计拒绝（28000），前端把这种预期结果当错误打印，且直接打印对象显示成 `[object Object]`。
