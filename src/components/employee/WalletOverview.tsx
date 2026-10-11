@@ -1250,7 +1250,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           >
             <span className="text-amber-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className="font-bold text-gray-900 leading-tight truncate"
+              className="font-bold text-amber-700 leading-tight truncate"
               title={`$${totalAssets.toFixed(2)}`}
             >
               {totalAssets.toFixed(2)}
@@ -1274,7 +1274,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           >
             <span className="text-emerald-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className="font-bold text-gray-900 leading-tight truncate"
+              className="font-bold text-emerald-700 leading-tight truncate"
               title={`$${wallet?.available_balance.toFixed(2)}`}
             >
               {(wallet?.available_balance || 0).toFixed(2)}
@@ -1298,7 +1298,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           >
             <span className="text-orange-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className="font-bold text-gray-900 leading-tight truncate"
+              className="font-bold text-orange-700 leading-tight truncate"
               title={`$${wallet?.frozen_balance.toFixed(2)}`}
             >
               {(wallet?.frozen_balance || 0).toFixed(2)}
@@ -1322,7 +1322,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           >
             <span className="text-blue-600 text-[1.15em] font-bold leading-none flex-shrink-0">$</span>
             <span
-              className="font-bold text-gray-900 leading-tight truncate"
+              className="font-bold text-blue-700 leading-tight truncate"
               title={`$${localEmployee.total_income.toFixed(2)}`}
             >
               {localEmployee.total_income.toFixed(2)}

@@ -1252,43 +1252,45 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           <div className="space-y-3 sm:space-y-6">
             <div className="emp-tab-pane sm:max-lg:pb-[88px]" style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>
               {loadedTabs.has('announcements') ? (
-                <AnnouncementBoard userId={employee.id} />
+                <Suspense fallback={<PageLoader />}><AnnouncementBoard userId={employee.id} /></Suspense>
               ) : isTransitioning ? <PageLoader /> : null}
             </div>
             <div style={{ display: activeTab === 'dispatch' ? 'block' : 'none' }} className="emp-tab-pane pb-[88px] lg:pb-24">
               {loadedTabs.has('dispatch') ? (
-                <OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onSessionExpired={() => {
+                <Suspense fallback={<PageLoader />}><OrderDispatch employee={employee} onStatusChange={handleOrderStatusChange} onSessionExpired={() => {
                   financialSessionInvalidRef.current = true;
                   setShowSessionExpired(true);
                 }} onNavigateToOrders={() => {
                   setActiveTab('orders');
                   setLoadedTabs(prev => new Set([...prev, 'orders']));
-                }} />
+                }} /></Suspense>
               ) : isTransitioning ? <PageLoader /> : null}
             </div>
             <div className="emp-tab-pane space-y-4 sm:space-y-6 pb-[88px] lg:pb-24" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
               {loadedTabs.has('orders') ? (
-                <>
+                <Suspense fallback={<PageLoader />}>
                   <OrderSubmission employeeId={employee.id} isActive={activeTab === 'orders'} adminId={employee.created_by} onNavigateToDispatch={() => {
                     setActiveTab('dispatch');
                     setLoadedTabs(prev => new Set([...prev, 'dispatch']));
                   }} />
                   <OrderList employeeId={employee.id} />
-                </>
+                </Suspense>
               ) : isTransitioning ? <PageLoader /> : null}
             </div>
             <div className="emp-tab-pane pb-[88px] lg:pb-24" style={{ display: activeTab === 'wallet' ? 'block' : 'none' }}>
               {loadedTabs.has('wallet') ? (
-                <WalletOverview
-                  employeeId={employee.id}
-                  employee={employee}
-                  onWithdrawalHistoryChange={setShowWithdrawalHistory}
-                />
+                <Suspense fallback={<PageLoader />}>
+                  <WalletOverview
+                    employeeId={employee.id}
+                    employee={employee}
+                    onWithdrawalHistoryChange={setShowWithdrawalHistory}
+                  />
+                </Suspense>
               ) : isTransitioning ? <PageLoader /> : null}
             </div>
             <div className="emp-tab-pane pb-[88px] lg:pb-24" style={{ display: activeTab === 'statistics' ? 'block' : 'none' }}>
               {loadedTabs.has('statistics') ? (
-                <DailyStatistics employeeId={employee.id} />
+                <Suspense fallback={<PageLoader />}><DailyStatistics employeeId={employee.id} /></Suspense>
               ) : isTransitioning ? <PageLoader /> : null}
             </div>
           </div>

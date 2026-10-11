@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../../lib/i18n/context';
 
 const BLOCKS = [
@@ -8,12 +9,32 @@ const BLOCKS = [
   { x: '-30px', y: '-128px', size: 18, color: 'bg-blue-300/40', rot: 24, delay: 0.6 },
 ];
 
+// Tab switches replace one loader with another (lazy chunk -> tab placeholder -> page data);
+// these let the next loader skip its fade-in and continue the animation phase seamlessly.
+let liveLoaders = 0;
+let lastLoaderGoneAt = -Infinity;
+
 export default function PageLoader({ label }: { label?: string }) {
   const { t } = useLanguage();
+  const [{ handoff, now }] = useState(() => {
+    const at = performance.now();
+    return { handoff: liveLoaders > 0 || at - lastLoaderGoneAt < 600, now: at };
+  });
+
+  useEffect(() => {
+    liveLoaders += 1;
+    return () => {
+      liveLoaders -= 1;
+      lastLoaderGoneAt = performance.now();
+    };
+  }, []);
+
+  const phase = (periodMs: number) => `${-(now % periodMs)}ms`;
+
   return (
     <div
       className="keep-animation flex min-h-[calc(100dvh-var(--employee-header-height,64px)-140px)] flex-col items-center justify-center lg:min-h-[calc(100dvh-300px)]"
-      style={{ animation: 'emp-loader-in 360ms ease-out 120ms backwards' }}
+      style={handoff ? undefined : { animation: 'emp-loader-in 360ms ease-out 120ms backwards' }}
       role="status"
       aria-live="polite"
     >
@@ -30,16 +51,19 @@ export default function PageLoader({ label }: { label?: string }) {
               top: `calc(50% + ${block.y} - ${block.size / 2}px)`,
               ['--emp-rot' as string]: `${block.rot}deg`,
               transform: `rotate(${block.rot}deg)`,
-              animation: `emp-loader-block 2.6s ease-in-out ${block.delay}s infinite alternate`,
+              animation: `emp-loader-block 2.6s ease-in-out ${block.delay * 1000 - (now % 5200)}ms infinite alternate`,
             }}
             aria-hidden="true"
           ></div>
         ))}
         <div className="relative h-16 w-16 sm:h-[72px] sm:w-[72px]">
           <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
-          <div className="keep-animation absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-blue-500 border-r-cyan-400"></div>
+          <div
+            className="keep-animation absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-blue-500 border-r-cyan-400"
+            style={{ animationDelay: phase(1000) }}
+          ></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="keep-animation h-3 w-3 animate-pulse rounded-full bg-blue-500/80"></div>
+            <div className="keep-animation h-3 w-3 animate-pulse rounded-full bg-blue-500/80" style={{ animationDelay: phase(2000) }}></div>
           </div>
         </div>
       </div>
