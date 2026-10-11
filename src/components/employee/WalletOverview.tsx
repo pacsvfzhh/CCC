@@ -1501,7 +1501,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           <div className="absolute bottom-0 left-0 w-32 h-32 border-b border-l border-cyan-400/10 rounded-bl-2xl"></div>
         </div>
 
-        <div className="relative z-10 p-3 sm:p-4 md:p-6">
+        <div className={`relative p-3 sm:p-4 md:p-6 ${checkingEligibility ? '' : 'z-10'}`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6 sm:mb-8">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Animated Wallet Icon with Gold Coins */}
@@ -1541,10 +1541,10 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           </button>
         </div>
 
-        <style>{'@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
+        <style>{'@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}.wd-reveal-stagger>.wd-reveal-late{animation-delay:1.1s}.wd-reveal-stagger>.wd-reveal-skip{animation:none}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
         {/* Content wrapper with transition animation */}
         <div
-          className="relative z-10"
+          className={`relative ${checkingEligibility && !showWithdrawalForm ? 'z-[55]' : 'z-10'}`}
           style={{
             height: contentHeight ?? undefined,
             transition: 'height 520ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -1557,12 +1557,10 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         <div ref={contentInnerRef}>
           {/* Transitioning content area */}
           {!showWithdrawalForm ? (
-            <div className={`interactive-transition ${contentRevealActive ? 'wd-reveal-stagger' : ''} ${
-              checkingEligibility && !eligibilityOverlayLeaving ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-            }`}>
+            <div className={contentRevealActive ? 'wd-reveal-stagger' : ''}>
               {message && (
                 <div
-                  className={`rounded-lg p-2.5 sm:p-3 md:p-4 text-[11px] sm:text-xs md:text-sm flex items-start gap-1.5 sm:gap-2 md:gap-3 mb-3 sm:mb-4 ${
+                  className={`wd-reveal-late rounded-lg p-2.5 sm:p-3 md:p-4 text-[11px] sm:text-xs md:text-sm flex items-start gap-1.5 sm:gap-2 md:gap-3 mb-3 sm:mb-4 ${
                     message.type === 'success'
                       ? 'bg-green-500/10 border border-green-500/50 text-green-400'
                       : 'bg-red-500/10 border border-red-500/50 text-red-400'
@@ -1576,9 +1574,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               <button
                 onClick={handleRequestWithdrawal}
                 disabled={checkingEligibility}
-                className={`relative w-full min-h-[44px] text-white py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold flex items-center justify-center gap-1.5 sm:gap-2 group overflow-hidden disabled:cursor-not-allowed text-sm sm:text-base transition-all duration-300 ${
+                className={`wd-reveal-skip relative w-full min-h-[44px] text-white py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold flex items-center justify-center gap-1.5 sm:gap-2 group overflow-hidden disabled:cursor-not-allowed text-sm sm:text-base transition-all duration-300 ${
                   checkingEligibility
-                    ? 'bg-blue-600 opacity-90 cursor-wait shadow-2xl shadow-blue-500/50'
+                    ? 'bg-blue-600 cursor-wait shadow-2xl shadow-blue-500/50 ring-2 ring-white/60'
                     : 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 hover:from-blue-500 hover:via-cyan-500 hover:to-blue-600 shadow-2xl shadow-blue-500/50 hover:shadow-cyan-500/50 hover:scale-[1.02] active:scale-[0.98]'
                 }`}
               >
