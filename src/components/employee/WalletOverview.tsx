@@ -36,6 +36,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const [curtainHeight, setCurtainHeight] = useState<number | null>(null);
   const [contentHeight, setContentHeight] = useState<number | null>(null);
   const [contentResizing, setContentResizing] = useState(false);
+  const resizeArmedRef = useRef(false);
   const [contentRevealActive, setContentRevealActive] = useState(false);
   const { deviceType } = useDeviceOptimization();
   const loadWalletRef = useRef<(() => Promise<void>) | null>(null);
@@ -182,7 +183,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         const nextHeight = inner.offsetHeight;
         if (nextHeight === lastHeight) return;
         lastHeight = nextHeight;
-        setContentResizing(true);
+        if (resizeArmedRef.current) setContentResizing(true);
         setContentHeight(nextHeight);
       });
     });
@@ -383,6 +384,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
   const handleRequestWithdrawal = async () => {
     if (checkingEligibility) return;
+    resizeArmedRef.current = true;
     setMessage(null);
     setEligibilityOverlayLeaving(false);
     setCheckingEligibility(true);
@@ -1565,19 +1567,13 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           className="relative z-10"
           style={{
             height: contentHeight ?? undefined,
-            transition: 'height 640ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: contentResizing ? 'height 640ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
             overflow: contentResizing ? 'hidden' : undefined,
           }}
           onTransitionEnd={(event) => {
             if (event.target === event.currentTarget && event.propertyName === 'height') setContentResizing(false);
           }}
         >
-        <div
-          className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 h-14 bg-gradient-to-b from-white/0 via-white/70 to-white transition-opacity ease-out ${
-            contentResizing && !checkingEligibility ? 'opacity-100 duration-200' : 'opacity-0 duration-300'
-          }`}
-          aria-hidden="true"
-        ></div>
         <div ref={contentInnerRef}>
           {/* Transitioning content area */}
           {!showWithdrawalForm ? (
