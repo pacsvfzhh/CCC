@@ -351,7 +351,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
     try {
       // Keep the overlay up long enough to read as a deliberate step, even on fast networks.
-      const [eligibility] = await Promise.all([checkWithdrawalEligibility(), wait(1200)]);
+      const [eligibility] = await Promise.all([checkWithdrawalEligibility(), wait(2300)]);
       if (eligibility.eligible) {
         openForm = true;
       } else {
@@ -367,7 +367,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     if (openForm) setShowWithdrawalForm(true);
     if (nextMessage) setMessage(nextMessage);
     setEligibilityOverlayLeaving(true);
-    await wait(380);
+    await wait(820);
     setCheckingEligibility(false);
     setEligibilityOverlayLeaving(false);
   };
@@ -1250,21 +1250,30 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         {/* Curtain animation overlay - appears during checking */}
         {checkingEligibility && (
           <>
-            <style>{'@keyframes wd-cover-in{from{opacity:0}to{opacity:1}}@keyframes wd-cover-out{from{opacity:1}to{opacity:0}}@keyframes wd-cover-content-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes wd-cover-progress{from{transform:translateX(-100%)}to{transform:translateX(-8%)}}'}</style>
+            <style>{'@keyframes wd-curtain-l-in{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 calc(50% - 1px) 0 0)}}@keyframes wd-curtain-r-in{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 calc(50% - 1px))}}@keyframes wd-curtain-l-out{from{clip-path:inset(0 calc(50% - 1px) 0 0)}to{clip-path:inset(0 100% 0 0)}}@keyframes wd-curtain-r-out{from{clip-path:inset(0 0 0 calc(50% - 1px))}to{clip-path:inset(0 0 0 100%)}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}'}</style>
+            {/* Left curtain */}
             <div
-              className="keep-animation absolute inset-0 z-50 flex items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#1e3a8a_0%,#1d4ed8_55%,#0e7490_100%)]"
-              style={{ animation: eligibilityOverlayLeaving ? 'wd-cover-out 380ms ease-in forwards' : 'wd-cover-in 320ms ease-out forwards' }}
+              className="keep-animation absolute inset-0 z-50 bg-gradient-to-r from-cyan-500 via-blue-600 to-blue-600"
+              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-l-out 650ms cubic-bezier(0.65, 0, 0.35, 1) 150ms both' : 'wd-curtain-l-in 750ms cubic-bezier(0.65, 0, 0.35, 1) both' }}
+            ></div>
+            {/* Right curtain */}
+            <div
+              className="keep-animation absolute inset-0 z-50 bg-gradient-to-l from-cyan-500 via-blue-600 to-blue-600"
+              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-r-out 650ms cubic-bezier(0.65, 0, 0.35, 1) 150ms both' : 'wd-curtain-r-in 750ms cubic-bezier(0.65, 0, 0.35, 1) both' }}
+            ></div>
+
+            {/* Center loading area with progress - positioned below title */}
+            <div
+              className="keep-animation absolute inset-0 z-50 flex items-start md:items-center justify-center pt-12 sm:pt-16 md:pt-0"
+              style={{ animation: eligibilityOverlayLeaving ? 'wd-curtain-content-out 200ms ease-in both' : 'wd-curtain-content-in 400ms ease-out 500ms both' }}
               role="status"
               aria-live="polite"
             >
-              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-                <div className="absolute -right-10 -top-12 h-40 w-40 rotate-12 rounded-[2rem] bg-white/[0.06]"></div>
-                <div className="absolute -bottom-14 -left-8 h-32 w-32 -rotate-6 rounded-[1.75rem] bg-white/[0.05]"></div>
-              </div>
-              <div
-                className="keep-animation relative flex flex-col items-center gap-2 sm:gap-3 px-4 sm:px-8"
-                style={{ animation: 'wd-cover-content-in 360ms ease-out 80ms both' }}
-              >
+              <div className="flex flex-col items-center gap-2 sm:gap-3 px-4 sm:px-8">
+                {/* Glowing background orb - smaller */}
+                <div className="absolute w-24 h-24 sm:w-32 sm:h-32 bg-cyan-400/20 rounded-full blur-2xl animate-pulse keep-animation"></div>
+
+                {/* Rotating ring spinner - smaller */}
                 <div className="relative w-12 h-12 sm:w-16 sm:h-16">
                   {/* Outer ring */}
                   <div className="absolute inset-0 border-2 sm:border-3 border-white/10 rounded-full"></div>
@@ -1282,8 +1291,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
                 {/* Status text */}
                 <div className="relative text-center">
-                  <div className="text-white font-semibold text-sm sm:text-base tracking-wide mb-1">{t.wallet.checkingEligibility}</div>
-                  <div className="text-cyan-200/90 text-xs sm:text-sm font-medium">{t.common.loading}</div>
+                  <div className="text-white font-bold text-sm sm:text-base tracking-wide mb-1 animate-pulse keep-animation">{t.wallet.checkingEligibility}</div>
+                  <div className="text-cyan-300 text-xs sm:text-sm font-medium">{t.common.loading}</div>
                 </div>
 
                 {/* Progress bar */}
@@ -1291,12 +1300,10 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                   {/* Background shimmer */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_ease-in-out_infinite] keep-animation"></div>
                   {/* Progress fill */}
-                  <div
-                    className="keep-animation absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-sky-300 to-white transition-transform duration-300 ease-out"
-                    style={eligibilityOverlayLeaving
-                      ? { transform: 'translateX(0)' }
-                      : { animation: 'wd-cover-progress 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) forwards' }}
-                  ></div>
+                  <div className="keep-animation absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 shadow-lg shadow-cyan-400/50" style={{ animation: 'progressFill 1.8s ease-out 500ms both' }}>
+                    {/* Glowing edge */}
+                    <div className="absolute inset-y-0 right-0 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" style={{ width: 3 }}></div>
+                  </div>
                 </div>
               </div>
             </div>
