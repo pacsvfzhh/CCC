@@ -436,12 +436,12 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                     {/* Left accent bar + content */}
                     <div className="flex">
                       <div className={`w-1 sm:w-1.5 flex-shrink-0 ${getCardAccentBar(record)}`}></div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0 [overflow-wrap:anywhere]">
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : record.id)}
                           className="w-full p-3 sm:p-4 flex items-center justify-between text-left"
                         >
-                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1">
+                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
                             <div className="flex-shrink-0 mt-0.5 sm:mt-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
                               {getStatusIcon(record)}
                             </div>
