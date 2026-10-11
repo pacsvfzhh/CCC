@@ -1587,7 +1587,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       {showConfirmModal && createPortal(
         <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 10000 }}>
           <div className="employee-modal-backdrop absolute inset-0 bg-black/50"></div>
-          <div className="employee-modal-surface relative bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
+          <div className="employee-modal-surface relative bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md md:max-w-lg w-full overflow-hidden max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
             {/* Blue Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-4 sm:px-6 py-3.5 sm:py-4">
               <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
@@ -1648,7 +1648,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                   type="button"
                   onClick={() => setShowConfirmModal(false)}
                   disabled={submitting}
-                  className="flex-1 min-h-[44px] bg-white hover:bg-gray-50 border border-gray-300 hover:border-gray-400 text-gray-700 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="flex-1 min-h-[44px] bg-white hover:bg-gray-50 border border-gray-300 hover:border-gray-400 text-gray-700 py-2 px-2 rounded-lg font-medium leading-tight transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   {t.common.cancel}
                 </button>
@@ -1656,9 +1656,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                   type="button"
                   onClick={handleConfirmWithdrawal}
                   disabled={submitting}
-                  className="flex-1 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold shadow-md shadow-blue-200 hover:shadow-lg hover:shadow-blue-300 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="flex-1 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white py-2 px-2 rounded-lg font-semibold leading-tight shadow-md shadow-blue-200 hover:shadow-lg hover:shadow-blue-300 transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
-                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Send className="w-4 h-4 shrink-0" />
                   {submitting ? t.common.loading : t.wallet.submitWithdrawal}
                 </button>
               </div>
