@@ -274,7 +274,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
                   <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-blue-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.total}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-blue-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.total}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-gray-900 leading-none">{todayStats.total}</div>
             </div>
@@ -285,7 +285,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-200">
                   <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-emerald-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.success}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-emerald-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.success}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-emerald-600 leading-none">{todayStats.success}</div>
             </div>
@@ -296,7 +296,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-sm shadow-rose-200">
                   <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-rose-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.failed}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-rose-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.failed}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-rose-500 leading-none">{todayStats.failure}</div>
             </div>
@@ -307,7 +307,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm shadow-amber-200">
                   <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-amber-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.pending}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-amber-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.pending}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-amber-600 leading-none">{todayStats.processing}</div>
             </div>
@@ -318,7 +318,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 flex items-center justify-center shadow-sm shadow-cyan-200">
                   <Percent className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-cyan-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.rate}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-cyan-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.rate}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-cyan-600 leading-none">
                 {(todayStats.success + todayStats.failure) > 0 ? `${((todayStats.success / (todayStats.success + todayStats.failure)) * 100).toFixed(0)}%` : '0%'}
@@ -331,7 +331,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm shadow-teal-200">
                   <DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                 </div>
-                <span className="min-w-0 text-[11px] font-semibold text-teal-600/70 uppercase tracking-wide leading-tight [overflow-wrap:anywhere]">{t.orderList.earned}</span>
+                <span className="min-w-0 text-[11px] font-semibold text-teal-600/70 uppercase tracking-wide leading-tight break-words hyphens-auto">{t.orderList.earned}</span>
               </div>
               <div className="flex items-baseline gap-0.5 min-w-0">
                 <span className="text-sm sm:text-base font-bold text-teal-600">$</span>

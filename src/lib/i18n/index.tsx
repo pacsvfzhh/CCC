@@ -59,6 +59,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const dateLocale = dateLocaleMap[language];
 
+  // Lets the browser apply language-correct hyphenation instead of breaking long words at arbitrary letters.
+  useEffect(() => {
+    document.documentElement.lang = dateLocale;
+  }, [dateLocale]);
+
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t: translations, dateLocale }}>
       {children}

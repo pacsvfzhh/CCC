@@ -1112,7 +1112,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
               <WalletIcon className="w-4 h-4 text-amber-600" />
             </div>
-            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.balance}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-amber-600 font-bold flex-shrink-0 ${
@@ -1136,7 +1136,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
               <DollarSign className="w-4 h-4 text-emerald-600" />
             </div>
-            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.availableBalance}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-emerald-600 font-bold flex-shrink-0 ${
@@ -1160,7 +1160,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
               <Lock className="w-4 h-4 text-orange-600" />
             </div>
-            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.frozenFunds}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-orange-600 font-bold flex-shrink-0 ${
@@ -1184,7 +1184,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
               <TrendingUp className="w-4 h-4 text-blue-600" />
             </div>
-            <span className="min-w-0 break-words text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
+            <span className="min-w-0 break-words hyphens-auto text-[11px] sm:text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-wider leading-tight">{t.wallet.totalEarnings}</span>
           </div>
           <div className="flex items-baseline gap-0.5 sm:gap-1 min-w-0 w-full">
             <span className={`text-blue-600 font-bold flex-shrink-0 ${

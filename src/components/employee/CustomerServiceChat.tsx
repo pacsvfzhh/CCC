@@ -2310,7 +2310,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     <span className="text-xs sm:text-sm font-medium">Photo</span>
                   </div>
                 ) : (
-                  <p className="text-xs sm:text-sm leading-relaxed break-all whitespace-pre-wrap text-white/95 line-clamp-3">
+                  <p className="text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap text-white/95 line-clamp-3">
                     {messagePopup.message}
                   </p>
                 )}

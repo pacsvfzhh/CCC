@@ -1055,7 +1055,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                                 <span className="text-[11px] font-bold text-white uppercase tracking-wider">{t.announcements.pinned}</span>
                               </span>
                             )}
-                            <h3 className={`min-w-0 font-semibold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug [overflow-wrap:anywhere] ${
+                            <h3 className={`min-w-0 font-semibold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug break-words ${
                               isTabletDevice ? 'text-[15px] line-clamp-2' : 'text-sm sm:text-[15px] line-clamp-1'
                             }`}>
                               {announcement.title}

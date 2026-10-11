@@ -803,6 +803,25 @@ body:has(.employee-shell) .employee-modal-surface {
   }
 }
 
+/* iPhone SE-class widths: trim oversized fixed type and wide caps tracking so labels stay on fewer lines. */
+@media (max-width: 359px) {
+  body:has(.employee-shell) .text-\[15px\] {
+    font-size: 14px;
+  }
+
+  body:has(.employee-shell) .text-\[40px\] {
+    font-size: 32px;
+  }
+
+  body:has(.employee-shell) :is(.tracking-wider, .tracking-widest) {
+    letter-spacing: 0.03em;
+  }
+
+  body:has(.employee-shell) .tracking-wide {
+    letter-spacing: 0.015em;
+  }
+}
+
 .admin-dashboard-root {
   margin: 0 !important;
   padding: 0 !important;
@@ -944,8 +963,8 @@ body {
     display: none !important;
   }
 
-  /* Compact modals */
-  [role="dialog"], .modal {
+  /* Compact modals; employee dialogs size themselves (full-screen sheets on phones). */
+  body:not(:has(.employee-shell)) :is([role="dialog"], .modal) {
     width: 95vw !important;
     max-width: 300px !important;
     padding: 12px !important;
@@ -1003,7 +1022,7 @@ body {
   }
 
   /* Reduce modal heights */
-  [role="dialog"], .modal {
+  body:not(:has(.employee-shell)) :is([role="dialog"], .modal) {
     max-height: 85vh !important;
   }
 
@@ -1056,7 +1075,7 @@ body {
   }
 
   /* Make modals scrollable */
-  [role="dialog"], .modal {
+  body:not(:has(.employee-shell)) :is([role="dialog"], .modal) {
     max-height: 90vh !important;
     overflow-y: auto !important;
   }

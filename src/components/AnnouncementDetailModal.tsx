@@ -323,6 +323,15 @@ export default function AnnouncementDetailModal({
           .announcement-video-shell { margin: 1rem 0; }
           .announcement-detail-content .announcement-video-shell video { min-height: 160px; }
         }
+        @media (max-width: 359px) {
+          .announcement-detail-content { padding: 0; font-size: 14px !important; line-height: 1.55 !important; }
+          .announcement-detail-content p,
+          .announcement-detail-content li { font-size: 14px; line-height: 1.55; }
+          .announcement-detail-content h1 { font-size: 1.25rem; }
+          .announcement-detail-content h2 { font-size: 1.125rem; }
+          .announcement-detail-content h3 { font-size: 1rem; }
+          .announcement-detail-content blockquote { padding: .6rem .8rem; font-size: 13px; }
+        }
       `}</style>
     </div>,
     document.body,

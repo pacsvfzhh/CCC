@@ -528,7 +528,7 @@ export default function OrderSubmission({ employeeId, isActive, adminId: propAdm
           <Package className="w-5 h-5 text-blue-600 relative z-10" />
         </div>
         <div className="flex-1 min-w-[8rem] sm:min-w-[15rem]">
-          <h2 className="text-base sm:text-2xl font-black text-blue-600 relative leading-tight [overflow-wrap:anywhere]">
+          <h2 className="text-base sm:text-2xl font-black text-blue-600 relative leading-tight break-words">
             {t.orderSubmission.title}
           </h2>
           <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1 flex items-center gap-1.5 sm:gap-2">

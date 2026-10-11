@@ -643,7 +643,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                 </button>
 
                 {/* Title section */}
-                <div className="flex items-start gap-2.5 pr-10">
+                <div className="flex items-start gap-2.5 pr-14">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/20 bg-amber-950/15 text-amber-950 shadow-sm shadow-amber-950/10' : 'border-white/20 bg-white/15'}`}>
                     {selectedMessage.messages.notification_category === 'performance_reward'
                       ? <Gift className="h-5 w-5" strokeWidth={2} />
@@ -669,7 +669,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                 </div>
 
                 {/* Tags */}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-14">
                   <span className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : getDeliveredMessageType(selectedMessage) === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
                     {getDeliveredMessageType(selectedMessage) === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
                   </span>
@@ -698,7 +698,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                        <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                        <p className="mt-0.5 text-[11px] font-black uppercase tracking-wider text-amber-600 sm:tracking-[0.16em]">{t.messages.rewardWalletLabel}</p>
                       </div>
                       <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(selectedMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{selectedMessage.messages.reward_currency}</span></p>
                     </div>
