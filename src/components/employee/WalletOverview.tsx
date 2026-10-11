@@ -487,37 +487,42 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const buttonLoading = checkingEligibility && !eligibilityOverlayLeaving;
 
   const dollarBlocks = (
-    <div
-      className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
-      style={{ height: curtainHeight ?? '100%' }}
-      aria-hidden="true"
-    >
-      {[
-        { left: '5%', top: '10%', size: 46, rot: -12 },
-        { left: '80%', top: '7%', size: 58, rot: 14 },
-        { left: '12%', top: '64%', size: 38, rot: 10 },
-        { left: '86%', top: '60%', size: 42, rot: -8 },
-        { left: '44%', top: '80%', size: 32, rot: 18 },
-        { left: '62%', top: '24%', size: 28, rot: -16 },
-        { left: '28%', top: '30%', size: 24, rot: 8 },
-      ].map((block, index) => (
-        <div
-          key={index}
-          className="keep-animation absolute flex items-center justify-center rounded-xl bg-white/[0.12] font-bold text-white/45 ring-1 ring-white/20"
-          style={{
-            left: block.left,
-            top: block.top,
-            width: block.size,
-            height: block.size,
-            fontSize: Math.round(block.size * 0.5),
-            ['--wd-rot' as string]: `${block.rot}deg`,
-            transform: `rotate(${block.rot}deg)`,
-            animation: `wd-dollar-float ${2.8 + (index % 3) * 0.5}s ease-in-out ${index * 0.25}s infinite alternate`,
-          }}
-        >
-          $
-        </div>
-      ))}
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* Tiled in px rows so a growing panel reveals more blocks instead of stretching them */}
+      {[0, 1, 2, 3].flatMap((row) => {
+        const tile = curtainHeight ?? 170;
+        const mirrored = row % 2 === 1;
+        return [
+          { left: 5, top: 0.1, size: 46, rot: -12 },
+          { left: 80, top: 0.07, size: 58, rot: 14 },
+          { left: 12, top: 0.64, size: 38, rot: 10 },
+          { left: 86, top: 0.6, size: 42, rot: -8 },
+          { left: 44, top: 0.8, size: 32, rot: 18 },
+          { left: 62, top: 0.24, size: 28, rot: -16 },
+          { left: 28, top: 0.3, size: 24, rot: 8 },
+        ].map((block, index) => {
+          const rot = mirrored ? -block.rot : block.rot;
+          const order = row * 7 + index;
+          return (
+            <div
+              key={order}
+              className="keep-animation absolute flex items-center justify-center rounded-xl bg-white/[0.12] font-bold text-white/45 ring-1 ring-white/20"
+              style={{
+                left: mirrored ? `calc(${100 - block.left}% - ${block.size}px)` : `${block.left}%`,
+                top: Math.round(row * tile + block.top * tile),
+                width: block.size,
+                height: block.size,
+                fontSize: Math.round(block.size * 0.5),
+                ['--wd-rot' as string]: `${rot}deg`,
+                transform: `rotate(${rot}deg)`,
+                animation: `wd-dollar-float ${2.8 + (index % 3) * 0.5}s ease-in-out ${(order % 7) * 0.25}s infinite alternate`,
+              }}
+            >
+              $
+            </div>
+          );
+        });
+      })}
     </div>
   );
 
@@ -1569,7 +1574,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         >
         <div
           className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 h-14 bg-gradient-to-b from-white/0 via-white/70 to-white transition-opacity ease-out ${
-            contentResizing ? 'opacity-100 duration-200' : 'opacity-0 duration-500'
+            contentResizing && !checkingEligibility ? 'opacity-100 duration-200' : 'opacity-0 duration-300'
           }`}
           aria-hidden="true"
         ></div>
