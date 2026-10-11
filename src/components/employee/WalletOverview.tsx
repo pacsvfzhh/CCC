@@ -1608,9 +1608,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               </div>
 
               <div className="relative flex items-center justify-between gap-3">
-                <h3 id="withdrawal-confirm-title" className="flex min-w-0 items-center gap-2.5 text-sm font-semibold tracking-wide sm:text-base">
-                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
-                    <ShieldCheck className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                <h3 id="withdrawal-confirm-title" className="flex min-w-0 items-center gap-2.5 text-[17px] font-semibold leading-snug tracking-wide sm:gap-3 sm:text-[18px]">
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
+                    <ShieldCheck className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
                   </span>
                   <span className="truncate">{t.wallet.submitWithdrawal}</span>
                 </h3>
