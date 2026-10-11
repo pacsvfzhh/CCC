@@ -1603,7 +1603,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                     ? 'keep-animation bg-blue-600 cursor-wait shadow-2xl shadow-blue-500/50'
                     : 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 hover:from-blue-500 hover:via-cyan-500 hover:to-blue-600 shadow-2xl shadow-blue-500/50 hover:shadow-cyan-500/50 hover:scale-[1.02] active:scale-[0.98]'
                 }`}
-                style={buttonLoading ? { animation: 'wd-btn-cover 1800ms cubic-bezier(0.45, 0.05, 0.35, 1) both' } : undefined}
+                style={buttonLoading ? { animation: 'wd-btn-cover 1300ms cubic-bezier(0.4, 0, 0.6, 1) both' } : undefined}
               >
                 {/* Hover effect when not loading */}
                 {!buttonLoading && (
