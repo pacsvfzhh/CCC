@@ -1585,8 +1585,8 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       </div>
 
       {showConfirmModal && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-3 sm:p-4" style={{ zIndex: 10000 }}>
-          <style>{'@keyframes wd-backdrop-in{from{opacity:0}to{opacity:1}}@keyframes wd-panel-in{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.wd-anim{animation:none!important}}'}</style>
+        <div className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4" style={{ zIndex: 10000 }}>
+          <style>{'@keyframes wd-backdrop-in{from{opacity:0}to{opacity:1}}@keyframes wd-panel-in{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}@keyframes wd-sheet-in{from{transform:translateY(100%)}to{transform:none}}.wd-panel{animation:wd-panel-in 260ms cubic-bezier(.22,1,.36,1)}@media (max-width:479.98px){.wd-panel{animation:wd-sheet-in 320ms cubic-bezier(.22,1,.36,1)}}@media (prefers-reduced-motion:reduce){.wd-anim,.wd-panel{animation:none!important}}'}</style>
           <div
             className="wd-anim employee-modal-backdrop absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"
             style={{ animation: 'wd-backdrop-in 200ms ease-out' }}
@@ -1596,10 +1596,10 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             role="dialog"
             aria-modal="true"
             aria-labelledby="withdrawal-confirm-title"
-            className="wd-anim employee-modal-surface relative flex w-full max-w-md md:max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5"
-            style={{ animation: 'wd-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1)' }}
+            className="wd-panel employee-modal-surface relative flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[1.75rem] bg-white shadow-[0_-12px_40px_-12px_rgba(15,23,42,0.4)] sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl sm:shadow-[0_24px_60px_-12px_rgba(15,23,42,0.45)] sm:ring-1 sm:ring-slate-900/5 md:max-w-lg"
           >
-            <div className="relative flex-shrink-0 overflow-hidden bg-[linear-gradient(135deg,#1e3a8a_0%,#1d4ed8_55%,#2563eb_100%)] px-5 pb-6 pt-4 text-white sm:px-7 sm:pb-7 sm:pt-5">
+            <div className="relative flex-shrink-0 overflow-hidden bg-[linear-gradient(135deg,#1e3a8a_0%,#1d4ed8_55%,#2563eb_100%)] px-5 pb-5 pt-3 text-white sm:px-7 sm:pb-7 sm:pt-5">
+              <div className="relative mx-auto mb-3 h-1 w-10 rounded-full bg-white/35 sm:hidden" aria-hidden="true"></div>
               <div className="pointer-events-none absolute inset-0" aria-hidden="true">
                 <div className="absolute -right-10 -top-12 h-40 w-40 rotate-12 rounded-[2rem] bg-white/[0.06]"></div>
                 <div className="absolute right-16 top-10 h-16 w-16 rotate-12 rounded-xl bg-sky-300/[0.10]"></div>
@@ -1676,7 +1676,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               </div>
             </div>
 
-            <div className="flex flex-shrink-0 gap-2.5 border-t border-slate-100 bg-slate-50/80 px-5 py-3.5 sm:gap-3 sm:px-7 sm:py-4">
+            <div className="flex flex-shrink-0 gap-2.5 border-t border-slate-100 bg-slate-50/80 px-5 pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:gap-3 sm:px-7 sm:py-4">
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
