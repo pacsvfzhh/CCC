@@ -1596,7 +1596,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
             role="dialog"
             aria-modal="true"
             aria-labelledby="withdrawal-confirm-title"
-            className="wd-anim employee-modal-surface relative flex w-full max-w-md md:max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5"
+            className="wd-anim employee-modal-surface relative flex w-full max-w-md md:max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl isolate transform-gpu shadow-[0_24px_60px_-12px_rgba(15,23,42,0.45)]"
             style={{ animation: 'wd-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1)' }}
           >
             <div className="relative flex-shrink-0 overflow-hidden bg-[linear-gradient(135deg,#1e3a8a_0%,#1d4ed8_55%,#2563eb_100%)] px-5 pb-6 pt-4 text-white sm:px-7 sm:pb-7 sm:pt-5">
@@ -1639,7 +1639,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               </div>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5 sm:space-y-5 sm:px-7 sm:py-6">
+            <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain bg-white px-5 py-5 sm:space-y-5 sm:px-7 sm:py-6">
               <dl className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-1 text-sm sm:px-5">
                 <div className="flex items-center justify-between gap-3 py-3">
                   <dt className="flex items-center gap-2 text-slate-500">
@@ -1676,7 +1676,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
               </div>
             </div>
 
-            <div className="flex flex-shrink-0 gap-2.5 border-t border-slate-100 bg-slate-50/80 px-5 py-3.5 sm:gap-3 sm:px-7 sm:py-4">
+            <div className="flex flex-shrink-0 gap-2.5 border-t border-slate-100 bg-slate-50 px-5 py-3.5 sm:gap-3 sm:px-7 sm:py-4">
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
