@@ -6,6 +6,7 @@ import { Announcement, AnnouncementListItem } from '../../types';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useLanguage } from '../../lib/i18n/context';
 import AnnouncementDetailModal from '../AnnouncementDetailModal';
+import PageLoader from './PageLoader';
 
 interface AnnouncementBoardProps {
   userId: string;
@@ -807,16 +808,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         {/* Loading Overlay - Simplified for mobile */}
         {loading && (
           <div className="absolute inset-0 bg-white/95 z-50 flex items-center justify-center max-sm:rounded-none md:rounded-none min-[1025px]:rounded-2xl">
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-full border-2 border-blue-300 animate-spin" style={{ animationDuration: '1s' }}></div>
-                {showDesktopEffects && <div className="absolute inset-2 rounded-full border-2 border-blue-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }}></div>}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-6 h-6 rounded-full bg-blue-100 animate-pulse"></div>
-                </div>
-              </div>
-              <div className="text-sm text-blue-600 font-medium">Loading...</div>
-            </div>
+            <PageLoader variant="panel" />
           </div>
         )}
 
@@ -935,10 +927,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           </div>
 
           {announcements.length === 0 && announcementsPending ? (
-            <div role="status" className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 min-[1025px]:px-8">
-              <div className="h-10 w-10 rounded-full border-[3px] border-blue-100 border-t-blue-500 animate-spin keep-animation" />
-              <span className="text-sm font-medium text-blue-600">{t.common.loading}</span>
-            </div>
+            <PageLoader variant="panel" />
           ) : announcements.length === 0 ? (
             <div className="flex flex-1 items-center justify-center px-6 py-16 min-[1025px]:px-8">
               <div className="relative inline-flex flex-col items-center gap-4 p-12 rounded-2xl bg-blue-50/50 border border-blue-100">

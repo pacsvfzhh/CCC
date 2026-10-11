@@ -7,6 +7,7 @@ import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import QuickCopyRichContent from './QuickCopyRichContent';
+import PageLoader from './PageLoader';
 
 interface LoginPopupMessagesProps {
   employee: Employee;
@@ -238,10 +239,7 @@ export default function LoginPopupMessages({ employee, onClose, onSessionExpired
           className="employee-modal-backdrop fixed inset-0 bg-slate-900/50 flex items-center justify-center"
           style={{ zIndex: 10100, touchAction: 'none', overscrollBehavior: 'contain' }}
         >
-          <div className="text-center">
-            <div className="w-14 h-14 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-white text-base font-medium">Loading...</p>
-          </div>
+          <PageLoader variant="panel" tone="dark" />
         </div>
       );
     }

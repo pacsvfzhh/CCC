@@ -7,6 +7,7 @@ import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import QuickCopyRichContent from './QuickCopyRichContent';
+import PageLoader from './PageLoader';
 
 interface MessageCenterProps {
   employee: Employee;
@@ -434,16 +435,7 @@ export default function MessageCenter({ employee, initialMessage, onClose, onSes
               </div>
             )}
             {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="text-center">
-                  <div className="relative w-16 h-16 mx-auto mb-5">
-                    <div className="absolute inset-0 border-[3px] border-blue-100 rounded-full" />
-                    <div className="absolute inset-0 border-[3px] border-blue-500 border-t-transparent rounded-full submit-anim-spin-slow" />
-                    <div className="absolute inset-2 border-[3px] border-cyan-200 border-b-transparent rounded-full submit-anim-spin-reverse" />
-                  </div>
-                  <p className="text-blue-800 font-semibold text-sm">{t.messages.loading}</p>
-                </div>
-              </div>
+              <PageLoader variant="panel" label={t.messages.loading} className="!min-h-[calc(100dvh-180px)] lg:!min-h-[calc(100dvh-220px)]" />
             ) : messages.length === 0 ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center px-6">

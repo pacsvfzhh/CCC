@@ -5,6 +5,7 @@ import { getTodayStartUTC } from '../../lib/dateUtils';
 import { Order } from '../../types';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useLanguage } from '../../lib/i18n/context';
+import PageLoader from './PageLoader';
 
 interface OrderListProps {
   employeeId: string;
@@ -168,10 +169,8 @@ export default function OrderList({ employeeId }: OrderListProps) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-        <div className="flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <PageLoader variant="inline" />
       </div>
     );
   }

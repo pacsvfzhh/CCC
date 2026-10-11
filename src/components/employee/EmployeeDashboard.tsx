@@ -31,7 +31,7 @@ const PasswordChange = lazy(() => import('./PasswordChange'));
 function MessageOverlayFallback() {
   return createPortal(
     <div className="fixed inset-0 flex items-center justify-center bg-slate-900/45" style={{ zIndex: 10100 }}>
-      <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/35 border-t-white" />
+      <PageLoader variant="panel" tone="dark" />
     </div>,
     document.body,
   );

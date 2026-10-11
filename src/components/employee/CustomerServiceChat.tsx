@@ -8,6 +8,7 @@ import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
 import { preloadCustomerAvatar } from '../admin/customerAvatarUtils';
 import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
 import { uniqueRealtimeChannelName } from '../../lib/realtimeChannel';
+import PageLoader from './PageLoader';
 
 function extractImageOnlyUrl(content: string): string | null {
   const container = document.createElement('div');
@@ -2842,12 +2843,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               >
                <div className="p-2 sm:p-3 md:p-4 space-y-2 sm:space-y-3 md:space-y-4 mb-auto">
                 {loadingMessages ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
-                      <span className="text-sm text-gray-400 font-medium">{t.customerService.loadingMessages}</span>
-                    </div>
-                  </div>
+                  <PageLoader variant="panel" label={t.customerService.loadingMessages} />
                 ) : messagesError && messages.length === 0 ? (
                   <div role="alert" className="flex flex-col items-center justify-center h-full text-center px-6 py-10">
                     <p className="text-sm font-medium text-slate-500">{t.customerService.loadFailed}</p>

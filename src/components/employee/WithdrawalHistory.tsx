@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
+import PageLoader from './PageLoader';
 
 interface Withdrawal {
   id: string;
@@ -413,12 +414,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
           }}
         >
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-2 text-gray-400">
-                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-sm">{t.withdrawals.loadingTransactions}</span>
-              </div>
-            </div>
+            <PageLoader variant="panel" label={t.withdrawals.loadingTransactions} className="h-full" />
           ) : records.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
