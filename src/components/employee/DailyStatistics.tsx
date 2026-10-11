@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Calendar, CheckCircle, XCircle, DollarSign, ListChecks, BarChart3, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../lib/i18n/context';
-import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
 interface DailyStatisticsProps {
   employeeId: string;
@@ -40,10 +39,9 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   });
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
-  const [ownerAdminId, setOwnerAdminId] = useState<string | null>(null);
-  const resolvedCurrencyUnit = useCurrencyUnit(ownerAdminId);
-  const currencyUnit = ownerAdminId ? resolvedCurrencyUnit : '';
   const ITEMS_PER_PAGE = 7;
+  // Employee statistics always show US dollars, independent of the admin currency setting.
+  const currencyUnit = '$';
   const { t } = useLanguage();
   const loadStatisticsRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -56,14 +54,6 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   const canGoPrev = currentPage > 0;
   const canGoNext = currentPage < totalPages - 1;
 
-  useEffect(() => {
-    void supabase
-      .from('users')
-      .select('created_by')
-      .eq('id', employeeId)
-      .maybeSingle()
-      .then(({ data }) => setOwnerAdminId(data?.created_by || null));
-  }, [employeeId]);
 
   useEffect(() => {
     void loadStatisticsRef.current?.();
@@ -233,7 +223,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                     style={{
                       fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_revenue.toFixed(2).length * 0.04))}rem, 1.5rem)`
                     }}
-                    title={`${currencyUnit} ${overallStats.total_revenue.toFixed(2)}`}
+                    title={`${currencyUnit}${overallStats.total_revenue.toFixed(2)}`}
                   >
                     {overallStats.total_revenue.toFixed(2)}
                   </span>
@@ -255,7 +245,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                     style={{
                       fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_commission.toFixed(2).length * 0.04))}rem, 1.5rem)`
                     }}
-                    title={`${currencyUnit} ${overallStats.total_commission.toFixed(2)}`}
+                    title={`${currencyUnit}${overallStats.total_commission.toFixed(2)}`}
                   >
                     {overallStats.total_commission.toFixed(2)}
                   </span>
@@ -277,7 +267,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                     style={{
                       fontSize: `clamp(1rem, ${Math.max(1, 1.5 - (overallStats.total_tips.toFixed(2).length * 0.04))}rem, 1.5rem)`
                     }}
-                    title={`${currencyUnit} ${overallStats.total_tips.toFixed(2)}`}
+                    title={`${currencyUnit}${overallStats.total_tips.toFixed(2)}`}
                   >
                     {overallStats.total_tips.toFixed(2)}
                   </span>
@@ -434,13 +424,13 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                           {/* Commission */}
                           <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-500/10 rounded border border-indigo-500/20">
                             <TrendingUp className="w-3 h-3 text-indigo-400 flex-shrink-0" />
-                            <span className="text-[11px] font-bold text-indigo-500">{currencyUnit} {stat.daily_commission.toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-indigo-500">{currencyUnit}{stat.daily_commission.toFixed(2)}</span>
                           </div>
 
                           {/* Tips */}
                           <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-500/10 rounded border border-pink-500/20">
                             <Gift className="w-3 h-3 text-pink-400 flex-shrink-0" />
-                            <span className="text-[11px] font-bold text-pink-500">{currencyUnit} {stat.daily_tips.toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-pink-500">{currencyUnit}{stat.daily_tips.toFixed(2)}</span>
                           </div>
                         </div>
 
@@ -490,19 +480,19 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                         <th className="text-right px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-end gap-1.5">
                             <TrendingUp className="hidden lg:block w-3.5 h-3.5 shrink-0 text-indigo-400" />
-                            <span>{t.statistics.commission}{currencyUnit && <span className="block text-[10px] font-semibold normal-case text-gray-400 lg:hidden">{currencyUnit}</span>}</span>
+                            {t.statistics.commission}
                           </div>
                         </th>
                         <th className="text-right px-2 lg:px-3 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-end gap-1.5">
                             <Gift className="hidden lg:block w-3.5 h-3.5 shrink-0 text-pink-400" />
-                            <span>{t.statistics.tips}{currencyUnit && <span className="block text-[10px] font-semibold normal-case text-gray-400 lg:hidden">{currencyUnit}</span>}</span>
+                            {t.statistics.tips}
                           </div>
                         </th>
                         <th className="text-right px-3 lg:px-4 py-2.5 align-bottom text-[11px] lg:text-xs font-bold text-gray-600 uppercase tracking-wide lg:tracking-wider leading-tight hyphens-auto break-words">
                           <div className="flex items-center justify-end gap-1.5">
                             <DollarSign className="hidden lg:block w-3.5 h-3.5 shrink-0 text-emerald-400" />
-                            <span>{t.statistics.earned}{currencyUnit && <span className="block text-[10px] font-semibold normal-case text-gray-400 lg:hidden">{currencyUnit}</span>}</span>
+                            {t.statistics.earned}
                           </div>
                         </th>
                       </tr>
@@ -529,14 +519,14 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
                             <span className="text-[13px] lg:text-sm font-bold text-red-400">{stat.failure_count}</span>
                           </td>
                           <td className="px-2 lg:px-3 py-2.5 text-right whitespace-nowrap">
-                            <span className="text-[13px] lg:text-sm font-bold text-indigo-500"><span className="hidden lg:inline">{currencyUnit} </span>{stat.daily_commission.toFixed(2)}</span>
+                            <span className="text-[13px] lg:text-sm font-bold text-indigo-500">{currencyUnit}{stat.daily_commission.toFixed(2)}</span>
                           </td>
                           <td className="px-2 lg:px-3 py-2.5 text-right whitespace-nowrap">
-                            <span className="text-[13px] lg:text-sm font-bold text-pink-500"><span className="hidden lg:inline">{currencyUnit} </span>{stat.daily_tips.toFixed(2)}</span>
+                            <span className="text-[13px] lg:text-sm font-bold text-pink-500">{currencyUnit}{stat.daily_tips.toFixed(2)}</span>
                           </td>
                           <td className="px-3 lg:px-4 py-2.5 text-right whitespace-nowrap">
                             <span className="text-[13px] lg:text-sm font-bold text-emerald-400">
-                              <span className="hidden lg:inline">{currencyUnit} </span>{stat.daily_earnings.toFixed(2)}
+                              {currencyUnit}{stat.daily_earnings.toFixed(2)}
                             </span>
                           </td>
                         </tr>
