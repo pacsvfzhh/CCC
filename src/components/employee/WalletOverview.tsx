@@ -469,6 +469,37 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     }
   };
 
+  const dollarBlocks = (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {[
+        { left: '5%', top: '10%', size: 46, rot: -12 },
+        { left: '80%', top: '7%', size: 58, rot: 14 },
+        { left: '12%', top: '64%', size: 38, rot: 10 },
+        { left: '86%', top: '60%', size: 42, rot: -8 },
+        { left: '44%', top: '80%', size: 32, rot: 18 },
+        { left: '62%', top: '24%', size: 28, rot: -16 },
+        { left: '28%', top: '30%', size: 24, rot: 8 },
+      ].map((block, index) => (
+        <div
+          key={index}
+          className="keep-animation absolute flex items-center justify-center rounded-xl bg-white/[0.12] font-bold text-white/45 ring-1 ring-white/20"
+          style={{
+            left: block.left,
+            top: block.top,
+            width: block.size,
+            height: block.size,
+            fontSize: Math.round(block.size * 0.5),
+            ['--wd-rot' as string]: `${block.rot}deg`,
+            transform: `rotate(${block.rot}deg)`,
+            animation: `wd-dollar-float ${2.8 + (index % 3) * 0.5}s ease-in-out ${index * 0.25}s infinite alternate`,
+          }}
+        >
+          $
+        </div>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="bg-white rounded-2xl border border-blue-200 p-8 text-center shadow-sm">
@@ -1274,11 +1305,23 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       </div>
 
       {/* Withdraw Funds Panel - Wealth Transfer Theme */}
-      <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+      <div className={`relative rounded-2xl overflow-hidden border transition-[border-color,box-shadow] duration-500 ease-out ${
+        contentResizing
+          ? 'border-cyan-300 shadow-[0_0_0_4px_rgba(103,232,249,0.18),0_14px_32px_-14px_rgba(37,99,235,0.35)]'
+          : 'border-gray-200 shadow-sm'
+      }`}>
+        {contentResizing && (
+          <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden" aria-hidden="true">
+            <div
+              className="keep-animation absolute inset-x-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(186,230,253,0.35)_45%,rgba(224,242,254,0.5)_50%,rgba(186,230,253,0.35)_55%,transparent)]"
+              style={{ animation: 'wd-resize-sweep 760ms cubic-bezier(0.22, 1, 0.36, 1) both' }}
+            ></div>
+          </div>
+        )}
         {/* Curtain animation overlay - appears during checking */}
         {checkingEligibility && (
           <>
-            <style>{'.wd-water{-webkit-mask-size:250% 100%;mask-size:250% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}.wd-water-l{-webkit-mask-image:linear-gradient(to right,#000 0%,#000 40%,transparent 60%,transparent 100%);mask-image:linear-gradient(to right,#000 0%,#000 40%,transparent 60%,transparent 100%)}.wd-water-r{-webkit-mask-image:linear-gradient(to left,#000 0%,#000 40%,transparent 60%,transparent 100%);mask-image:linear-gradient(to left,#000 0%,#000 40%,transparent 60%,transparent 100%)}@keyframes wd-water-l-in{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-water-l-out{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-water-r-in{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-water-r-out{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}'}</style>
+            <style>{'.wd-water{-webkit-mask-size:300% 100%;mask-size:300% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}.wd-water-l{-webkit-mask-image:linear-gradient(to right,#000 0%,#000 33.4%,rgba(0,0,0,.9) 40%,rgba(0,0,0,.7) 46%,rgba(0,0,0,.48) 52%,rgba(0,0,0,.26) 58%,rgba(0,0,0,.1) 63%,transparent 66.6%,transparent 100%);mask-image:linear-gradient(to right,#000 0%,#000 33.4%,rgba(0,0,0,.9) 40%,rgba(0,0,0,.7) 46%,rgba(0,0,0,.48) 52%,rgba(0,0,0,.26) 58%,rgba(0,0,0,.1) 63%,transparent 66.6%,transparent 100%)}.wd-water-r{-webkit-mask-image:linear-gradient(to left,#000 0%,#000 33.4%,rgba(0,0,0,.9) 40%,rgba(0,0,0,.7) 46%,rgba(0,0,0,.48) 52%,rgba(0,0,0,.26) 58%,rgba(0,0,0,.1) 63%,transparent 66.6%,transparent 100%);mask-image:linear-gradient(to left,#000 0%,#000 33.4%,rgba(0,0,0,.9) 40%,rgba(0,0,0,.7) 46%,rgba(0,0,0,.48) 52%,rgba(0,0,0,.26) 58%,rgba(0,0,0,.1) 63%,transparent 66.6%,transparent 100%)}@keyframes wd-dollar-float{from{transform:translateY(0) rotate(var(--wd-rot))}to{transform:translateY(-7px) rotate(var(--wd-rot))}}@keyframes wd-water-l-in{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-water-l-out{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-water-r-in{from{-webkit-mask-position:0% 0;mask-position:0% 0}to{-webkit-mask-position:100% 0;mask-position:100% 0}}@keyframes wd-water-r-out{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0% 0;mask-position:0% 0}}@keyframes wd-curtain-content-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes wd-curtain-content-out{from{opacity:1}to{opacity:0}}'}</style>
             {/* Left curtain: original colours over an opaque white base so nothing behind shows through */}
             <div
               className="wd-water wd-water-l keep-animation absolute inset-0 z-50"
@@ -1286,7 +1329,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                 backgroundImage: 'linear-gradient(to right, rgba(6,182,212,0.95), rgba(37,99,235,0.9), transparent), linear-gradient(#ffffff, #ffffff)',
                 animation: eligibilityOverlayLeaving ? 'wd-water-l-out 1600ms cubic-bezier(0.45, 0.05, 0.35, 1) 150ms both' : 'wd-water-l-in 1800ms cubic-bezier(0.45, 0.05, 0.35, 1) both',
               }}
-            ></div>
+            >{dollarBlocks}</div>
             {/* Right curtain */}
             <div
               className="wd-water wd-water-r keep-animation absolute inset-0 z-50"
@@ -1294,7 +1337,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
                 backgroundImage: 'linear-gradient(to left, rgba(37,99,235,0.95), rgba(6,182,212,0.9), transparent), linear-gradient(to right, rgba(6,182,212,0.95), rgba(37,99,235,0.9), transparent), linear-gradient(#ffffff, #ffffff)',
                 animation: eligibilityOverlayLeaving ? 'wd-water-r-out 1600ms cubic-bezier(0.45, 0.05, 0.35, 1) 150ms both' : 'wd-water-r-in 1800ms cubic-bezier(0.45, 0.05, 0.35, 1) both',
               }}
-            ></div>
+            >{dollarBlocks}</div>
 
             {/* Center loading area with progress - positioned below title */}
             <div
@@ -1498,7 +1541,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           </button>
         </div>
 
-        <style>{'@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
+        <style>{'@keyframes wd-resize-sweep{from{transform:translateY(-100%)}to{transform:translateY(200%)}}@keyframes wd-reveal{from{opacity:0;transform:translateY(16px) scale(.985);filter:blur(6px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:none}}.wd-reveal-stagger>*{animation:wd-reveal 700ms cubic-bezier(.22,1,.36,1) both}.wd-reveal-stagger>*:nth-child(1){animation-delay:.22s}.wd-reveal-stagger>*:nth-child(2){animation-delay:.32s}.wd-reveal-stagger>*:nth-child(3){animation-delay:.42s}.wd-reveal-stagger>*:nth-child(4){animation-delay:.52s}.wd-reveal-stagger>*:nth-child(n+5){animation-delay:.6s}@media (prefers-reduced-motion:reduce){.wd-reveal-stagger>*{animation:none}}'}</style>
         {/* Content wrapper with transition animation */}
         <div
           className="relative z-10"
