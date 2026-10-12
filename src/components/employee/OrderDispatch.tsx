@@ -3256,19 +3256,13 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <div className="absolute inset-0 rounded-3xl group-hover/btn:shadow-[inset_0_0_60px_rgba(16,185,129,0.2)] transition-all duration-500"></div>
                   )}
 
-                  {/* Corner tech accents - Enhanced */}
-                  <div className="absolute top-3 left-3 w-10 h-10 border-t-2 border-l-2 border-emerald-400/60 group-hover/btn:border-emerald-300 transition-colors">
-                    <div className="absolute -top-1 -left-1 w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                  </div>
-                  <div className="absolute top-3 right-3 w-10 h-10 border-t-2 border-r-2 border-emerald-400/60 group-hover/btn:border-emerald-300 transition-colors">
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full" style={{animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.2s'}}></div>
-                  </div>
-                  <div className="absolute bottom-3 left-3 w-10 h-10 border-b-2 border-l-2 border-emerald-400/60 group-hover/btn:border-emerald-300 transition-colors">
-                    <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-emerald-400 rounded-full" style={{animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.4s'}}></div>
-                  </div>
-                  <div className="absolute bottom-3 right-3 w-10 h-10 border-b-2 border-r-2 border-emerald-400/60 group-hover/btn:border-emerald-300 transition-colors">
-                    <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full" style={{animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.6s'}}></div>
-                  </div>
+                  <div className="pointer-events-none absolute inset-3 rounded-xl border border-white/10 transition-colors duration-500 group-hover/btn:border-white/20 md:rounded-[18px]"></div>
+                  <div className="pointer-events-none absolute left-3 top-3 h-8 w-8 rounded-tl-xl border-l-2 border-t-2 border-cyan-200/60 transition-colors duration-500 group-hover/btn:border-cyan-100 md:h-10 md:w-10 md:rounded-tl-[18px]"></div>
+                  <div className="pointer-events-none absolute right-3 top-3 h-8 w-8 rounded-tr-xl border-r-2 border-t-2 border-cyan-200/60 transition-colors duration-500 group-hover/btn:border-cyan-100 md:h-10 md:w-10 md:rounded-tr-[18px]"></div>
+                  <div className="pointer-events-none absolute bottom-3 left-3 h-8 w-8 rounded-bl-xl border-b-2 border-l-2 border-cyan-200/60 transition-colors duration-500 group-hover/btn:border-cyan-100 md:h-10 md:w-10 md:rounded-bl-[18px]"></div>
+                  <div className="pointer-events-none absolute bottom-3 right-3 h-8 w-8 rounded-br-xl border-b-2 border-r-2 border-cyan-200/60 transition-colors duration-500 group-hover/btn:border-cyan-100 md:h-10 md:w-10 md:rounded-br-[18px]"></div>
+                  <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-cyan-300/15 blur-3xl"></div>
+                  <div className="pointer-events-none absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-indigo-400/20 blur-3xl"></div>
 
                   {/* Floating particles inside button - Optimized for mobile */}
                   {performanceSettings.enableParticles && [...Array(performanceSettings.particleCount)].map((_, i) => (
