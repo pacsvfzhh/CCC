@@ -250,11 +250,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
     const previousInitialCheck = initialCleanupPromiseRef.current;
     const initialCheckPromise = (previousInitialCheck || Promise.resolve())
       .catch(error => {
-        console.error('Previous pending-order check failed:', error);
+        console.error('Previous pending-order check failed:', getOrderDispatchErrorMessage(error));
       })
       .then(() => checkPendingOrderRef.current?.())
       .catch(error => {
-        console.error('Initial pending-order check failed:', error);
+        console.error('Initial pending-order check failed:', getOrderDispatchErrorMessage(error));
       });
     initialCleanupPromiseRef.current = initialCheckPromise;
     void initialCheckPromise.finally(() => {
