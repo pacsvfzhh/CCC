@@ -905,7 +905,6 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             <div className="absolute top-1/2 left-[60%] w-10 h-10 border border-white/[0.05] rounded-xl rotate-12 -translate-y-1/2"></div>
             {!isMobile && !isTablet && (
               <>
-                <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '28px 28px', maskImage: 'linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent)', WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent)' }}></div>
                 <div className="absolute -top-16 right-[8%] h-40 w-40 rotate-12 rounded-[28px] bg-gradient-to-br from-cyan-300/20 to-transparent"></div>
                 <div className="absolute -bottom-20 right-[24%] h-36 w-36 -rotate-6 rounded-[24px] bg-gradient-to-tr from-indigo-300/15 to-transparent"></div>
                 <div className="absolute -top-10 left-[30%] h-24 w-24 rotate-45 rounded-2xl border border-white/10"></div>
@@ -925,12 +924,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                       {companyName}
                     </h1>
                     <span className="h-6 w-px flex-shrink-0 bg-gradient-to-b from-transparent via-white/35 to-transparent" aria-hidden="true"></span>
-                    <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/[0.08] py-1 pl-1 pr-3.5 ring-1 ring-inset ring-white/15 backdrop-blur-sm">
-                      <span className="relative flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-300 to-blue-400 text-[11px] font-bold uppercase text-blue-950 shadow-sm">
-                        {employee.username.charAt(0)}
-                        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#173c9c] bg-emerald-400"></span>
-                      </span>
-                      <span className="truncate text-[13px] font-semibold tracking-wide text-white/95">{employee.username}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <User className="h-4 w-4 flex-shrink-0 text-blue-200/80" strokeWidth={2} />
+                      <span className="truncate text-sm font-medium text-blue-50/90">{employee.username}</span>
+                      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" aria-label="Online"></span>
                     </div>
                   </div>
                 ) : (
