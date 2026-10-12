@@ -913,14 +913,29 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
               </>
             )}
           </div>
-          <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 pt-2.5 pb-3'}`}>
+          <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 pt-2 pb-2'}`}>
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} bg-white/95 flex items-center justify-center shadow-sm flex-shrink-0`}>
                   <Zap className={`${isMobile ? 'w-4 h-4' : isTablet ? 'w-[18px] h-[18px]' : 'w-5 h-5'} text-blue-600`} fill="currentColor" />
                 </div>
+                {!isMobile && !isTablet ? (
+                  <div className="flex min-w-0 flex-1 items-center gap-4">
+                    <h1 className="truncate text-[22px] font-bold leading-none tracking-tight text-white" style={{ textShadow: '0 1px 12px rgba(56,189,248,0.25)' }}>
+                      {companyName}
+                    </h1>
+                    <span className="h-6 w-px flex-shrink-0 bg-gradient-to-b from-transparent via-white/35 to-transparent" aria-hidden="true"></span>
+                    <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/[0.08] py-1 pl-1 pr-3.5 ring-1 ring-inset ring-white/15 backdrop-blur-sm">
+                      <span className="relative flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-300 to-blue-400 text-[11px] font-bold uppercase text-blue-950 shadow-sm">
+                        {employee.username.charAt(0)}
+                        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#173c9c] bg-emerald-400"></span>
+                      </span>
+                      <span className="truncate text-[13px] font-semibold tracking-wide text-white/95">{employee.username}</span>
+                    </div>
+                  </div>
+                ) : (
                 <div className="flex-1 min-w-0" style={{ maxWidth: isMobile ? 'calc(100vw - 140px)' : undefined }}>
-                  <h1 className={`${isMobile ? 'text-[15px]' : isTablet ? 'text-lg' : 'text-xl'} font-bold text-white truncate tracking-tight leading-tight`}>
+                  <h1 className={`${isMobile ? 'text-[15px]' : 'text-lg'} font-bold text-white truncate tracking-tight leading-tight`}>
                     {companyName}
                   </h1>
                   <div className="flex items-center gap-1.5 mt-px">
@@ -928,6 +943,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                     <span className={`${isMobile ? 'text-[11px]' : 'text-xs'} text-blue-100/90 font-medium truncate`}>{employee.username}</span>
                   </div>
                 </div>
+                )}
               </div>
               <div className={`flex flex-shrink-0 items-center ${isMobile ? 'gap-1.5' : isTablet ? 'gap-2' : 'gap-3'}`}>
                 {/* Message Center Button */}
@@ -1180,7 +1196,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
               </div>
             </div>
             {/* Desktop navigation, integrated into the sticky header */}
-            <nav className="nav-desktop relative mt-2.5" aria-label="Primary">
+            <nav className="nav-desktop relative mt-2" aria-label="Primary">
               <div className="relative flex gap-1 rounded-xl bg-white/[0.08] p-1 ring-1 ring-inset ring-white/15 backdrop-blur-sm">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
