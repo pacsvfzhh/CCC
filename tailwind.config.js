@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -12,5 +14,11 @@ export default {
     },
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    // Height-based variants; registered in this order so `low:` overrides `short:` when both match.
+    plugin(({ addVariant }) => {
+      addVariant('short', '@media (max-height: 640px)');
+      addVariant('low', '@media (max-height: 520px)');
+    }),
+  ],
 };

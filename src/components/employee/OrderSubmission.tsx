@@ -1,18 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Send, Search, Check, ChevronDown, Package, DollarSign, Hash, FileText, Sparkles, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { ProductType } from '../../types';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
+import { getStoredAuth } from '../../lib/auth';
 
 interface OrderSubmissionProps {
   employeeId: string;
+  isActive: boolean;
   adminId?: string | null;
   onNavigateToDispatch?: () => void;
 }
 
-export default function OrderSubmission({ employeeId, adminId: propAdminId, onNavigateToDispatch }: OrderSubmissionProps) {
+export default function OrderSubmission({ employeeId, isActive, adminId: propAdminId, onNavigateToDispatch }: OrderSubmissionProps) {
   const { t } = useLanguage();
   const [adminId, setAdminId] = useState<string | null>(propAdminId || null);
   const currencyUnit = useCurrencyUnit(adminId);
@@ -41,15 +43,12 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
   const [submissionStage, setSubmissionStage] = useState<'encrypting' | 'validating' | 'broadcasting' | 'confirming'>('encrypting');
   const [showValidationAlert, setShowValidationAlert] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
-  const [submitTimeMin, setSubmitTimeMin] = useState(5);
-  const [submitTimeMax, setSubmitTimeMax] = useState(20);
-  const adminIdRef = useRef<string | null>(propAdminId || null);
   const [activeAssignment, setActiveAssignment] = useState<{ id: string; assignment_id: string } | null>(null);
+  const loadProductTypesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (propAdminId) {
       setAdminId(propAdminId);
-      adminIdRef.current = propAdminId;
       return;
     }
     supabase
@@ -60,13 +59,14 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       .then(({ data }) => {
         if (data?.created_by) {
           setAdminId(data.created_by);
-          adminIdRef.current = data.created_by;
         }
       });
   }, [employeeId, propAdminId]);
 
-  // Fetch active assignment only when employee has an active dispatch session
   useEffect(() => {
+    if (!isActive) return;
+
+    let cancelled = false;
     const fetchActiveAssignment = async () => {
       const { data: session } = await supabase
         .from('dispatch_sessions')
@@ -76,6 +76,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         .limit(1)
         .maybeSingle();
 
+      if (cancelled) return;
       if (!session) {
         setActiveAssignment(null);
         return;
@@ -91,67 +92,20 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         .order('accepted_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      setActiveAssignment(data ? { id: data.id, assignment_id: data.assignment_id } : null);
+      if (!cancelled) {
+        setActiveAssignment(data?.assignment_id ? { id: data.id, assignment_id: data.assignment_id } : null);
+      }
     };
-    fetchActiveAssignment();
-    const interval = setInterval(fetchActiveAssignment, 5000);
-    return () => clearInterval(interval);
-  }, [employeeId]);
-
-  const fetchSubmitTime = async (): Promise<{ min: number; max: number }> => {
-    const currentAdminId = adminIdRef.current;
-
-    const { data: empSetting } = await supabase
-      .from('employee_submit_time_settings')
-      .select('group_id')
-      .eq('user_id', employeeId)
-      .not('group_id', 'is', null)
-      .maybeSingle();
-
-    if (empSetting?.group_id) {
-      const { data: group } = await supabase
-        .from('submit_time_groups')
-        .select('min_seconds, max_seconds')
-        .eq('id', empSetting.group_id)
-        .maybeSingle();
-      if (group) {
-        return { min: group.min_seconds, max: group.max_seconds };
-      }
-    }
-
-    if (!currentAdminId) return { min: 5, max: 20 };
-
-    const { data } = await supabase
-      .from('admin_configs')
-      .select('config_type, config_value, admin_id')
-      .or(`admin_id.eq.${currentAdminId},admin_id.is.null`)
-      .in('config_type', ['order_submit_time_min', 'order_submit_time_max']);
-
-    if (!data) return { min: 5, max: 20 };
-    const adminConfigs: Record<string, string> = {};
-    const globalConfigs: Record<string, string> = {};
-    data.forEach((row: any) => {
-      if (row.admin_id === currentAdminId) {
-        adminConfigs[row.config_type] = row.config_value;
-      } else {
-        globalConfigs[row.config_type] = row.config_value;
-      }
-    });
-    const min = Math.max(3, parseInt(adminConfigs.order_submit_time_min || globalConfigs.order_submit_time_min || '5', 10));
-    const max = Math.max(min, parseInt(adminConfigs.order_submit_time_max || globalConfigs.order_submit_time_max || '20', 10));
-    return { min, max };
-  };
+    void fetchActiveAssignment();
+    const interval = window.setInterval(() => { void fetchActiveAssignment(); }, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [employeeId, isActive]);
 
   useEffect(() => {
-    if (!adminId) return;
-    fetchSubmitTime().then(({ min, max }) => {
-      setSubmitTimeMin(min);
-      setSubmitTimeMax(max);
-    });
-  }, [adminId, employeeId]);
-
-  useEffect(() => {
-    loadProductTypes();
+    void loadProductTypesRef.current?.();
 
     // Subscribe to real-time updates for product types with debouncing
     let reloadTimeout: NodeJS.Timeout | null = null;
@@ -170,7 +124,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
           if (reloadTimeout) clearTimeout(reloadTimeout);
 
           reloadTimeout = setTimeout(() => {
-            loadProductTypes();
+            void loadProductTypesRef.current?.();
 
             // Check if selected product type was affected
             if (selectedProductType) {
@@ -201,30 +155,30 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
     };
   }, [selectedProductType]);
 
-  // Removed body overflow lock to allow background scrolling
+  const isAnyModalOpen = showResultModal || showValidationAlert;
+  useLayoutEffect(() => {
+    if (!isAnyModalOpen) return;
 
-  // iOS-compatible scroll lock when modals are open
-  useEffect(() => {
-    const isAnyModalOpen = showResultModal || showValidationAlert;
-    if (isAnyModalOpen) {
-      const scrollY = window.scrollY;
-      const body = document.body;
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.overflow = 'hidden';
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
 
-      return () => {
-        body.style.position = '';
-        body.style.top = '';
-        body.style.left = '';
-        body.style.right = '';
-        body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [showResultModal, showValidationAlert]);
+    return () => {
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    };
+  }, [isAnyModalOpen]);
 
   useEffect(() => {
     const filtered = productTypes.filter(type =>
@@ -250,7 +204,8 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         .from('product_types')
         .select('*')
         .eq('is_active', true)
-        .order('name');
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true });
 
       if (error) throw error;
 
@@ -267,18 +222,20 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         setFilteredProductTypes(newProductTypes);
       }
 
-      // Validate that selected product type is still active
       if (selectedProductType) {
-        const stillExists = newProductTypes.find(t => t.id === selectedProductType.id);
-        if (!stillExists) {
+        const currentProductType = newProductTypes.find(type => type.id === selectedProductType.id);
+        if (!currentProductType) {
           setSelectedProductType(null);
           setFormData(prev => ({ ...prev, productTypeId: '' }));
+        } else if (currentProductType.name !== selectedProductType.name) {
+          setSelectedProductType(currentProductType);
         }
       }
     } catch (error) {
       console.error('Error loading product types:', error);
     }
   };
+  loadProductTypesRef.current = loadProductTypes;
 
   const handleProductTypeSelect = (type: ProductType) => {
     setSelectedProductType(type);
@@ -349,17 +306,8 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
   const handleConfirmSubmit = async () => {
     setShowConfirmModal(false);
     setLoading(true);
-    setShowSubmitAnimation(true);
     setSubmissionProgress(0);
     setSubmissionStage('encrypting');
-
-    // Fetch fresh time settings from DB before each submission
-    const { min: freshMin, max: freshMax } = await fetchSubmitTime();
-    setSubmitTimeMin(freshMin);
-    setSubmitTimeMax(freshMax);
-
-    // Calculate random total duration within configured range (in ms)
-    const totalDuration = (freshMin + Math.random() * (freshMax - freshMin)) * 1000;
 
     // Smooth progress animation that runs for exactly the specified duration
     const animateFullProgress = (targetDuration: number): { cancel: () => void; done: Promise<void> } => {
@@ -414,10 +362,30 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       return { cancel: () => { cancelled = true; }, done };
     };
 
-    // Start the animation immediately - it will run for exactly totalDuration ms
-    const animation = animateFullProgress(totalDuration);
-
+    let animation: ReturnType<typeof animateFullProgress> | undefined;
+    let submissionAssignment: { id: string; assignment_id: string } | null = null;
     try {
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== employeeId) {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+      const { data: timing, error: timingError } = await supabase.rpc('get_employee_dispatch_submit_wait_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+      });
+      if (timingError) throw timingError;
+      if (!timing?.available || timing.min_seconds == null || timing.max_seconds == null) {
+        throw new Error(timing?.message || '請先將員工指派至已啟用的訂單分組。');
+      }
+      if (timing.assignment_id && timing.assignment_code) {
+        submissionAssignment = { id: timing.assignment_id, assignment_id: timing.assignment_code };
+      }
+      setActiveAssignment(submissionAssignment);
+      const totalDuration = (timing.min_seconds + Math.random() * (timing.max_seconds - timing.min_seconds)) * 1000;
+      setShowSubmitAnimation(true);
+      animation = animateFullProgress(totalDuration);
+
       // Run DB operations in parallel with the animation
       const productValue = parseFloat(formData.productValue);
       const transactionId = formData.transactionId;
@@ -475,21 +443,12 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
           order_number: formData.orderNumber,
           transaction_id: transactionId,
           status: 'processing',
-          ...(activeAssignment ? { assignment_id: activeAssignment.assignment_id } : {}),
+          ...(submissionAssignment ? { assignment_id: submissionAssignment.assignment_id } : {}),
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
-
-      // Mark assignment as order_submitted
-      if (activeAssignment) {
-        await supabase
-          .from('dispatch_assignments')
-          .update({ order_submitted: true })
-          .eq('id', activeAssignment.id)
-          .eq('assignment_id', activeAssignment.assignment_id);
-      }
 
       const { error: usageError } = await supabase
         .from('used_order_data')
@@ -502,6 +461,25 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       if (usageError) {
         await supabase.from('orders').delete().eq('id', orderData.id);
         throw usageError;
+      }
+
+      if (submissionAssignment) {
+        const { data: markedSubmitted, error: markError } = await supabase.rpc(
+          'mark_dispatch_assignment_submitted_secure',
+          {
+            p_user_id: auth.user.id,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_assignment_id: submissionAssignment.id,
+            p_assignment_code: submissionAssignment.assignment_id,
+            p_order_id: orderData.id,
+          },
+        );
+        if (markError || !markedSubmitted) {
+          await supabase.from('used_order_data').delete().eq('order_id', orderData.id);
+          await supabase.from('orders').delete().eq('id', orderData.id);
+          throw markError || new Error('The dispatch assignment is no longer active.');
+        }
       }
 
       // Wait for animation to complete (it always takes exactly totalDuration)
@@ -522,27 +500,20 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       setSearchQuery('');
 
       // Auto-return to dispatch tab after submission if there was an active assignment
-      if (activeAssignment) {
+      if (submissionAssignment) {
         setActiveAssignment(null);
         setTimeout(() => {
           onNavigateToDispatch?.();
         }, 1500);
       }
 
-      setTimeout(async () => {
-        try {
-          await supabase.rpc('process_pending_orders');
-        } catch (error) {
-          console.error('Error triggering order processing:', error);
-        }
-      }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Order submission error:', error);
-      animation.cancel();
-      setSubmissionProgress(100);
+      animation?.cancel();
+      if (animation) setSubmissionProgress(100);
       setShowSubmitAnimation(false);
       setResultType('error');
-      setResultMessage(error.message || t.orderSubmission.failedRetry);
+      setResultMessage(error instanceof Error ? error.message : t.orderSubmission.failedRetry);
       setShowResultModal(true);
     } finally {
       setLoading(false);
@@ -550,14 +521,14 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
   };
 
   return (
-    <div className="relative isolate bg-white rounded-xl sm:rounded-3xl border border-blue-200 p-4 sm:p-8 overflow-hidden shadow-sm">
+    <div className={`relative isolate overflow-hidden rounded-xl bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8 ${showConfirmModal || showSubmitAnimation ? 'border-0' : 'border border-blue-200'}`}>
       {/* Header - Mobile Optimized */}
-      <div className="relative flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8">
+      <div className="relative flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-8">
         <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-blue-50 rounded-lg sm:rounded-xl border border-blue-200 overflow-hidden group/icon flex-shrink-0">
           <Package className="w-5 h-5 text-blue-600 relative z-10" />
         </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-2xl font-black text-blue-600 relative truncate">
+        <div className="flex-1 min-w-[8rem] sm:min-w-[15rem]">
+          <h2 className="text-base sm:text-2xl font-black text-blue-600 relative leading-tight break-words">
             {t.orderSubmission.title}
           </h2>
           <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1 flex items-center gap-1.5 sm:gap-2">
@@ -579,7 +550,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5">
           {/* User Number - Mobile Optimized */}
           <div className="group relative">
             <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 mb-2 sm:mb-3">
@@ -856,7 +827,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
           </div>
 
           {/* Transaction ID - Mobile Optimized */}
-          <div className="md:col-span-2 group relative">
+          <div className="lg:col-span-2 group relative">
             <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 mb-2 sm:mb-3">
               <div className="relative flex-shrink-0">
                 <div className="absolute inset-0 bg-blue-400/30 rounded-full blur-sm group-hover:bg-blue-400/50 transition-all hidden sm:block"></div>
@@ -1202,12 +1173,12 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       {/* Result Modal - portaled to escape stacking context */}
       {showResultModal && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
           onClick={() => setShowResultModal(false)}
         >
           <div
-            className="relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 border border-gray-200 overflow-hidden animate-slideDown"
+            className="employee-modal-surface relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top color band */}
@@ -1262,12 +1233,12 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       {/* Validation Error Alert Modal - portaled to escape stacking context */}
       {showValidationAlert && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
+          className="employee-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50"
           style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
           onClick={() => setShowValidationAlert(false)}
         >
           <div
-            className="relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 border border-gray-200 overflow-hidden animate-slideDown"
+            className="employee-modal-surface relative bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm shadow-2xl shadow-gray-900/20 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top color band */}

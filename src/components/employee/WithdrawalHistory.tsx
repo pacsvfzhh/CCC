@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Clock, CheckCircle, XCircle, History, ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Clock, CheckCircle, XCircle, History, ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useResponsive } from '../../lib/useResponsive';
-import { useLanguage } from '../../lib/i18n';
-import { usePaginatedList } from '../../lib/usePaginatedList';
+import { useLanguage } from '../../lib/i18n/context';
+import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
+import PageLoader from './PageLoader';
 
 interface Withdrawal {
   id: string;
@@ -46,17 +47,46 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const { isMobile } = useResponsive();
   const { t, dateLocale } = useLanguage();
-  const ITEMS_PER_PAGE = isMobile ? 10 : 20;
-  const { pageItems, page, totalPages, totalItems, hasNext, hasPrev, goNext, goPrev } = usePaginatedList({
-    items: records,
-    pageSize: ITEMS_PER_PAGE,
-  });
+  const loadAllRecordsRef = useRef<(() => Promise<void>) | null>(null);
+  const cancellationOperationIdsRef = useRef(new Map<string, string>());
+  const batchSize = isMobile ? 10 : 20;
+  const [visibleCount, setVisibleCount] = useState(batchSize);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const visibleRecords = records.slice(0, visibleCount);
+  const hasMore = visibleCount < records.length;
 
   useEffect(() => {
-    loadAllRecords();
+    const root = scrollContainerRef.current;
+    const sentinel = loadMoreSentinelRef.current;
+    if (!root || !sentinel || !hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer.disconnect();
+      setLoadingMore(true);
+    }, { root, rootMargin: '0px 0px 160px 0px' });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, visibleCount]);
+
+  useEffect(() => {
+    if (!loadingMore) return;
+    // Short pause so the loading indicator reads as a transition instead of a flash.
+    const timer = setTimeout(() => {
+      setVisibleCount(count => count + batchSize);
+      setLoadingMore(false);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [loadingMore, batchSize]);
+
+  useEffect(() => {
+    void loadAllRecordsRef.current?.();
 
     const interval = setInterval(() => {
-      loadAllRecords();
+      void loadAllRecordsRef.current?.();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -69,7 +99,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
     }
   }, [message]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const body = document.body;
     const html = document.documentElement;
 
@@ -128,6 +158,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
       setLoading(false);
     }
   };
+  loadAllRecordsRef.current = loadAllRecords;
 
   const handleClose = () => {
     setExpandedId(null);
@@ -141,68 +172,23 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
     setMessage(null);
 
     try {
-      const { data: withdrawal, error: fetchError } = await supabase
-        .from('withdrawals')
-        .select('amount, status')
-        .eq('id', withdrawalId)
-        .single();
+      const financialSession = getEmployeeFinancialSession();
+      const operationId = cancellationOperationIdsRef.current.get(withdrawalId)
+        || createFinancialOperationId();
+      cancellationOperationIdsRef.current.set(withdrawalId, operationId);
 
-      if (fetchError) throw fetchError;
+      const { data: result, error } = await supabase.rpc('cancel_employee_withdrawal', {
+        p_user_id: employeeId,
+        p_session_token: financialSession.token,
+        p_tab_id: financialSession.tabId,
+        p_withdrawal_id: withdrawalId,
+        p_operation_id: operationId,
+      });
 
-      if (withdrawal.status !== 'pending') {
-        setMessage({ type: 'error', text: t.withdrawals.alreadyProcessed });
-        loadAllRecords();
-        setCancelling(null);
-        return;
-      }
+      if (error) throw error;
+      if (!result?.success) throw new Error(result?.error || t.withdrawals.cancelFailed);
 
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select('available_balance, frozen_balance')
-        .eq('user_id', employeeId)
-        .single();
-
-      if (walletError) throw walletError;
-
-      const newAvailableBalance = wallet.available_balance + withdrawal.amount;
-      const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
-
-      if (newFrozenBalance < 0) {
-        throw new Error('Insufficient frozen balance. Please refresh and try again.');
-      }
-
-      const { error: withdrawalUpdateError } = await supabase
-        .from('withdrawals')
-        .update({
-          status: 'cancelled',
-          audit_remark: t.withdrawals.cancelledByUser,
-          audited_at: new Date().toISOString(),
-        })
-        .eq('id', withdrawalId)
-        .eq('status', 'pending');
-
-      if (withdrawalUpdateError) throw withdrawalUpdateError;
-
-      const { error: walletUpdateError } = await supabase
-        .from('wallets')
-        .update({
-          available_balance: newAvailableBalance,
-          frozen_balance: newFrozenBalance,
-        })
-        .eq('user_id', employeeId);
-
-      if (walletUpdateError) {
-        await supabase
-          .from('withdrawals')
-          .update({
-            status: 'pending',
-            audit_remark: null,
-            audited_at: null,
-          })
-          .eq('id', withdrawalId);
-        throw walletUpdateError;
-      }
-
+      cancellationOperationIdsRef.current.delete(withdrawalId);
       setMessage({ type: 'success', text: t.withdrawals.cancelSuccess });
 
       setTimeout(() => loadAllRecords(), 500);
@@ -210,7 +196,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
       console.error('Error cancelling withdrawal:', error);
       const errorMessage = error instanceof Error ? error.message : t.withdrawals.cancelFailed;
       setMessage({ type: 'error', text: errorMessage });
-      loadAllRecords();
+      void loadAllRecordsRef.current?.();
     } finally {
       setCancelling(null);
     }
@@ -343,7 +329,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
 
   return createPortal(
     <div
-      className="fixed inset-0 flex md:items-stretch md:justify-stretch md:p-0 lg:items-stretch lg:justify-stretch lg:p-0 xl:items-center xl:justify-center xl:p-4"
+      className="employee-modal-backdrop fixed inset-0 flex md:items-stretch md:justify-stretch md:p-0 lg:items-stretch lg:justify-stretch lg:p-0 xl:items-center xl:justify-center xl:p-4"
       style={{
         zIndex: 9999,
         alignItems: isMobile ? 'stretch' : undefined,
@@ -353,9 +339,9 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
     >
       <div className="absolute inset-0 bg-black/40"></div>
       <div
-        className="relative bg-gray-50 w-full overflow-hidden flex flex-col
-                   md:h-screen md:max-h-full md:rounded-none md:border-0
-                   xl:h-auto xl:max-h-[90vh] xl:rounded-2xl xl:border xl:border-gray-200 xl:shadow-2xl xl:max-w-4xl"
+        className="employee-modal-surface relative bg-gray-50 w-full overflow-hidden flex flex-col
+                   md:h-screen md:max-h-full md:rounded-none
+                   xl:h-auto xl:max-h-[90vh] xl:rounded-2xl xl:shadow-2xl xl:max-w-4xl"
         style={{
           width: isMobile ? '100%' : undefined,
           height: isMobile ? '100dvh' : undefined,
@@ -381,14 +367,16 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
               <h2 className="text-base sm:text-lg font-bold text-white leading-tight">
                 {t.withdrawals.title}
               </h2>
-              <p className="text-[10px] sm:text-xs text-blue-100 mt-0.5">{t.withdrawals.subtitle}</p>
+              <p className="text-[11px] sm:text-xs text-blue-100 mt-0.5">{t.withdrawals.subtitle}</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={handleClose}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors active:scale-95 touch-manipulation"
+            aria-label={t.common.close}
+            className="flex !h-[32px] !w-[32px] !min-h-[32px] !min-w-[32px] flex-shrink-0 items-center justify-center rounded-lg bg-white/10 !p-0 text-white/80 ring-1 ring-white/15 transition-colors hover:bg-white/20 hover:text-white active:scale-95 touch-manipulation lg:!h-[40px] lg:!w-[40px] lg:!min-h-[40px] lg:!min-w-[40px] lg:rounded-xl"
           >
-            <X className="w-4 h-4 text-white/90" />
+            <X className="h-[16px] w-[16px] lg:h-[20px] lg:w-[20px]" strokeWidth={2.25} />
           </button>
         </div>
 
@@ -415,7 +403,8 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
         )}
 
         <div
-          className="flex-1 overflow-y-auto sm:p-6"
+          ref={scrollContainerRef}
+          className="emp-compact-panel flex-1 overflow-y-auto overscroll-contain sm:p-6"
           style={{
             WebkitOverflowScrolling: 'touch',
             paddingTop: isMobile ? '16px' : undefined,
@@ -425,12 +414,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
           }}
         >
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-2 text-gray-400">
-                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-sm">{t.withdrawals.loadingTransactions}</span>
-              </div>
-            </div>
+            <PageLoader variant="panel" label={t.withdrawals.loadingTransactions} className="h-full" />
           ) : records.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
@@ -442,7 +426,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
           ) : (
           <>
             <div className="space-y-2.5 sm:space-y-3">
-              {pageItems.map((record) => {
+              {visibleRecords.map((record) => {
                 const isExpanded = expandedId === record.id;
                 return (
                   <div
@@ -452,12 +436,12 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                     {/* Left accent bar + content */}
                     <div className="flex">
                       <div className={`w-1 sm:w-1.5 flex-shrink-0 ${getCardAccentBar(record)}`}></div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0 [overflow-wrap:anywhere]">
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : record.id)}
                           className="w-full p-3 sm:p-4 flex items-center justify-between text-left"
                         >
-                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1">
+                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
                             <div className="flex-shrink-0 mt-0.5 sm:mt-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
                               {getStatusIcon(record)}
                             </div>
@@ -466,11 +450,11 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                 <span className="text-lg sm:text-xl font-bold text-gray-900">
                                   ${parseFloat(record.amount.toString()).toFixed(2)}
                                 </span>
-                                <span className={`px-2 py-0.5 rounded-md border text-[10px] sm:text-xs font-semibold w-fit ${getStatusBadgeStyle(record)}`}>
+                                <span className={`px-2 py-0.5 rounded-md border text-[11px] sm:text-xs font-semibold w-fit ${getStatusBadgeStyle(record)}`}>
                                   {getStatusLabel(record)}
                                 </span>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-gray-500">
+                              <div className="text-[11px] sm:text-xs text-gray-500">
                                 {new Date(record.created_at).toLocaleString(dateLocale, {
                                   year: 'numeric',
                                   month: 'short',
@@ -496,19 +480,19 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0 space-y-2 sm:space-y-3 border-t border-black/5">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 sm:pt-4">
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
                                   <div className="text-base sm:text-lg font-bold text-gray-900">
                                     ${parseFloat(withdrawal.amount.toString()).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.status}</div>
-                                  <div className={`inline-flex px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[10px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.status}</div>
+                                  <div className={`inline-flex px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[11px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
                                     {getStatusLabel(record)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.date}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.date}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     {new Date(withdrawal.created_at).toLocaleString(dateLocale, {
                                       year: 'numeric',
@@ -521,7 +505,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                 </div>
                                 {withdrawal.audited_at && (
                                   <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                    <div className={`text-[10px] sm:text-xs mb-1 ${
+                                    <div className={`text-[11px] sm:text-xs mb-1 ${
                                       withdrawal.status === 'approved' ? 'text-emerald-600' :
                                       withdrawal.status === 'rejected' ? 'text-red-600' :
                                       'text-gray-400'
@@ -556,7 +540,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                       <span className="text-sm sm:text-base font-semibold">{t.withdrawals.withdrawalApproved}</span>
                                     </div>
                                     {withdrawal.audited_at && (
-                                      <div className="text-[10px] sm:text-xs text-emerald-500 sm:text-right">
+                                      <div className="text-[11px] sm:text-xs text-emerald-500 sm:text-right">
                                         {new Date(withdrawal.audited_at).toLocaleString(dateLocale, {
                                           month: 'short',
                                           day: 'numeric',
@@ -571,7 +555,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                   </p>
                                   {withdrawal.audit_remark && (
                                     <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-emerald-100">
-                                      <div className="text-[10px] sm:text-xs text-emerald-500 mb-1">{t.withdrawals.adminNote}</div>
+                                      <div className="text-[11px] sm:text-xs text-emerald-500 mb-1">{t.withdrawals.adminNote}</div>
                                       <div className="text-xs sm:text-sm text-emerald-700">{withdrawal.audit_remark === 'Cancelled by user' ? t.withdrawals.cancelledByUser : withdrawal.audit_remark}</div>
                                     </div>
                                   )}
@@ -598,7 +582,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                   </div>
                                   {withdrawal.audit_remark ? (
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-red-400 mb-1">{t.withdrawals.rejectionReason}</div>
+                                      <div className="text-[11px] sm:text-xs text-red-400 mb-1">{t.withdrawals.rejectionReason}</div>
                                       <div className="text-xs sm:text-sm text-red-700">{withdrawal.audit_remark === 'Cancelled by user' ? t.withdrawals.cancelledByUser : withdrawal.audit_remark}</div>
                                     </div>
                                   ) : (
@@ -651,7 +635,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                   </div>
                                   {withdrawal.audit_remark ? (
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.reason}</div>
+                                      <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.reason}</div>
                                       <div className="text-xs sm:text-sm text-gray-600">{withdrawal.audit_remark === 'Cancelled by user' ? t.withdrawals.cancelledByUser : withdrawal.audit_remark}</div>
                                     </div>
                                   ) : (
@@ -672,32 +656,32 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0 space-y-2 sm:space-y-3 border-t border-black/5">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 sm:pt-4">
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionType}</div>
-                                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[10px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionType}</div>
+                                  <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border text-[11px] sm:text-xs font-semibold ${getStatusBadgeStyle(record)}`}>
                                     {isAdd ? <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                                     {isAdd ? t.withdrawals.balanceAdded : t.withdrawals.balanceDeducted}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.amount}</div>
                                   <div className={`text-base sm:text-lg font-bold ${isAdd ? 'text-emerald-600' : 'text-red-600'}`}>
                                     {isAdd ? '+' : ''}${Math.abs(parseFloat(transaction.amount.toString())).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceBefore}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceBefore}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     ${parseFloat(transaction.balance_before.toString()).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceAfter}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.balanceAfter}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     ${parseFloat(transaction.balance_after.toString()).toFixed(2)}
                                   </div>
                                 </div>
                                 <div className="col-span-1 sm:col-span-2 bg-white/70 rounded-lg p-2.5 sm:p-3">
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionTime}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.transactionTime}</div>
                                   <div className="text-xs sm:text-sm text-gray-700">
                                     {new Date(transaction.created_at).toLocaleString(dateLocale, {
                                       year: 'numeric',
@@ -718,7 +702,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
                                       {t.withdrawals.financialAdjustment}
                                     </span>
                                   </div>
-                                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.remarks}</div>
+                                  <div className="text-[11px] sm:text-xs text-gray-400 mb-1">{t.withdrawals.remarks}</div>
                                   <div className={`text-xs sm:text-sm ${isAdd ? 'text-emerald-700' : 'text-red-700'}`}>
                                     {transaction.remarks}
                                   </div>
@@ -748,28 +732,16 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
               })}
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 px-1">
-                <button
-                  onClick={goPrev}
-                  disabled={!hasPrev}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Prev</span>
-                </button>
-                <span className="text-xs text-gray-500 font-medium">
-                  {page + 1} / {totalPages}
-                  <span className="text-gray-400 ml-1.5">({totalItems})</span>
-                </span>
-                <button
-                  onClick={goNext}
-                  disabled={!hasNext}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+            {hasMore && (
+              <div ref={loadMoreSentinelRef} className="flex items-center justify-center py-5" aria-live="polite">
+                {loadingMore ? (
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"></div>
+                    <span className="text-xs sm:text-sm">{t.common.loading}</span>
+                  </div>
+                ) : (
+                  <div className="h-4" aria-hidden="true"></div>
+                )}
               </div>
             )}
           </>

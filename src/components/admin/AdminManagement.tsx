@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Shield, Trash2, Eye, EyeOff, CreditCard as Edit2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { hashPassword } from '../../lib/passwordHash';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 import { Admin } from '../../types';
 
 interface AdminManagementProps {
@@ -30,17 +31,11 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
     password: '',
   });
 
-  useEffect(() => {
-    if (admin.role === 'super_admin') {
-      loadAdmins();
-    }
-  }, []); // Remove admin.role from dependencies
-
-  const loadAdmins = async () => {
+  const loadAdmins = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('admins')
-        .select('*')
+        .select('id, username, role, parent_id, is_active, is_pinned, created_at, updated_at')
         .eq('role', 'secondary_admin')
         .order('created_at', { ascending: false });
 
@@ -51,7 +46,13 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (admin.role === 'super_admin') {
+      void loadAdmins();
+    }
+  }, [admin.role, loadAdmins]);
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,15 +67,11 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         throw new Error('Password must be at least 6 characters');
       }
 
-      // Hash the password before storing
-      const hashedPassword = await hashPassword(formData.password);
-
-      const { data, error } = await supabase.from('admins').insert({
-        username: formData.username.trim(),
-        password_hash: hashedPassword,
-        role: 'secondary_admin',
-        parent_id: admin.id,
-      }).select();
+      const { data, error } = await supabase.rpc('admin_create_secondary_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_username: formData.username.trim(),
+        p_password: formData.password,
+      });
 
       if (error) {
         if (error.code === '23505') {
@@ -83,7 +80,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         throw error;
       }
 
-      if (!data || data.length === 0) {
+      if (!data?.success) {
         throw new Error('Failed to create admin - no data returned');
       }
 
@@ -91,9 +88,9 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       setShowCreateForm(false);
       setShowPassword(false);
       await loadAdmins();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating admin:', error);
-      setError(error.message || 'Failed to create admin. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to create admin. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -101,13 +98,14 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
 
   const toggleAdminStatus = async (adminId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('admins')
-        .update({ is_active: !currentStatus })
-        .eq('id', adminId);
+      const { error } = await supabase.rpc('admin_update_admin_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: adminId,
+        p_updates: { is_active: !currentStatus },
+      });
 
       if (error) throw error;
-      loadAdmins();
+      void loadAdmins();
     } catch (error) {
       console.error('Error toggling admin status:', error);
     }
@@ -116,18 +114,14 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
   const handleDeleteAdmin = async (adminId: string) => {
     try {
       setDeleteError(null);
-      const { error } = await supabase
-        .from('admins')
-        .delete()
-        .eq('id', adminId);
-
-      if (error) throw error;
+      const result = await mutateAuditedContent('admin_delete', [adminId]);
+      if (!result.success) throw new Error('Unable to delete administrator.');
 
       setDeletingAdminId(null);
-      loadAdmins();
-    } catch (error: any) {
+      void loadAdmins();
+    } catch (error: unknown) {
       console.error('Error deleting admin:', error);
-      const message = error?.message || error?.details || 'Failed to delete admin. Please try again.';
+      const message = error instanceof Error ? error.message : 'Failed to delete admin. Please try again.';
       setDeleteError(message);
     }
   };
@@ -154,27 +148,16 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         throw new Error('Username is required');
       }
 
-      const updates: any = {
-        username: editFormData.username.trim(),
-      };
-
-      // Only update password if provided
-      if (editFormData.password) {
-        if (editFormData.password.length < 6) {
-          throw new Error('Password must be at least 6 characters');
-        }
-        console.log('Hashing new password...');
-        const hashedPassword = await hashPassword(editFormData.password);
-        console.log('Password hashed successfully, updating database...');
-        updates.password_hash = hashedPassword;
+      if (editFormData.password && editFormData.password.length < 6) {
+        throw new Error('Password must be at least 6 characters');
       }
 
-      console.log('Updating admin with data:', updates);
-      const { error } = await supabase
-        .from('admins')
-        .update(updates)
-        .eq('id', editingAdmin.id);
-      console.log('Update result:', { error });
+      const { error } = await supabase.rpc('admin_update_secondary_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: editingAdmin.id,
+        p_username: editFormData.username.trim(),
+        p_new_password: editFormData.password || null,
+      });
 
       if (error) {
         if (error.code === '23505') {
@@ -187,9 +170,9 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       setEditFormData({ username: '', password: '' });
       setShowEditPassword(false);
       await loadAdmins();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating admin:', error);
-      setEditError(error.message || 'Failed to update admin. Please try again.');
+      setEditError(error instanceof Error ? error.message : 'Failed to update admin. Please try again.');
     } finally {
       setUpdating(false);
     }
@@ -199,132 +182,80 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
     return null;
   }
 
+  const deletingAdmin = admins.find(item => item.id === deletingAdminId);
+
   return (
-    <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-      <div className="flex justify-end items-center mb-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-[#17243a] via-[#122838] to-[#102c33] text-slate-100">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-gradient-to-r from-[#1b2d47] to-[#17343e] px-4 py-3 sm:px-6">
+        <div>
+          <h1 className="text-lg font-semibold text-white">二級管理員</h1>
+          <p className="mt-0.5 text-xs text-slate-300">建立與管理二級管理員帳號</p>
+        </div>
         <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/50"
+          type="button"
+          onClick={() => setShowCreateForm(true)}
+          aria-haspopup="dialog"
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
         >
-          <UserPlus className="w-5 h-5" />
-          Create Secondary Admin
+          <UserPlus className="h-4 w-4" />
+          新增二級管理員
         </button>
       </div>
 
-      {showCreateForm && (
-        <form onSubmit={handleCreateAdmin} className="bg-slate-800/50 rounded-lg p-4 mb-6 space-y-4">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Username</label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-                className="w-full px-4 py-2 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 pr-12 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateForm(false);
-                setError(null);
-                setFormData({ username: '', password: '' });
-                setShowPassword(false);
-              }}
-              disabled={creating}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={creating || !formData.username.trim() || !formData.password}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {creating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                'Create'
-              )}
-            </button>
-          </div>
-        </form>
-      )}
-
       {loading ? (
-        <div className="text-center py-8 text-slate-400">Loading administrators...</div>
+        <div className="flex min-h-0 flex-1 items-center justify-center py-10 text-sm text-slate-400">正在載入管理員…</div>
       ) : (
-        <div className="space-y-3">
+        <div className="min-h-0 flex-1 bg-slate-900/15">
           {admins.map((secondaryAdmin) => (
             <div
               key={secondaryAdmin.id}
-              className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 hover:border-blue-500/50 transition-all flex items-center justify-between"
+              className={`relative flex min-h-[57px] flex-wrap items-center justify-between gap-3 border-b px-4 py-1 transition-colors sm:px-6 ${secondaryAdmin.is_active
+                ? 'border-emerald-400/20 bg-gradient-to-r from-emerald-900/55 via-slate-800/30 to-emerald-950/35 hover:from-emerald-800/60 hover:to-emerald-900/45'
+                : 'border-rose-400/20 bg-gradient-to-r from-rose-950/55 via-slate-800/30 to-red-950/35 hover:from-rose-900/60 hover:to-red-900/45'
+              }`}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
+              <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-0.5 rounded-r ${secondaryAdmin.is_active ? 'bg-emerald-400/80' : 'bg-rose-400/80'}`} />
+              <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border ${secondaryAdmin.is_active
+                  ? 'border-emerald-300/30 bg-gradient-to-br from-emerald-500 to-green-800 text-emerald-50'
+                  : 'border-rose-300/30 bg-gradient-to-br from-rose-500 to-red-900 text-rose-50'
+                }`}>
+                  <Shield className="h-4 w-4" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-white">{secondaryAdmin.username}</h3>
-                  <p className="text-slate-400 text-sm">
-                    Created: {new Date(secondaryAdmin.created_at).toLocaleDateString()}
-                  </p>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <h3 className="min-w-0 truncate text-base font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
+                  <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">
+                    建立於 {new Date(secondaryAdmin.created_at).toLocaleDateString('zh-TW')}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => toggleAdminStatus(secondaryAdmin.id, secondaryAdmin.is_active)}
-                  className={`px-3 py-1 rounded text-sm font-medium ${
+                  className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 ${
                     secondaryAdmin.is_active
-                      ? 'bg-green-500/10 text-green-400'
-                      : 'bg-red-500/10 text-red-400'
+                      ? 'border-emerald-400/50 bg-emerald-600/30 text-emerald-100 hover:bg-emerald-500/40 focus-visible:ring-emerald-400'
+                      : 'border-rose-400/50 bg-rose-600/30 text-rose-100 hover:bg-rose-500/40 focus-visible:ring-rose-400'
                   }`}
                 >
-                  {secondaryAdmin.is_active ? 'Active' : 'Disabled'}
+                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${secondaryAdmin.is_active ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                  {secondaryAdmin.is_active ? '使用中' : '已停用'}
                 </button>
                 <button
                   onClick={() => openEditModal(secondaryAdmin)}
-                  className="p-2 hover:bg-blue-500/10 text-blue-400 rounded-lg transition-all"
-                  title="Edit admin"
+                  className="inline-flex min-h-9 items-center justify-center rounded-lg border border-blue-400/60 bg-blue-600/75 px-3 text-xs font-semibold text-white shadow-sm shadow-blue-950/40 transition-colors hover:border-blue-300 hover:bg-blue-500 active:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                  title="編輯管理員"
+                  aria-label={`編輯 ${secondaryAdmin.username}`}
                 >
-                  <Edit2 className="w-4 h-4" />
+                  編輯
                 </button>
                 <button
                   onClick={() => setDeletingAdminId(secondaryAdmin.id)}
-                  className="p-2 hover:bg-red-500/10 text-red-400 rounded-lg transition-all"
-                  title="Delete admin"
+                  className="inline-flex min-h-9 items-center justify-center rounded-lg border border-rose-400/60 bg-rose-600/75 px-3 text-xs font-semibold text-white shadow-sm shadow-rose-950/40 transition-colors hover:border-rose-300 hover:bg-rose-500 active:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                  title="刪除管理員"
+                  aria-label={`刪除 ${secondaryAdmin.username}`}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  刪除
                 </button>
               </div>
             </div>
@@ -332,88 +263,200 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         </div>
       )}
 
-      {deletingAdminId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">Confirm Deletion</h3>
-            <p className="text-slate-300 mb-6">
-              Are you sure you want to delete this administrator? This action cannot be undone.
-            </p>
-
-            {deleteError && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-                {deleteError}
+      {showCreateForm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="create-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyan-300/25 bg-[#18283d] shadow-2xl shadow-slate-950/70">
+            <div className="flex items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-[#1d3b61] via-[#1b3651] to-[#164752] px-5 py-5 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-white/10 text-cyan-100 shadow-sm">
+                <UserPlus className="h-5 w-5" />
               </div>
-            )}
+              <div>
+                <h3 id="create-admin-title" className="text-lg font-semibold text-white">新增二級管理員</h3>
+                <p className="mt-0.5 text-xs text-cyan-100/75">建立新的管理員帳號</p>
+              </div>
+            </div>
+            <form onSubmit={handleCreateAdmin} className="space-y-5 p-5 sm:p-6">
+              {error && (
+                <div role="alert" className="rounded-lg border border-rose-400/30 bg-rose-950/40 p-3 text-sm text-rose-100">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label htmlFor="create-admin-username" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入帳號</label>
+                <input
+                  id="create-admin-username"
+                  type="text"
+                  autoComplete="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
+                />
+              </div>
+              <div>
+                <label htmlFor="create-admin-password" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入密碼</label>
+                <div className="relative">
+                  <input
+                    id="create-admin-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 pr-11 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition-colors hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">密碼至少需要 6 個字元</p>
+              </div>
+              <div className="flex gap-3 border-t border-white/10 pt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setError(null);
+                    setFormData({ username: '', password: '' });
+                    setShowPassword(false);
+                  }}
+                  disabled={creating}
+                  className="min-h-11 flex-1 rounded-xl border border-slate-500/50 bg-white/5 px-4 text-sm font-medium text-slate-100 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !formData.username.trim() || !formData.password}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-950/30 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {creating ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      建立中…
+                    </>
+                  ) : (
+                    '建立帳號'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setDeletingAdminId(null);
-                  setDeleteError(null);
-                }}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeleteAdmin(deletingAdminId)}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all"
-              >
-                Delete
-              </button>
+      {deletingAdminId && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-rose-400/25 bg-slate-900 shadow-2xl shadow-slate-950/60">
+            <div className="flex items-center gap-3 border-b border-rose-400/20 bg-gradient-to-r from-rose-950/75 via-slate-900 to-slate-900 px-5 py-4 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-400/25 bg-rose-500/15 text-rose-200">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 id="delete-admin-title" className="text-lg font-semibold text-white">刪除管理員</h3>
+                <p className="mt-0.5 text-xs text-rose-200/75">此操作無法復原</p>
+              </div>
+            </div>
+            <div className="space-y-5 p-5 sm:p-6">
+              <div>
+                <p className="text-sm text-slate-300">確定要刪除以下管理員嗎？</p>
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-rose-400/20 bg-rose-950/20 px-3.5 py-3">
+                  <Shield className="h-5 w-5 shrink-0 text-rose-300" />
+                  <span className="min-w-0 break-words text-sm font-semibold text-white">{deletingAdmin?.username}</span>
+                </div>
+              </div>
+              {deleteError && (
+                <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
+                  {deleteError}
+                </div>
+              )}
+              <div className="flex gap-3 border-t border-slate-700/70 pt-4">
+                <button
+                  onClick={() => {
+                    setDeletingAdminId(null);
+                    setDeleteError(null);
+                  }}
+                  className="min-h-10 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 text-sm text-slate-200 transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => handleDeleteAdmin(deletingAdminId)}
+                  className="min-h-10 flex-1 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-rose-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                >
+                  確認刪除
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {editingAdmin && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">Edit Administrator</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyan-300/25 bg-[#18283d] shadow-2xl shadow-slate-950/70">
+            <div className="flex items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-[#1d3b61] via-[#1b3651] to-[#164752] px-5 py-5 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-white/10 text-cyan-100 shadow-sm">
+                <Edit2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 id="edit-admin-title" className="text-lg font-semibold text-white">編輯管理員</h3>
+                <p className="mt-0.5 truncate text-xs text-cyan-100/75">{editingAdmin.username}</p>
+              </div>
+            </div>
 
-            <form onSubmit={handleUpdateAdmin} className="space-y-4">
+            <form onSubmit={handleUpdateAdmin} className="space-y-5 p-5 sm:p-6">
               {editError && (
-                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+                <div className="rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
                   {editError}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Username</label>
+                <label htmlFor="edit-admin-username" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入帳號</label>
                 <input
+                  id="edit-admin-username"
                   type="text"
+                  autoComplete="username"
                   value={editFormData.username}
                   onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
                   required
-                  className="w-full px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  New Password <span className="text-slate-500">(leave empty to keep current)</span>
+                <label htmlFor="edit-admin-password" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">
+                  新密碼 <span className="text-slate-400">（留空則保持不變）</span>
                 </label>
                 <div className="relative">
                   <input
+                    id="edit-admin-password"
                     type={showEditPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={editFormData.password}
                     onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
-                    placeholder="Enter new password"
-                    className="w-full px-4 py-2 pr-12 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="輸入新密碼"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 pr-11 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
                   />
                   <button
                     type="button"
                     onClick={() => setShowEditPassword(!showEditPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                    aria-label={showEditPassword ? '隱藏新密碼' : '顯示新密碼'}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition-colors hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
                   >
                     {showEditPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">Minimum 6 characters if changing password</p>
+                <p className="mt-1.5 text-xs text-slate-400">若修改密碼，至少需要 6 個字元</p>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 border-t border-white/10 pt-5">
                 <button
                   type="button"
                   onClick={() => {
@@ -423,22 +466,22 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                     setEditError(null);
                   }}
                   disabled={updating}
-                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="min-h-11 flex-1 rounded-xl border border-slate-500/50 bg-white/5 px-4 text-sm font-medium text-slate-100 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   type="submit"
                   disabled={updating || !editFormData.username.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-950/30 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {updating ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Updating...
+                      儲存中…
                     </>
                   ) : (
-                    'Update'
+                    '儲存變更'
                   )}
                 </button>
               </div>

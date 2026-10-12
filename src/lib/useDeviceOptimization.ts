@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { devicePerformance, DeviceCapabilities, PerformanceConfig } from './devicePerformance';
 
 /**
@@ -10,6 +10,8 @@ export function useDeviceOptimization() {
   const [capabilities, setCapabilities] = useState<DeviceCapabilities | null>(null);
   const [config, setConfig] = useState<PerformanceConfig | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const capabilitiesTierRef = useRef(capabilities?.tier);
+  capabilitiesTierRef.current = capabilities?.tier;
 
   useEffect(() => {
     const detectAndApply = () => {
@@ -34,7 +36,7 @@ export function useDeviceOptimization() {
     window.addEventListener('orientationchange', handleResize);
 
     const cleanup = devicePerformance.monitorPerformance((fps, shouldDowngrade) => {
-      if (shouldDowngrade && capabilities?.tier !== 'low') {
+      if (shouldDowngrade && capabilitiesTierRef.current !== 'low') {
         console.warn(
           `[Performance] Low FPS detected (${fps}), consider enabling performance mode`
         );

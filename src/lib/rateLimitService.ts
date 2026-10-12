@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, supabase } from './supabase';
+import { getAdminFinancialSessionToken, logout } from './auth';
 
 export interface RateLimitCheckResult {
   allowed: boolean;
@@ -30,17 +31,23 @@ export async function checkLoginRateLimit(
     });
 
     if (error) {
-      console.error('[Rate Limit] Check error:', error);
+      if (!isSupabaseAbortError(error)) {
+        console.error('[Rate Limit] Check error:', formatSupabaseError(error));
+      }
       return { allowed: true, locked: false };
     }
 
     console.log('[Rate Limit] Check result for', identifier, ':', data);
     return data as RateLimitCheckResult;
   } catch (error) {
-    console.error('Rate limit check exception:', error);
+    if (!isSupabaseAbortError(error)) {
+      console.error('Rate limit check exception:', formatSupabaseError(error));
+    }
     return { allowed: true, locked: false };
   }
 }
+
+const LOGIN_ATTEMPT_TIMEOUT_MS = 1500;
 
 export async function recordLoginAttempt(
   identifier: string,
@@ -50,48 +57,63 @@ export async function recordLoginAttempt(
   userAgent?: string
 ): Promise<LoginAttemptResult> {
   try {
-    const { data, error } = await supabase.rpc('record_login_attempt', {
+    const rpcRequest = supabase.rpc('record_login_attempt', {
       p_identifier: identifier,
       p_identifier_type: identifierType,
       p_success: success,
       p_ip_address: ipAddress,
       p_user_agent: userAgent
     });
+    const timeout = new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error('Login attempt logging timed out')), LOGIN_ATTEMPT_TIMEOUT_MS);
+    });
+    const { data, error } = await Promise.race([rpcRequest, timeout]);
 
     if (error) {
-      console.error('[Record Attempt] Error:', error);
+      if (!isSupabaseAbortError(error)) {
+        console.error('[Record Attempt] Error:', formatSupabaseError(error));
+      }
       return { success, message: error.message };
     }
 
     console.log('[Record Attempt] Result for', identifier, ':', data);
     return data as LoginAttemptResult;
   } catch (error) {
-    console.error('Record login attempt exception:', error);
+    if (!isSupabaseAbortError(error)) {
+      console.error('Record login attempt exception:', formatSupabaseError(error));
+    }
     return { success, message: 'Failed to record login attempt' };
   }
 }
 
 export async function unlockAccount(
   identifier: string,
-  identifierType: 'ip' | 'username',
-  adminId: string
+  identifierType: 'ip' | 'username'
 ): Promise<{ success: boolean; message: string; unlocked_count?: number }> {
   try {
     const { data, error } = await supabase.rpc('unlock_account_with_permission_check', {
       p_identifier: identifier,
       p_identifier_type: identifierType,
-      p_admin_id: adminId
+      p_admin_id: getAdminFinancialSessionToken()
     });
 
     if (error) {
-      console.error('Unlock account error:', error);
-      return { success: false, message: error.message };
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+      } else if (!isSupabaseAbortError(error)) {
+        console.error('Unlock account error:', formatSupabaseError(error));
+      }
+      return { success: false, message: formatSupabaseError(error) };
     }
 
     return data;
   } catch (error) {
-    console.error('Unlock account exception:', error);
-    return { success: false, message: 'Failed to unlock account' };
+    if (isFinancialAdminSessionError(error)) {
+      void logout(false);
+    } else if (!isSupabaseAbortError(error)) {
+      console.error('Unlock account exception:', formatSupabaseError(error));
+    }
+    return { success: false, message: formatSupabaseError(error) };
   }
 }
 

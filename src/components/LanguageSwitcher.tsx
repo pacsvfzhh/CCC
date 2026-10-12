@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Globe, Check, X } from 'lucide-react';
-import { useLanguage, LANGUAGES } from '../lib/i18n';
-import type { Language } from '../lib/i18n';
+import { useLanguage } from '../lib/i18n/context';
+import { LANGUAGES } from '../lib/i18n/types';
+import type { Language } from '../lib/i18n/types';
 
 interface LanguageSwitcherProps {
-  variant?: 'desktop' | 'mobile';
+  variant?: 'desktop' | 'mobile' | 'toolbar';
   onOpenModal?: () => void;
 }
 
@@ -62,10 +63,12 @@ export default function LanguageSwitcher({ variant = 'desktop', onOpenModal }: L
     <>
       <button
         onClick={handleOpen}
-        className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-white transition-all border border-white/20 flex items-center gap-1.5"
+        className={variant === 'toolbar'
+          ? 'flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 group hover:bg-white hover:text-blue-700 hover:shadow-md hover:shadow-blue-950/20 active:bg-blue-50'
+          : 'px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-white transition-all border border-white/20 flex items-center gap-1.5'}
       >
-        <Globe className="w-3.5 h-3.5" strokeWidth={2.5} />
-        <span className="text-xs font-medium">{currentLang?.nativeName}</span>
+        <Globe className="w-3.5 h-3.5" strokeWidth={variant === 'toolbar' ? 2 : 2.5} />
+        <span className="grid text-xs"><span className="col-start-1 row-start-1 text-center font-medium group-hover:font-bold">{currentLang?.nativeName}</span><span className="invisible col-start-1 row-start-1 font-bold" aria-hidden="true">{currentLang?.nativeName}</span></span>
       </button>
 
       {isOpen && (
@@ -80,39 +83,49 @@ export default function LanguageSwitcher({ variant = 'desktop', onOpenModal }: L
   );
 }
 
-export function LanguageModal({ currentLanguage, onConfirm, onClose, t }: {
-  currentLanguage: string;
+interface LanguageModalProps {
+  currentLanguage: Language;
   onConfirm: (code: Language) => void;
   onClose: () => void;
-  t: any;
-}) {
-  const [selected, setSelected] = useState<Language>(currentLanguage as Language);
+  t: {
+    common: {
+      language: string;
+      confirm: string;
+    };
+  };
+}
 
-  useEffect(() => {
+export function LanguageModal({ currentLanguage, onConfirm, onClose, t }: LanguageModalProps) {
+  const [selected, setSelected] = useState<Language>(currentLanguage);
+
+  useLayoutEffect(() => {
     const scrollY = window.scrollY;
     const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
     body.style.position = 'fixed';
     body.style.top = `-${scrollY}px`;
     body.style.left = '0';
     body.style.right = '0';
     body.style.overflow = 'hidden';
     return () => {
-      body.style.position = '';
-      body.style.top = '';
-      body.style.left = '';
-      body.style.right = '';
-      body.style.overflow = '';
-      window.scrollTo(0, scrollY);
+      Object.assign(body.style, previousStyles);
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
     };
   }, []);
 
   const selectedLang = LANGUAGES.find(l => l.code === selected);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div className="employee-modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        className="employee-modal-surface relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
         style={{ animation: 'fadeInUp 0.2s ease-out' }}
       >
         {/* Header */}
@@ -130,10 +143,12 @@ export function LanguageModal({ currentLanguage, onConfirm, onClose, t }: {
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95"
+              aria-label="Close"
+              className="flex h-[36px] w-[36px] !min-h-0 flex-shrink-0 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95"
             >
-              <X className="w-4 h-4" strokeWidth={2.5} />
+              <X className="h-[16px] w-[16px]" strokeWidth={2.5} />
             </button>
           </div>
         </div>

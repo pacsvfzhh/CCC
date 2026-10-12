@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  detectDeviceCategory,
-  detectViewportHeight,
   getDeviceConfig,
   needsLayoutAdjustment,
   DEVICE_BREAKPOINTS
@@ -47,11 +45,14 @@ export function useResponsive() {
     // Use ResizeObserver for better performance
     let resizeObserver: ResizeObserver | null = null;
 
+    let resizeFrame = 0;
     if ('ResizeObserver' in window) {
-      resizeObserver = new ResizeObserver(handleResize);
+      // Re-rendering synchronously inside the callback can resize <body> again and trigger the "ResizeObserver loop" warning.
+      resizeObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(handleResize);
+      });
       resizeObserver.observe(document.body);
-    } else {
-      window.addEventListener('resize', handleResize);
     }
 
     // Listen for orientation changes with enhanced handling
@@ -61,6 +62,7 @@ export function useResponsive() {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      cancelAnimationFrame(resizeFrame);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -139,7 +141,7 @@ export function useTextTruncation() {
  * Hook for responsive image sizing
  */
 export function useResponsiveImage() {
-  const { category, width, isRetina, isSuperRetina } = useResponsive();
+  const { width, isRetina, isSuperRetina } = useResponsive();
 
   const getImageWidth = (baseWidth: number) => {
     const scaleFactor = isSuperRetina ? 3 : isRetina ? 2 : 1;
@@ -162,7 +164,7 @@ export function useResponsiveImage() {
  * Hook for responsive grid columns
  */
 export function useResponsiveGrid() {
-  const { category, width } = useResponsive();
+  const { category } = useResponsive();
 
   const getColumns = (maxColumns: number = 4) => {
     if (category === 'xs') return 1;
@@ -189,7 +191,7 @@ export function useResponsiveGrid() {
  * Hook for responsive modal sizing
  */
 export function useResponsiveModal() {
-  const { width, height, isSmallScreen, isShortScreen } = useResponsive();
+  const { width, isSmallScreen, isShortScreen } = useResponsive();
 
   const getModalSize = () => {
     if (isSmallScreen || width < 400) {
@@ -239,7 +241,7 @@ export function useTouchOptimization() {
 /**
  * Apply responsive meta tags
  */
-export function applyResponsiveMeta() {
+export function useApplyResponsiveMeta() {
   useEffect(() => {
     // Ensure viewport meta tag is set correctly
     let viewport = document.querySelector('meta[name="viewport"]');

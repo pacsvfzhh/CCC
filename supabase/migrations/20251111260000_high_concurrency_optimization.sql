@@ -315,6 +315,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+REVOKE EXECUTE ON FUNCTION auto_repair_commission_batch(integer) FROM PUBLIC, anon, authenticated;
+
 -- ============================================================================
 -- 5. 并发安全的钱包更新函数
 -- ============================================================================
@@ -371,6 +373,8 @@ BEGIN
   END LOOP;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION safe_update_wallet_balance(uuid, numeric, text) FROM PUBLIC, anon, authenticated;
 
 -- ============================================================================
 -- 6. 性能监控函数
@@ -474,14 +478,6 @@ SELECT
   ) as metrics;
 
 -- ============================================================================
--- 9. 优化审计日志表（分区准备）
--- ============================================================================
-
--- 为审计日志添加日期索引（提高查询性能）
-CREATE INDEX IF NOT EXISTS idx_commission_audit_log_created_date
-ON commission_audit_log(CAST(created_at AS DATE));
-
--- ============================================================================
 -- 10. 立即执行：性能基准测试
 -- ============================================================================
 
@@ -503,8 +499,7 @@ BEGIN
   FROM count_commission_issues();
 
   IF v_issue_count > 0 THEN
-    RAISE NOTICE 'Found % data issues, running auto-repair...', v_issue_count;
-    PERFORM auto_repair_commission_batch(1000);
+    RAISE NOTICE 'Found % data issues; manual review is required.', v_issue_count;
   ELSE
     RAISE NOTICE 'No data issues found - system is healthy!';
   END IF;

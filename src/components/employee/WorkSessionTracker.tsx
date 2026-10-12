@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Play, Square, Clock, Zap, Timer, Radio } from 'lucide-react';
+import { getStoredAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { useResponsive } from '../../lib/useResponsive';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface WorkSessionTrackerProps {
   userId: string;
@@ -19,11 +19,11 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [currentDuration, setCurrentDuration] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { isMobile } = useResponsive();
   const { t } = useLanguage();
+  const checkActiveSessionRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
-    checkActiveSession();
+    void checkActiveSessionRef.current?.();
 
     const channel = supabase
       .channel('work_sessions_updates')
@@ -36,7 +36,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
           filter: `user_id=eq.${userId}`
         },
         () => {
-          checkActiveSession();
+          void checkActiveSessionRef.current?.();
         }
       )
       .subscribe();
@@ -62,6 +62,45 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
     return () => clearInterval(interval);
   }, [activeSession]);
 
+  useEffect(() => {
+    const sessionId = activeSession?.session_id;
+    if (!sessionId) return;
+
+    let heartbeatInFlight = false;
+    const sendHeartbeat = async () => {
+      if (heartbeatInFlight || document.hidden) return;
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== userId) {
+        setActiveSession(null);
+        return;
+      }
+
+      heartbeatInFlight = true;
+      try {
+        const { data, error } = await supabase.rpc('update_session_heartbeat_secure', {
+          p_user_id: userId,
+          p_session_token: auth.financialSessionToken,
+          p_tab_id: auth.tabId,
+          p_session_id: sessionId,
+        });
+        if (error) throw error;
+        if (!data?.success) {
+          console.error('Work session heartbeat rejected:', data?.reason || 'unknown reason');
+          setActiveSession(null);
+          setCurrentDuration(0);
+        }
+      } catch (error) {
+        console.error('Failed to update work session heartbeat:', error);
+      } finally {
+        heartbeatInFlight = false;
+      }
+    };
+
+    const interval = setInterval(() => void sendHeartbeat(), 60000);
+    void sendHeartbeat();
+    return () => clearInterval(interval);
+  }, [activeSession?.session_id, userId]);
+
   const checkActiveSession = async () => {
     try {
       const { data, error } = await supabase.rpc('get_active_work_session', {
@@ -80,6 +119,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
       console.error('Failed to check active session:', error);
     }
   };
+  checkActiveSessionRef.current = checkActiveSession;
 
   const startWorkSession = async () => {
     if (isLoading) return;
@@ -89,8 +129,15 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
     try {
       const minLoadingTime = new Promise(resolve => setTimeout(resolve, 800));
 
-      const dbPromise = supabase.rpc('start_work_session', {
-        p_user_id: userId
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== userId) {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+
+      const dbPromise = supabase.rpc('start_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
       });
 
       const [{ data, error }] = await Promise.all([dbPromise, minLoadingTime]);
@@ -100,18 +147,22 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
         throw error;
       }
 
-      if (!data) {
-        console.error('No session ID returned from start_work_session');
+      if (!data?.success || !data.session_id || !data.started_at) {
+        console.error('Invalid response from secure work session start:', data);
         throw new Error('Failed to create work session. Please try again.');
       }
 
-      console.log('Work session started successfully, session_id:', data);
-      await checkActiveSession();
-    } catch (error: any) {
+      console.log('Work session started successfully, session_id:', data.session_id);
+      setActiveSession({
+        session_id: data.session_id,
+        start_time: data.started_at,
+        current_duration_minutes: 0,
+      });
+    } catch (error: unknown) {
       console.error('Failed to start work session:', error);
 
       let errMsg = 'Failed to start work session. ';
-      if (error.message) {
+      if (error instanceof Error) {
         errMsg += error.message;
       } else {
         errMsg += 'Please try again.';
@@ -132,19 +183,28 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
     try {
       const minLoadingTime = new Promise(resolve => setTimeout(resolve, 800));
 
-      const dbPromise = supabase.rpc('end_work_session', {
-        p_user_id: userId
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== userId) {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+
+      const dbPromise = supabase.rpc('stop_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: activeSession?.session_id || null,
       });
 
-      const [{ error }] = await Promise.all([dbPromise, minLoadingTime]);
+      const [{ data, error }] = await Promise.all([dbPromise, minLoadingTime]);
 
       if (error) throw error;
+      if (!data?.success) throw new Error('The work session could not be stopped.');
 
       setActiveSession(null);
       setCurrentDuration(0);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to end work session:', error);
-      setErrorMessage('Failed to end work session: ' + error.message);
+      setErrorMessage('Failed to end work session: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setTimeout(() => setErrorMessage(null), 5000);
     } finally {
       setIsLoading(false);
@@ -258,7 +318,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
                   Session Duration
                 </span>
                 {activeSession && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold text-green-300 uppercase tracking-wider">
+                  <span className="flex items-center gap-1 px-2 py-0.5 bg-white/10 rounded text-[11px] font-bold text-green-300 uppercase tracking-wider">
                     <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
                     {t.workSession.active}
                   </span>
@@ -275,7 +335,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-[10px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Started</span>
+                      <span className="text-[11px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Started</span>
                       <span className="text-sm font-semibold text-white">
                         {new Date(activeSession.start_time).toLocaleTimeString([], {
                           hour: '2-digit',
@@ -285,7 +345,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Status</span>
+                      <span className="text-[11px] md:text-xs font-medium text-blue-300/80 uppercase tracking-wide block mb-0.5">Status</span>
                       <span className="text-sm font-semibold text-green-300 flex items-center gap-1.5">
                         <span>{t.workSession.active}</span>
                         <Zap className="w-3 h-3" />
@@ -394,20 +454,20 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
           <div className="mt-4 md:mt-6 bg-slate-50 border border-slate-100 rounded-xl p-3.5 md:p-5">
             <div className="grid grid-cols-3 gap-3 md:gap-6">
               <div className="text-center">
-                <p className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Session ID</p>
+                <p className="text-[11px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Session ID</p>
                 <p className="text-xs md:text-sm font-mono font-semibold text-slate-700 truncate">
                   {activeSession.session_id.slice(0, 8)}
                 </p>
               </div>
               <div className="text-center border-x border-slate-200">
-                <p className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Status</p>
+                <p className="text-[11px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Status</p>
                 <p className="text-xs md:text-sm font-semibold text-green-600 flex items-center justify-center gap-1">
                   <Radio className="w-3 h-3 animate-pulse" />
                   <span>{t.workSession.active}</span>
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Duration</p>
+                <p className="text-[11px] md:text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Duration</p>
                 <p className="text-xs md:text-sm font-bold text-blue-700 tabular-nums">
                   {formatDuration(currentDuration)}
                 </p>

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import { useState, useEffect, useRef } from 'react';
+import { supabase, supabaseConfigurationError } from './supabase';
 
 const CACHE_KEY_PREFIX = 'cached_company_name';
+const DEFAULT_COMPANY_NAME = 'AAA SERVICE';
 
 function getCacheKey(adminId?: string | null): string {
   if (adminId === null || adminId === undefined) {
@@ -31,14 +32,22 @@ function writeCachedName(adminId: string | null | undefined, value: string) {
 }
 
 export function useCompanyName(adminId?: string | null) {
-  const [companyName, setCompanyName] = useState<string>(() => readCachedName(adminId));
+  const [companyName, setCompanyName] = useState<string>(() => readCachedName(adminId) || DEFAULT_COMPANY_NAME);
   const [loading, setLoading] = useState(true);
+  const loadCompanyNameRef = useRef<{
+    adminId: string | null | undefined;
+    load: () => Promise<void>;
+  } | null>(null);
 
   useEffect(() => {
-    const cached = readCachedName(adminId);
-    if (cached) setCompanyName(cached);
+    setCompanyName(readCachedName(adminId) || DEFAULT_COMPANY_NAME);
 
-    loadCompanyName();
+    if (supabaseConfigurationError) {
+      setLoading(false);
+      return;
+    }
+
+    void loadCompanyNameRef.current?.load();
 
     const channel = supabase
       .channel(`company-name-changes-${adminId || 'global'}`)
@@ -50,32 +59,17 @@ export function useCompanyName(adminId?: string | null) {
           table: 'admin_configs',
           filter: "config_type=eq.company_name"
         },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const newRecord = payload.new as { config_value?: string; admin_id?: string | null };
-
-            if (adminId === undefined) {
-              if (newRecord.admin_id === null && newRecord.config_value) {
-                setCompanyName(newRecord.config_value);
-                writeCachedName(null, newRecord.config_value);
-              }
-            } else if (adminId === null) {
-              if (newRecord.admin_id === null && newRecord.config_value) {
-                setCompanyName(newRecord.config_value);
-                writeCachedName(null, newRecord.config_value);
-              }
-            } else {
-              if (newRecord.admin_id === adminId && newRecord.config_value) {
-                setCompanyName(newRecord.config_value);
-                writeCachedName(adminId, newRecord.config_value);
-              } else if (newRecord.admin_id === null && newRecord.config_value) {
-                loadCompanyName();
-              }
-            }
-          } else if (payload.eventType === 'DELETE') {
-            loadCompanyName();
-          }
-        }
+        () => { void loadCompanyNameRef.current?.load(); }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'admin_configs',
+          filter: 'config_type=eq.branding_mode'
+        },
+        () => { void loadCompanyNameRef.current?.load(); }
       )
       .subscribe();
 
@@ -85,7 +79,7 @@ export function useCompanyName(adminId?: string | null) {
   }, [adminId]);
 
   useEffect(() => {
-    document.title = 'Work Platform';
+    document.title = '工作平台';
   }, [companyName]);
 
   const loadCompanyName = async () => {
@@ -99,10 +93,11 @@ export function useCompanyName(adminId?: string | null) {
           .maybeSingle();
 
         if (error) {
-          console.error('Error loading company name:', error);
+          console.warn('[Company Name] Unable to load company name:', error);
           return;
         }
 
+        if (loadCompanyNameRef.current?.adminId !== adminId) return;
         if (data?.config_value) {
           setCompanyName(data.config_value);
           writeCachedName(null, data.config_value);
@@ -110,36 +105,34 @@ export function useCompanyName(adminId?: string | null) {
       } else {
         const { data, error } = await supabase
           .from('admin_configs')
-          .select('*')
-          .eq('config_type', 'company_name')
+          .select('admin_id, config_type, config_value')
+          .in('config_type', ['company_name', 'branding_mode'])
           .or(`admin_id.eq.${adminId},admin_id.is.null`);
 
         if (error) {
-          console.error('Error loading company name:', error);
+          console.warn('[Company Name] Unable to load company name:', error);
           return;
         }
+        if (loadCompanyNameRef.current?.adminId !== adminId) return;
 
-        const adminConfig = data?.find(c => c.admin_id === adminId);
-        const globalConfig = data?.find(c => c.admin_id === null);
+        const adminConfig = data?.find(c => c.admin_id === adminId && c.config_type === 'company_name');
+        const globalConfig = data?.find(c => c.admin_id === null && c.config_type === 'company_name');
+        const useGlobal = data?.some(c => c.admin_id === adminId && c.config_type === 'branding_mode' && c.config_value === 'global');
+        const finalValue = (useGlobal ? globalConfig?.config_value : adminConfig?.config_value || globalConfig?.config_value) || DEFAULT_COMPANY_NAME;
 
-        const finalValue = adminConfig?.config_value || globalConfig?.config_value;
-
-        if (finalValue) {
-          setCompanyName(finalValue);
-          if (adminConfig?.config_value) {
-            writeCachedName(adminId, adminConfig.config_value);
-          }
-          if (globalConfig?.config_value) {
-            writeCachedName(null, globalConfig.config_value);
-          }
+        setCompanyName(finalValue);
+        writeCachedName(adminId, finalValue);
+        if (globalConfig?.config_value) {
+          writeCachedName(null, globalConfig.config_value);
         }
       }
     } catch (error) {
-      console.error('Error loading company name:', error);
+      console.warn('[Company Name] Unable to load company name:', error);
     } finally {
-      setLoading(false);
+      if (loadCompanyNameRef.current?.adminId === adminId) setLoading(false);
     }
   };
+  loadCompanyNameRef.current = { adminId, load: loadCompanyName };
 
   return { companyName, loading };
 }

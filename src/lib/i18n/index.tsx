@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { Language, LANGUAGES } from './types';
+import { useState, useCallback, useEffect, ReactNode } from 'react';
+import { LanguageContext } from './context';
+import type { Translations } from './context';
+import type { Language } from './types';
 import en from './locales/en';
+type TranslationModule = { default: unknown };
 
-type Translations = typeof en;
-
-const loaders: Record<Language, () => Promise<{ default: Translations }>> = {
+const loaders: Record<Language, () => Promise<TranslationModule>> = {
   en: () => Promise.resolve({ default: en }),
   es: () => import('./locales/es'),
   zh: () => import('./locales/zh'),
@@ -34,15 +35,6 @@ function getInitialLanguage(): Language {
   return 'en';
 }
 
-interface LanguageContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  t: Translations;
-  dateLocale: string;
-}
-
-const LanguageContext = createContext<LanguageContextType | null>(null);
-
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
   const [translations, setTranslations] = useState<Translations>(cache.get(language) || en);
@@ -54,8 +46,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       return;
     }
     loaders[language]().then((mod) => {
-      cache.set(language, mod.default);
-      setTranslations(mod.default);
+      const loadedTranslations = mod.default as Translations;
+      cache.set(language, loadedTranslations);
+      setTranslations(loadedTranslations);
     });
   }, [language]);
 
@@ -66,20 +59,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const dateLocale = dateLocaleMap[language];
 
+  // Lets the browser apply language-correct hyphenation instead of breaking long words at arbitrary letters.
+  useEffect(() => {
+    document.documentElement.lang = dateLocale;
+  }, [dateLocale]);
+
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t: translations, dateLocale }}>
       {children}
     </LanguageContext.Provider>
   );
 }
-
-export function useLanguage(): LanguageContextType {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    return { language: 'en', setLanguage: () => {}, t: en, dateLocale: 'en-US' };
-  }
-  return context;
-}
-
-export { LANGUAGES };
-export type { Language };

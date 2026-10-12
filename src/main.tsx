@@ -6,11 +6,11 @@ import { disableAllConsole } from './lib/logger';
 
 disableAllConsole();
 
-function AppWrapper() {
+export function AppWrapper() {
   useEffect(() => {
     // Dismiss after first paint via requestAnimationFrame
     requestAnimationFrame(() => {
-      (window as any).__dismissLoader?.();
+      (window as Window & { __dismissLoader?: () => void }).__dismissLoader?.();
     });
   }, []);
 

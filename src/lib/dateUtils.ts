@@ -54,7 +54,6 @@ export function getDateStartUTC(date: Date | string): string {
  * @returns true if the date is today in UTC
  */
 export function isToday(dateStr: string): boolean {
-  const date = new Date(dateStr);
   const today = getTodayStartUTC();
   const tomorrow = getTomorrowStartUTC();
 

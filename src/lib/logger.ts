@@ -27,7 +27,7 @@ export const logger = {
   /**
    * 调试日志 - 生产环境完全禁用
    */
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if ((!isProduction && !forceProductionLogs) || isDebugMode()) {
       console.log('[DEBUG]', ...args);
     }
@@ -36,7 +36,7 @@ export const logger = {
   /**
    * 信息日志 - 生产环境完全禁用
    */
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if ((!isProduction && !forceProductionLogs) || isDebugMode()) {
       console.log('[INFO]', ...args);
     }
@@ -45,7 +45,7 @@ export const logger = {
   /**
    * 警告日志 - 只在开发环境显示
    */
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if ((!isProduction && !forceProductionLogs) || isDebugMode()) {
       console.warn('[WARN]', ...args);
     }
@@ -55,7 +55,7 @@ export const logger = {
    * 错误日志 - 生产环境只显示用户友好的错误
    * 不显示技术细节
    */
-  error: (message: string, error?: any) => {
+  error: (message: string, error?: unknown) => {
     if (!isProduction || isDebugMode()) {
       console.error('[ERROR]', message, error);
     } else {
@@ -78,7 +78,7 @@ export const logger = {
    * 敏感数据日志 - 生产环境绝对禁用
    * 用于派单时间、配置、算法等敏感信息
    */
-  sensitive: (...args: any[]) => {
+  sensitive: (...args: unknown[]) => {
     if (!isProduction && isDebugMode()) {
       console.log('[SENSITIVE]', ...args);
     }
@@ -99,7 +99,7 @@ export const logger = {
   /**
    * 表格日志 - 用于显示结构化数据
    */
-  table: (data: any) => {
+  table: (data: unknown) => {
     if (!isProduction || isDebugMode()) {
       console.table(data);
     }

@@ -20,12 +20,6 @@
 -- 第一层：数据库约束层 - 物理阻止错误数据
 -- ============================================================================
 
--- 0. 预清理：修复现有不一致数据
-UPDATE orders
-SET commission_amount = NULL
-WHERE status != 'success'
-AND commission_amount IS NOT NULL;
-
 -- 1.1 创建检查约束：确保commission只能与成功订单关联
 ALTER TABLE wallet_transactions
 DROP CONSTRAINT IF EXISTS check_commission_must_have_successful_order;
@@ -33,10 +27,8 @@ DROP CONSTRAINT IF EXISTS check_commission_must_have_successful_order;
 ALTER TABLE wallet_transactions
 ADD CONSTRAINT check_commission_must_have_successful_order
 CHECK (
-  type != 'commission' OR (
-    reference_id IS NOT NULL
-  )
-);
+  type != 'commission' OR reference_id IS NOT NULL
+) NOT VALID;
 
 -- 1.2 创建唯一索引：防止同一订单创建多个commission
 CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_transactions_commission_order_unique
@@ -51,7 +43,7 @@ ALTER TABLE orders
 ADD CONSTRAINT check_commission_only_for_success
 CHECK (
   (status = 'success' AND commission_amount IS NOT NULL AND commission_amount > 0) OR
-  (status != 'success' AND commission_amount IS NULL)
+  (status != 'success' AND (commission_amount IS NULL OR commission_amount = 0))
 );
 
 -- ============================================================================
@@ -264,7 +256,7 @@ BEGIN
     wt.amount,
     w.available_balance,
     u.total_income,
-    (SELECT COALESCE(SUM(commission_amount), 0) FROM orders WHERE user_id = u.id AND status = 'success')::numeric,
+    (SELECT COALESCE(SUM(o_income.commission_amount), 0) FROM orders AS o_income WHERE o_income.user_id = u.id AND o_income.status = 'success')::numeric,
     'Commission transaction exists for failed/non-existent order'::text
   FROM wallet_transactions wt
   JOIN users u ON wt.user_id = u.id
@@ -286,7 +278,7 @@ BEGIN
     NULL::numeric,
     w.available_balance,
     u.total_income,
-    (SELECT COALESCE(SUM(commission_amount), 0) FROM orders WHERE user_id = u.id AND status = 'success')::numeric,
+    (SELECT COALESCE(SUM(o_income.commission_amount), 0) FROM orders AS o_income WHERE o_income.user_id = u.id AND o_income.status = 'success')::numeric,
     'Successful order missing commission transaction'::text
   FROM orders o
   JOIN users u ON o.user_id = u.id
@@ -314,7 +306,7 @@ BEGIN
     wt.amount,
     w.available_balance,
     u.total_income,
-    (SELECT COALESCE(SUM(commission_amount), 0) FROM orders WHERE user_id = u.id AND status = 'success')::numeric,
+    (SELECT COALESCE(SUM(o_income.commission_amount), 0) FROM orders AS o_income WHERE o_income.user_id = u.id AND o_income.status = 'success')::numeric,
     'Commission amount does not match order commission'::text
   FROM wallet_transactions wt
   JOIN orders o ON wt.reference_id = o.id
@@ -358,14 +350,14 @@ BEGIN
     NULL::numeric,
     w.available_balance,
     u.total_income,
-    (SELECT COALESCE(SUM(commission_amount), 0) FROM orders WHERE user_id = u.id AND status = 'success')::numeric,
+    (SELECT COALESCE(SUM(o_income.commission_amount), 0) FROM orders AS o_income WHERE o_income.user_id = u.id AND o_income.status = 'success')::numeric,
     'Wallet balance does not match transaction history'::text
   FROM wallets w
   JOIN users u ON w.user_id = u.id
   LEFT JOIN (
-    SELECT user_id, COALESCE(SUM(amount), 0) as total_transactions
-    FROM wallet_transactions
-    GROUP BY user_id
+    SELECT wt_balance.user_id, COALESCE(SUM(wt_balance.amount), 0) as total_transactions
+    FROM wallet_transactions AS wt_balance
+    GROUP BY wt_balance.user_id
   ) t ON w.user_id = t.user_id
   WHERE ABS((w.available_balance + w.frozen_balance) - COALESCE(t.total_transactions, 0)) > 0.01;
 END;
@@ -453,9 +445,9 @@ BEGIN
            (COALESCE(t.total_transactions, 0) - w.frozen_balance) as new_balance
     FROM wallets w
     LEFT JOIN (
-      SELECT user_id, SUM(amount) as total_transactions
-      FROM wallet_transactions
-      GROUP BY user_id
+      SELECT wt_balance.user_id, SUM(wt_balance.amount) as total_transactions
+      FROM wallet_transactions AS wt_balance
+      GROUP BY wt_balance.user_id
     ) t ON w.user_id = t.user_id
     WHERE ABS((w.available_balance + w.frozen_balance) - COALESCE(t.total_transactions, 0)) > 0.01
   )
@@ -492,6 +484,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+REVOKE EXECUTE ON FUNCTION auto_repair_commission_data() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION check_commission_consistency() FROM PUBLIC, anon, authenticated;
+
 -- ============================================================================
 -- 第五层：定期自动检查和修复（Cron Job）
 -- ============================================================================
@@ -510,16 +505,10 @@ BEGIN
   SELECT COUNT(*) INTO v_issues_count
   FROM check_commission_consistency();
 
-  -- 如果有问题，自动修复
-  IF v_issues_count > 0 THEN
-    PERFORM auto_repair_commission_data();
-  END IF;
-
-  -- 生成报告
   SELECT jsonb_build_object(
     'timestamp', now(),
     'issues_found', v_issues_count,
-    'auto_repaired', v_issues_count > 0,
+    'requires_manual_review', v_issues_count > 0,
     'details', (
       SELECT jsonb_agg(row_to_json(t))
       FROM check_commission_consistency() t
@@ -530,40 +519,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ============================================================================
--- 立即执行：清理和验证
--- ============================================================================
+REVOKE EXECUTE ON FUNCTION daily_commission_health_check() FROM PUBLIC, anon, authenticated;
 
--- 执行一次完整的修复
 DO $$
-DECLARE
-  v_repair_result RECORD;
 BEGIN
-  RAISE NOTICE '========================================';
-  RAISE NOTICE 'Starting Enterprise Commission Protection Setup';
-  RAISE NOTICE '========================================';
-
-  -- 执行自动修复
-  RAISE NOTICE 'Running auto-repair...';
-  FOR v_repair_result IN SELECT * FROM auto_repair_commission_data()
-  LOOP
-    RAISE NOTICE '% - User: %, Order: %, Amount: %, Result: %',
-      v_repair_result.action,
-      v_repair_result.user_id,
-      v_repair_result.order_id,
-      v_repair_result.amount,
-      v_repair_result.result;
-  END LOOP;
-
-  -- 最终验证
-  RAISE NOTICE 'Running final consistency check...';
   IF EXISTS (SELECT 1 FROM check_commission_consistency()) THEN
-    RAISE WARNING 'Some issues still remain after auto-repair. Manual review may be needed.';
+    RAISE WARNING 'Commission inconsistencies require manual review.';
   ELSE
     RAISE NOTICE 'All commission data is consistent!';
   END IF;
-
-  RAISE NOTICE '========================================';
-  RAISE NOTICE 'Enterprise Commission Protection Setup Complete';
-  RAISE NOTICE '========================================';
 END $$;

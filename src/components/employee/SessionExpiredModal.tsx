@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface SessionExpiredModalProps {
   isOpen: boolean;
@@ -40,16 +41,16 @@ export default function SessionExpiredModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[10100] flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="employee-modal-backdrop absolute inset-0 bg-black/60"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in duration-300">
+      <div className="employee-modal-surface relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -72,10 +73,10 @@ export default function SessionExpiredModal({
         <div className="px-6 py-8">
           <div className="space-y-4">
             <p className="text-gray-700 text-lg leading-relaxed">
-              {t.session.loggedInElsewhere}
+              {t.session.noLongerActive}
             </p>
             <p className="text-gray-600">
-              {t.session.securityReason}
+              {t.session.signInAgain}
             </p>
 
             {/* Countdown badge */}
@@ -104,6 +105,7 @@ export default function SessionExpiredModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

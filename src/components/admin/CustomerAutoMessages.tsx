@@ -4,7 +4,7 @@ import { Plus, Trash2, Zap, MessageSquarePlus, Megaphone, BookOpen, X, Bold, Und
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { supabase } from '../../lib/supabase';
 import { processContentImages } from '../../lib/imageOptimizer';
-import { cleanupContentImages } from '../../lib/storageCleanup';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 
 export interface AutoMessage {
   id: string;
@@ -22,37 +22,61 @@ export interface AutoMessage {
   updated_at: string;
 }
 
+export interface AutoMessageDraft {
+  id: string;
+  message_type: 'quick_send' | 'rich_card';
+  name: string;
+  title: string | null;
+  subtitle: string | null;
+  content: string;
+  content_type: 'text' | 'richtext' | 'rich_card';
+  sort_order: number;
+  is_enabled: boolean;
+}
+
 interface CustomerAutoMessagesProps {
   customerId: string | null;
   adminId: string;
   sourceType: string;
+  draftMessages?: AutoMessageDraft[];
+  draftMasterEnabled?: boolean;
+  onDraftMessagesChange?: (messages: AutoMessageDraft[]) => void;
+  onDraftMasterEnabledChange?: (enabled: boolean) => void;
 }
 
 const BG_COLORS = [
-  { color: '#fef3c7', label: 'Yellow' }, { color: '#fee2e2', label: 'Red' },
-  { color: '#dbeafe', label: 'Blue' }, { color: '#d1fae5', label: 'Green' },
-  { color: '#f3e8ff', label: 'Purple' }, { color: '#fce7f3', label: 'Pink' },
-  { color: '#e0e7ff', label: 'Indigo' }, { color: '#ccfbf1', label: 'Teal' },
+  { color: '#fef3c7', label: '黃色' }, { color: '#fee2e2', label: '紅色' },
+  { color: '#dbeafe', label: '藍色' }, { color: '#d1fae5', label: '綠色' },
+  { color: '#f3e8ff', label: '紫色' }, { color: '#fce7f3', label: '粉紅色' },
+  { color: '#e0e7ff', label: '靛色' }, { color: '#ccfbf1', label: '青綠色' },
 ];
 
 const TEXT_COLORS = [
-  { color: '#000000', label: 'Black' }, { color: '#dc2626', label: 'Red' },
-  { color: '#2563eb', label: 'Blue' }, { color: '#16a34a', label: 'Green' },
-  { color: '#d97706', label: 'Orange' }, { color: '#7c3aed', label: 'Purple' },
-  { color: '#be185d', label: 'Pink' }, { color: '#64748b', label: 'Gray' },
+  { color: '#000000', label: '黑色' }, { color: '#dc2626', label: '紅色' },
+  { color: '#2563eb', label: '藍色' }, { color: '#16a34a', label: '綠色' },
+  { color: '#d97706', label: '橙色' }, { color: '#7c3aed', label: '紫色' },
+  { color: '#be185d', label: '粉紅色' }, { color: '#64748b', label: '灰色' },
 ];
 
-export default function CustomerAutoMessages({ customerId, adminId, sourceType }: CustomerAutoMessagesProps) {
+export default function CustomerAutoMessages({
+  customerId,
+  adminId,
+  draftMessages = [],
+  draftMasterEnabled = false,
+  onDraftMessagesChange,
+  onDraftMasterEnabledChange,
+}: CustomerAutoMessagesProps) {
   const [autoMessages, setAutoMessages] = useState<AutoMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [masterEnabled, setMasterEnabled] = useState(false);
+  const visibleMessages = customerId ? autoMessages : draftMessages;
   const [togglingMaster, setTogglingMaster] = useState(false);
 
   // Modal state
   const [showQuickSendModal, setShowQuickSendModal] = useState(false);
   const [showRichCardModal, setShowRichCardModal] = useState(false);
-  const [editingMsg, setEditingMsg] = useState<AutoMessage | null>(null);
+  const [editingMsg, setEditingMsg] = useState<AutoMessage | AutoMessageDraft | null>(null);
 
   // Quick send editor
   const qsEditorRef = useRef<HTMLDivElement>(null);
@@ -75,7 +99,12 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
   const [rcContent, setRcContent] = useState('');
 
   const loadAutoMessages = useCallback(async () => {
-    if (!customerId) { setAutoMessages([]); return; }
+    if (!customerId) {
+      setAutoMessages([]);
+      setMasterEnabled(false);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const [{ data: msgs }, { data: cust }] = await Promise.all([
       supabase.from('customer_auto_messages').select('*').eq('customer_id', customerId).order('sort_order', { ascending: true }),
@@ -88,10 +117,18 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
 
   useEffect(() => { loadAutoMessages(); }, [loadAutoMessages]);
 
+  useEffect(() => {
+    if (!customerId) setMasterEnabled(draftMasterEnabled);
+  }, [customerId, draftMasterEnabled]);
+
   const toggleMaster = async () => {
-    if (!customerId) return;
-    setTogglingMaster(true);
     const newVal = !masterEnabled;
+    if (!customerId) {
+      setMasterEnabled(newVal);
+      onDraftMasterEnabledChange?.(newVal);
+      return;
+    }
+    setTogglingMaster(true);
     await supabase.from('simulated_customers').update({ auto_messages_enabled: newVal }).eq('id', customerId);
     setMasterEnabled(newVal);
     setTogglingMaster(false);
@@ -111,7 +148,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
     setEditingMsg(null);
   };
 
-  const openQuickSendModal = (msg?: AutoMessage) => {
+  const openQuickSendModal = (msg?: AutoMessage | AutoMessageDraft) => {
     resetQuickSend();
     if (msg) {
       setEditingMsg(msg);
@@ -121,7 +158,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
     setShowQuickSendModal(true);
   };
 
-  const openRichCardModal = (msg?: AutoMessage) => {
+  const openRichCardModal = (msg?: AutoMessage | AutoMessageDraft) => {
     resetRichCard();
     if (msg) {
       setEditingMsg(msg);
@@ -135,56 +172,103 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
   };
 
   const handleSaveQuickSend = async () => {
-    if (!customerId) return;
     const rawContent = qsEditorRef.current?.innerHTML || '';
     if (!qsName.trim() || !rawContent.trim()) return;
     setSaving(true);
     const content = await processContentImages(rawContent, 'auto-messages');
-    const payload = {
-      customer_id: customerId, admin_id: adminId, message_type: 'quick_send',
-      name: qsName.trim(), title: null, subtitle: null, content, content_type: 'richtext',
-      sort_order: editingMsg ? editingMsg.sort_order : autoMessages.length, is_enabled: true,
-    };
-    if (editingMsg) {
-      await supabase.from('customer_auto_messages').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingMsg.id);
+    const sortOrder = editingMsg ? editingMsg.sort_order : visibleMessages.length;
+
+    if (!customerId) {
+      const draft: AutoMessageDraft = {
+        id: editingMsg?.id || crypto.randomUUID(),
+        message_type: 'quick_send',
+        name: qsName.trim(),
+        title: null,
+        subtitle: null,
+        content,
+        content_type: 'richtext',
+        sort_order: sortOrder,
+        is_enabled: editingMsg?.is_enabled ?? true,
+      };
+      onDraftMessagesChange?.(
+        editingMsg
+          ? draftMessages.map(message => message.id === editingMsg.id ? draft : message)
+          : [...draftMessages, draft],
+      );
     } else {
-      await supabase.from('customer_auto_messages').insert(payload);
+      const payload = {
+        customer_id: customerId, admin_id: adminId, message_type: 'quick_send' as const,
+        name: qsName.trim(), title: null, subtitle: null, content, content_type: 'richtext' as const,
+        sort_order: sortOrder, is_enabled: true,
+      };
+      if (editingMsg) {
+        await mutateAuditedContent('auto_edit', [editingMsg.id], payload);
+      } else {
+        await supabase.from('customer_auto_messages').insert(payload);
+      }
     }
-    setSaving(false); setShowQuickSendModal(false); resetQuickSend(); loadAutoMessages();
+    setSaving(false); setShowQuickSendModal(false); resetQuickSend();
+    if (customerId) loadAutoMessages();
   };
 
   const handleSaveRichCard = async () => {
-    if (!customerId) return;
     const rawContent = rcEditorRef.current?.getContent() || rcContent || '';
     if (!rcName.trim() || !rawContent.trim()) return;
     setSaving(true);
     const content = await processContentImages(rawContent, 'rich-cards');
-    const payload = {
-      customer_id: customerId, admin_id: adminId, message_type: 'rich_card',
-      name: rcName.trim(), title: rcTitle.trim() || null, subtitle: rcSubtitle.trim() || null,
-      content, content_type: 'rich_card',
-      sort_order: editingMsg ? editingMsg.sort_order : autoMessages.length, is_enabled: true,
-    };
-    if (editingMsg) {
-      await supabase.from('customer_auto_messages').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingMsg.id);
+    const sortOrder = editingMsg ? editingMsg.sort_order : visibleMessages.length;
+
+    if (!customerId) {
+      const draft: AutoMessageDraft = {
+        id: editingMsg?.id || crypto.randomUUID(),
+        message_type: 'rich_card',
+        name: rcName.trim(),
+        title: rcTitle.trim() || null,
+        subtitle: rcSubtitle.trim() || null,
+        content,
+        content_type: 'rich_card',
+        sort_order: sortOrder,
+        is_enabled: editingMsg?.is_enabled ?? true,
+      };
+      onDraftMessagesChange?.(
+        editingMsg
+          ? draftMessages.map(message => message.id === editingMsg.id ? draft : message)
+          : [...draftMessages, draft],
+      );
     } else {
-      await supabase.from('customer_auto_messages').insert(payload);
+      const payload = {
+        customer_id: customerId, admin_id: adminId, message_type: 'rich_card' as const,
+        name: rcName.trim(), title: rcTitle.trim() || null, subtitle: rcSubtitle.trim() || null,
+        content, content_type: 'rich_card' as const,
+        sort_order: sortOrder, is_enabled: true,
+      };
+      if (editingMsg) {
+        await mutateAuditedContent('auto_edit', [editingMsg.id], payload);
+      } else {
+        await supabase.from('customer_auto_messages').insert(payload);
+      }
     }
-    setSaving(false); setShowRichCardModal(false); resetRichCard(); loadAutoMessages();
+    setSaving(false); setShowRichCardModal(false); resetRichCard();
+    if (customerId) loadAutoMessages();
   };
 
   const handleToggleEnabled = async (id: string, currentEnabled: boolean) => {
+    if (!customerId) {
+      onDraftMessagesChange?.(draftMessages.map(message =>
+        message.id === id ? { ...message, is_enabled: !currentEnabled } : message,
+      ));
+      return;
+    }
     setAutoMessages(prev => prev.map(m => m.id === id ? { ...m, is_enabled: !currentEnabled } : m));
     await supabase.from('customer_auto_messages').update({ is_enabled: !currentEnabled, updated_at: new Date().toISOString() }).eq('id', id);
   };
 
   const handleDelete = async (id: string) => {
-    const msg = autoMessages.find(m => m.id === id);
-    if (msg?.content) {
-      await cleanupContentImages(msg.content).catch(() => {});
+    if (!customerId) {
+      onDraftMessagesChange?.(draftMessages.filter(message => message.id !== id));
+      return;
     }
-    await supabase.from('rich_card_contents').delete().eq('source_auto_message_id', id).then(() => {});
-    await supabase.from('customer_auto_messages').delete().eq('id', id);
+    await mutateAuditedContent('auto_delete', [id]);
     loadAutoMessages();
   };
 
@@ -195,13 +279,20 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
   };
 
   const handleMoveUp = async (msgId: string) => {
-    const enabled = autoMessages.filter(m => m.is_enabled).sort((a, b) => a.sort_order - b.sort_order);
+    const enabled = visibleMessages.filter(m => m.is_enabled).sort((a, b) => a.sort_order - b.sort_order);
     const idx = enabled.findIndex(m => m.id === msgId);
     if (idx <= 0) return;
     const prev = enabled[idx - 1];
     const curr = enabled[idx];
     const prevOrder = prev.sort_order;
     const currOrder = curr.sort_order;
+    if (!customerId) {
+      onDraftMessagesChange?.(draftMessages.map(message =>
+        message.id === curr.id ? { ...message, sort_order: prevOrder } :
+        message.id === prev.id ? { ...message, sort_order: currOrder } : message,
+      ));
+      return;
+    }
     setAutoMessages(ms => ms.map(m =>
       m.id === curr.id ? { ...m, sort_order: prevOrder } :
       m.id === prev.id ? { ...m, sort_order: currOrder } : m
@@ -213,13 +304,20 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
   };
 
   const handleMoveDown = async (msgId: string) => {
-    const enabled = autoMessages.filter(m => m.is_enabled).sort((a, b) => a.sort_order - b.sort_order);
+    const enabled = visibleMessages.filter(m => m.is_enabled).sort((a, b) => a.sort_order - b.sort_order);
     const idx = enabled.findIndex(m => m.id === msgId);
     if (idx < 0 || idx >= enabled.length - 1) return;
     const curr = enabled[idx];
     const next = enabled[idx + 1];
     const currOrder = curr.sort_order;
     const nextOrder = next.sort_order;
+    if (!customerId) {
+      onDraftMessagesChange?.(draftMessages.map(message =>
+        message.id === curr.id ? { ...message, sort_order: nextOrder } :
+        message.id === next.id ? { ...message, sort_order: currOrder } : message,
+      ));
+      return;
+    }
     setAutoMessages(ms => ms.map(m =>
       m.id === curr.id ? { ...m, sort_order: nextOrder } :
       m.id === next.id ? { ...m, sort_order: currOrder } : m
@@ -231,9 +329,14 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
   };
 
   const execQsCommand = (cmd: string, value?: string) => {
+    const trackedCommand = cmd === 'bold' || cmd === 'underline' || cmd === 'strikeThrough';
     qsEditorRef.current?.focus();
+    const wasActive = trackedCommand ? document.queryCommandState(cmd) : false;
     document.execCommand(cmd, false, value);
-    updateQsToolbar();
+
+    if (cmd === 'bold') setQsBoldActive(!wasActive);
+    if (cmd === 'underline') setQsUnderlineActive(!wasActive);
+    if (cmd === 'strikeThrough') setQsStrikethroughActive(!wasActive);
   };
   const updateQsToolbar = () => {
     setQsBoldActive(document.queryCommandState('bold'));
@@ -256,7 +359,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
     setUploadingQsImage(false);
   };
 
-  const handleEditClick = (msg: AutoMessage) => {
+  const handleEditClick = (msg: AutoMessage | AutoMessageDraft) => {
     if (msg.message_type === 'rich_card') openRichCardModal(msg);
     else openQuickSendModal(msg);
   };
@@ -268,7 +371,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/50 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-teal-600/20"><BookOpen className="w-4 h-4 text-teal-400" /></div>
-            <h3 className="text-sm font-bold text-white">{editingMsg ? 'Edit' : 'New'} Quick Send Auto Message</h3>
+            <h3 className="text-sm font-bold text-white">{editingMsg ? '編輯' : '新增'}快速傳送自動訊息</h3>
           </div>
           <button onClick={() => { setShowQuickSendModal(false); resetQuickSend(); }} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"><X className="w-4 h-4 text-slate-400" /></button>
         </div>
@@ -276,11 +379,11 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
           <div className="flex items-center gap-3 flex-shrink-0">
             <h4 className="text-sm font-bold text-white flex items-center gap-2 whitespace-nowrap">
               {editingMsg ? <Pencil className="w-3.5 h-3.5 text-blue-400" /> : <Plus className="w-3.5 h-3.5 text-teal-400" />}
-              {editingMsg ? 'Edit Message' : 'New Message'}
+              {editingMsg ? '編輯訊息' : '新增訊息'}
             </h4>
             <input type="text" value={qsName} onChange={(e) => setQsName(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400 shadow-sm"
-              placeholder="Message name (e.g., Welcome, Greeting, Promo...)" />
+              placeholder="訊息名稱（例如：歡迎訊息、問候、促銷……）" />
           </div>
           <div className="flex-1 min-h-0 rounded-xl border border-slate-300 bg-white overflow-hidden focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400/40 transition-all shadow-sm flex flex-col">
             <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-slate-200 bg-slate-50/80 flex-shrink-0 flex-wrap">
@@ -322,10 +425,10 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-slate-700/50 flex-shrink-0">
-          <button type="button" onClick={() => { setShowQuickSendModal(false); resetQuickSend(); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all">Cancel</button>
+          <button type="button" onClick={() => { setShowQuickSendModal(false); resetQuickSend(); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all">取消</button>
           <button type="button" onClick={handleSaveQuickSend} disabled={saving || !qsName.trim()}
             className="px-6 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50 shadow-lg shadow-teal-500/20">
-            {saving ? 'Saving...' : editingMsg ? 'Update Message' : 'Add Message'}
+            {saving ? '儲存中……' : editingMsg ? '更新訊息' : '新增訊息'}
           </button>
         </div>
       </div>
@@ -339,7 +442,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/50 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-blue-600/20"><Megaphone className="w-4 h-4 text-blue-400" /></div>
-            <h3 className="text-sm font-bold text-white">{editingMsg ? 'Edit' : 'New'} Rich Card Auto Message</h3>
+            <h3 className="text-sm font-bold text-white">{editingMsg ? '編輯' : '新增'} Rich Card 自動訊息</h3>
           </div>
           <button onClick={() => { setShowRichCardModal(false); resetRichCard(); }} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"><X className="w-4 h-4 text-slate-400" /></button>
         </div>
@@ -347,33 +450,33 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
           <div className="flex items-center gap-3 flex-shrink-0">
             <h4 className="text-sm font-bold text-white flex items-center gap-2 whitespace-nowrap">
               {editingMsg ? <Pencil className="w-3.5 h-3.5 text-blue-400" /> : <Plus className="w-3.5 h-3.5 text-blue-400" />}
-              {editingMsg ? 'Edit Card' : 'New Card'}
+              {editingMsg ? '編輯卡片' : '新增卡片'}
             </h4>
             <input type="text" value={rcName} onChange={(e) => setRcName(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400 shadow-sm"
-              placeholder="Card name (e.g., Welcome Card, Promotion...)" />
+              placeholder="卡片名稱（例如：歡迎卡片、促銷……）" />
           </div>
           <div className="flex flex-row gap-3 items-center bg-blue-500 rounded-t-xl px-3 py-2 flex-shrink-0">
             <Megaphone className="w-4 h-4 text-white/80 flex-shrink-0" />
             <input type="text" value={rcTitle} onChange={(e) => setRcTitle(e.target.value)}
               className="flex-1 bg-white text-slate-800 text-sm font-semibold placeholder:text-slate-400 focus:outline-none rounded px-2.5 py-1.5 shadow-sm"
-              placeholder="Main title (e.g. Important Notice)..." />
+              placeholder="主要標題（例如：重要通知）……" />
             <input type="text" value={rcSubtitle} onChange={(e) => setRcSubtitle(e.target.value)}
               className="flex-1 bg-white/90 text-slate-600 text-xs placeholder:text-slate-400 focus:outline-none rounded px-2.5 py-1.5 shadow-sm"
-              placeholder="Subtitle (optional)..." />
+              placeholder="副標題（選填）……" />
           </div>
           <div className="flex-1 min-h-0 rounded-b-xl border border-t-0 border-slate-300 bg-white overflow-hidden shadow-sm flex flex-col focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400/40 transition-all">
             <div className="flex-1 min-h-0 overflow-hidden">
               <TiptapEditor ref={rcEditorRef} content={rcContent} onChange={setRcContent}
-                placeholder="Write rich card content (images, formatting, headings)..." adminId={adminId} theme="light" />
+                placeholder="撰寫 Rich Card 內容（圖片、格式、標題）……" adminId={adminId} theme="light" />
             </div>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-slate-700/50 flex-shrink-0">
-          <button type="button" onClick={() => { setShowRichCardModal(false); resetRichCard(); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all">Cancel</button>
+          <button type="button" onClick={() => { setShowRichCardModal(false); resetRichCard(); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all">取消</button>
           <button type="button" onClick={handleSaveRichCard} disabled={saving || !rcName.trim()}
             className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50 shadow-lg shadow-blue-500/20">
-            {saving ? 'Saving...' : editingMsg ? 'Update Card' : 'Add Card'}
+            {saving ? '儲存中……' : editingMsg ? '更新卡片' : '新增卡片'}
           </button>
         </div>
       </div>
@@ -388,9 +491,9 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-bold text-slate-100">Auto Messages</span>
+            <span className="text-sm font-bold text-slate-100">自動訊息</span>
           </div>
-          {customerId && (
+          {(customerId || onDraftMasterEnabledChange) && (
             <button
               type="button"
               onClick={toggleMaster}
@@ -402,16 +505,16 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
           )}
         </div>
 
-        {!customerId ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-[11px] text-slate-500 italic text-center">Save the customer first, then configure auto messages</p>
-          </div>
-        ) : (
-          <>
+        <>
+            {!customerId && (
+              <p className="mb-2 text-[10px] italic text-slate-500">
+                現在新增的訊息會在建立客戶時一併儲存。
+              </p>
+            )}
             {/* Status indicator */}
             <div className={`flex items-center gap-1.5 mb-2.5 px-2 py-1 rounded-lg text-[10px] font-semibold ${masterEnabled ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'}`}>
               <Power className="w-3 h-3" />
-              <span>{masterEnabled ? 'Auto-send ON -- messages fire when employee opens chat' : 'Auto-send OFF -- messages will not be sent'}</span>
+              <span>{masterEnabled ? '自動傳送已開啟——員工開啟聊天時會自動傳送訊息' : '自動傳送已關閉——不會傳送訊息'}</span>
             </div>
 
             {/* Add buttons */}
@@ -419,7 +522,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
               <button type="button" onClick={() => openQuickSendModal()}
                 className="flex items-center gap-1.5 px-2.5 py-2 bg-teal-700 hover:bg-teal-600 rounded-lg transition-all text-left">
                 <MessageSquarePlus className="w-3.5 h-3.5 text-teal-200 flex-shrink-0" />
-                <span className="text-[11px] font-medium text-white">+ Quick Send</span>
+                <span className="text-[11px] font-medium text-white">+ 快速傳送</span>
               </button>
               <button type="button" onClick={() => openRichCardModal()}
                 className="flex items-center gap-1.5 px-2.5 py-2 bg-sky-700 hover:bg-sky-600 rounded-lg transition-all text-left">
@@ -434,14 +537,14 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
                 <div className="flex items-center justify-center py-8">
                   <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : autoMessages.length === 0 ? (
+              ) : visibleMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
                   <Zap className="w-7 h-7 text-slate-700 mb-2" />
-                  <p className="text-[11px] text-slate-500">No auto messages configured</p>
-                  <p className="text-[10px] text-slate-600 mt-0.5">Add messages above to get started</p>
+                  <p className="text-[11px] text-slate-500">尚未設定自動訊息</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">從上方新增訊息以開始使用</p>
                 </div>
               ) : (
-                [...autoMessages]
+                [...visibleMessages]
                   .sort((a, b) => {
                     if (a.is_enabled && !b.is_enabled) return -1;
                     if (!a.is_enabled && b.is_enabled) return 1;
@@ -449,7 +552,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
                   })
                   .map((msg) => {
                   const isRichCard = msg.message_type === 'rich_card';
-                  const enabledMessages = autoMessages.filter(m => m.is_enabled).sort((a, b) => a.sort_order - b.sort_order);
+                  const enabledMessages = visibleMessages.filter(m => m.is_enabled).sort((a, b) => a.sort_order - b.sort_order);
                   const enabledIdx = msg.is_enabled ? enabledMessages.findIndex(m => m.id === msg.id) : -1;
                   return (
                     <div
@@ -481,39 +584,39 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
                         <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold tracking-wider uppercase flex-shrink-0 ${
                           !msg.is_enabled ? 'bg-slate-500 text-slate-300' : isRichCard ? 'bg-sky-600 text-sky-100' : 'bg-teal-600 text-teal-100'
                         }`}>
-                          {isRichCard ? 'Rich Card' : 'Quick Send'}
+                          {isRichCard ? 'Rich Card' : '快速傳送'}
                         </span>
                         <div className="flex-1 min-w-0" />
                         <div className="flex items-center gap-0.5 flex-shrink-0">
                           {msg.is_enabled && enabledIdx > 0 && (
                             <button type="button" onClick={(e) => { e.stopPropagation(); handleMoveUp(msg.id); }}
                               className="w-5 h-5 rounded-md bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
-                              title={`Move to #${enabledIdx}`}>
+                              title={`移至第 ${enabledIdx} 則`}>
                               <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
                             </button>
                           )}
                           {msg.is_enabled && enabledIdx < enabledMessages.length - 1 && (
                             <button type="button" onClick={(e) => { e.stopPropagation(); handleMoveDown(msg.id); }}
                               className="w-5 h-5 rounded-md bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
-                              title={`Move to #${enabledIdx + 2}`}>
+                              title={`移至第 ${enabledIdx + 2} 則`}>
                               <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                             </button>
                           )}
                           <button type="button" onClick={(e) => { e.stopPropagation(); handleEditClick(msg); }}
                             className="w-5 h-5 rounded-md bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
-                            title="Edit">
+                            title="編輯">
                             <Pencil className="w-2.5 h-2.5 text-white" />
                           </button>
                           <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(msg.id); }}
                             className="w-5 h-5 rounded-md bg-red-500/70 hover:bg-red-500 flex items-center justify-center transition-colors"
-                            title="Delete">
+                            title="刪除">
                             <Trash2 className="w-2.5 h-2.5 text-white" />
                           </button>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleToggleEnabled(msg.id, msg.is_enabled); }}
                             className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 ml-0.5 flex-shrink-0 ${msg.is_enabled ? 'bg-emerald-400' : 'bg-slate-500'}`}
-                            title={msg.is_enabled ? 'Disable this message' : 'Enable this message'}
+                            title={msg.is_enabled ? '停用此訊息' : '啟用此訊息'}
                           >
                             <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${msg.is_enabled ? 'translate-x-[14px]' : 'translate-x-[3px]'}`} />
                           </button>
@@ -522,7 +625,7 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
 
                       {/* Card body */}
                       <div className="px-2.5 py-2">
-                        <p className={`text-[11px] font-semibold truncate mb-0.5 ${!msg.is_enabled ? 'text-slate-300' : 'text-white'}`}>{msg.name || 'Untitled'}</p>
+                        <p className={`text-[11px] font-semibold truncate mb-0.5 ${!msg.is_enabled ? 'text-slate-300' : 'text-white'}`}>{msg.name || '未命名'}</p>
 
                         {isRichCard && msg.title && (
                           <div className="flex items-center gap-1 mb-0.5">
@@ -542,15 +645,14 @@ export default function CustomerAutoMessages({ customerId, adminId, sourceType }
             </div>
 
             {/* Send order note */}
-            {autoMessages.length > 0 && (
+            {visibleMessages.length > 0 && (
               <div className="mt-2 px-2 py-1.5 bg-slate-800 rounded-lg">
                 <p className="text-[9px] text-slate-400 text-center">
-                  {(() => { const count = autoMessages.filter(m => m.is_enabled).length; return count > 0 ? (<>Enabled messages sent in order <span className="text-amber-300 font-bold">#1</span> {'->'} <span className="text-amber-300 font-bold">#{count}</span> when employee opens chat</>) : (<span className="text-amber-400">All messages disabled -- nothing will be sent</span>); })()}
+                  {(() => { const count = visibleMessages.filter(m => m.is_enabled).length; return count > 0 ? (<>員工開啟聊天時，啟用的訊息會依序傳送 <span className="text-amber-300 font-bold">#1</span> {'->'} <span className="text-amber-300 font-bold">#{count}</span></>) : (<span className="text-amber-400">所有訊息均已停用——不會傳送任何訊息</span>); })()}
                 </p>
               </div>
             )}
           </>
-        )}
       </div>
 
       {quickSendModal}
