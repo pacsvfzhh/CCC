@@ -8,6 +8,7 @@ import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import type { Employee } from '../../types';
+import SmoothHeight from './SmoothHeight';
 
 interface DispatchAssignment {
   id: string;
@@ -2630,6 +2631,10 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
         {/* Content */}
         <div className={`relative z-10 ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+          <SmoothHeight
+            enabled={!performanceSettings.reduceTransitions && currentOrder?.status !== 'pending' && currentOrder?.status !== 'accepted'}
+            className={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}
+          >
           <div className={`overflow-hidden ${
             currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'hidden' : ''
           }`}>
@@ -3574,7 +3579,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             </div>
             </>
           )}
-
+          </SmoothHeight>
         </div>
       </div>
 
