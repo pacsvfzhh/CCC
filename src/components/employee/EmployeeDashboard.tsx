@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Package, Wallet, BarChart3, LogOut, User, Briefcase, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
+import { Bell, Package, Wallet, BarChart3, LogOut, User, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
 import { Employee, MessageWithRecipient } from '../../types';
 import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, getStoredAuth, leaveSessionForAnotherTab, logout } from '../../lib/auth';
 import { logEmployeeLogin } from '../../lib/loginHistoryService';
@@ -915,9 +915,17 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 pt-2 pb-2'}`}>
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
-                <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} relative flex flex-shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-white to-blue-50 shadow-[0_4px_12px_-4px_rgba(2,6,23,0.45)] ring-1 ring-white/60`}>
-                  <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-blue-100/70 to-transparent" aria-hidden="true"></span>
-                  <Briefcase className={`${isMobile ? 'w-4 h-4' : isTablet ? 'w-[18px] h-[18px]' : 'w-5 h-5'} relative text-blue-700`} strokeWidth={2.2} />
+                <div
+                  className={`${isMobile ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} relative flex flex-shrink-0 items-center justify-center overflow-hidden shadow-[0_6px_16px_-4px_rgba(34,211,238,0.55)] ring-1 ring-inset ring-white/35`}
+                  style={{ background: 'linear-gradient(140deg, #67e8f9 0%, #0ea5e9 30%, #2563eb 62%, #312e81 100%)' }}
+                >
+                  <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent" aria-hidden="true"></span>
+                  <span className="absolute -bottom-3 -right-3 h-6 w-6 rotate-45 rounded-md bg-indigo-950/30" aria-hidden="true"></span>
+                  <svg viewBox="0 0 24 24" className={`${isMobile ? 'w-[18px] h-[18px]' : isTablet ? 'w-5 h-5' : 'w-[22px] h-[22px]'} relative drop-shadow-[0_1px_2px_rgba(15,23,42,0.45)]`} fill="none" aria-hidden="true">
+                    <path d="M12 2.8 21 7.9 12 13 3 7.9Z" fill="#fff" />
+                    <path d="M3.6 12.1 12 16.9l8.4-4.8" stroke="#fff" strokeOpacity="0.8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M3.6 16.3 12 21.1l8.4-4.8" stroke="#fff" strokeOpacity="0.5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
                 {!isMobile && !isTablet ? (
                   <div className="flex min-w-0 flex-1 items-center gap-4">
