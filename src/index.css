@@ -1548,8 +1548,27 @@ body {
 }
 
 .dispatch-panel-waves {
+  z-index: 2;
   -webkit-mask-image: radial-gradient(ellipse 82% 85% at 50% 53%, #000 21%, rgb(0 0 0 / 86%) 45%, rgb(0 0 0 / 46%) 69%, rgb(0 0 0 / 16%) 86%, transparent 100%);
   mask-image: radial-gradient(ellipse 82% 85% at 50% 53%, #000 21%, rgb(0 0 0 / 86%) 45%, rgb(0 0 0 / 46%) 69%, rgb(0 0 0 / 16%) 86%, transparent 100%);
+}
+
+.dispatch-panel-waves::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70%;
+  height: 120%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse closest-side, rgb(103 232 249 / 45%), rgb(59 130 246 / 22%) 45%, transparent 100%);
+  transform: translate(-50%, -50%) scale(0.85);
+  animation: dispatchPanelGlowCore 4s ease-in-out infinite;
+}
+
+@keyframes dispatchPanelGlowCore {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.55; }
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
 }
 
 .dispatch-panel-arc {
@@ -1623,15 +1642,13 @@ body {
 .dispatch-veil-sea.dispatch-panel-sea {
   position: absolute;
   width: 100%;
-  height: 48px;
   opacity: 0.85;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
 }
 
-.dispatch-panel-sea .dispatch-veil-wave-back { animation-duration: 26s; }
-.dispatch-panel-sea .dispatch-veil-wave-mid { animation-duration: 19s; }
-.dispatch-panel-sea .dispatch-veil-wave-front { animation-duration: 15s; }
+.dispatch-panel-sea .dispatch-veil-wave-back { animation-duration: 5.2s; }
+.dispatch-panel-sea .dispatch-veil-wave-front { animation-duration: 3.4s; }
 
 .dispatch-panel-sea {
   left: 0;
@@ -1672,7 +1689,7 @@ body {
   border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
   -webkit-mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
   mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
-  background: radial-gradient(ellipse at 48% 52%, rgb(255 255 255 / 32%) 8%, transparent 20%, rgb(165 243 252 / 60%) 35%, rgb(37 99 235 / 42%) 53%, rgb(255 255 255 / 50%) 73%, transparent 92%);
+  background: radial-gradient(ellipse at 48% 52%, rgb(255 255 255 / 40%) 8%, transparent 20%, rgb(103 232 249 / 85%) 35%, rgb(37 99 235 / 62%) 53%, rgb(255 255 255 / 60%) 73%, transparent 92%);
   opacity: 0;
   animation: dispatchPanelBreath 8s ease-out infinite;
   will-change: transform, opacity;
@@ -1680,27 +1697,27 @@ body {
 
 .dispatch-panel-wave-2 {
   border-radius: 54% 46% 58% 42% / 42% 57% 43% 58%;
-  background: radial-gradient(ellipse at 53% 48%, rgb(255 255 255 / 36%) 9%, transparent 19%, rgb(56 189 248 / 46%) 40%, rgb(199 210 254 / 56%) 58%, rgb(255 255 255 / 52%) 76%, transparent 93%);
+  background: radial-gradient(ellipse at 53% 48%, rgb(255 255 255 / 40%) 9%, transparent 19%, rgb(56 189 248 / 75%) 40%, rgb(129 140 248 / 55%) 58%, rgb(255 255 255 / 60%) 76%, transparent 93%);
   animation-delay: -2s;
 }
 
 .dispatch-panel-wave-3 {
   border-radius: 44% 56% 51% 49% / 52% 49% 51% 48%;
-  background: radial-gradient(ellipse at 45% 53%, rgb(255 255 255 / 38%) 6%, transparent 28%, rgb(165 243 252 / 58%) 46%, rgb(59 130 246 / 40%) 61%, rgb(255 255 255 / 52%) 79%, transparent 94%);
+  background: radial-gradient(ellipse at 45% 53%, rgb(255 255 255 / 40%) 6%, transparent 28%, rgb(103 232 249 / 82%) 46%, rgb(59 130 246 / 60%) 61%, rgb(255 255 255 / 60%) 79%, transparent 94%);
   animation-delay: -4s;
 }
 
 .dispatch-panel-wave-4 {
   border-radius: 58% 42% 54% 46% / 43% 54% 46% 57%;
-  background: radial-gradient(ellipse at 52% 48%, rgb(255 255 255 / 35%) 10%, transparent 25%, rgb(34 211 238 / 44%) 45%, rgb(191 219 254 / 58%) 63%, rgb(255 255 255 / 52%) 80%, transparent 95%);
+  background: radial-gradient(ellipse at 52% 48%, rgb(255 255 255 / 40%) 10%, transparent 25%, rgb(34 211 238 / 75%) 45%, rgb(147 197 253 / 65%) 63%, rgb(255 255 255 / 60%) 80%, transparent 95%);
   animation-delay: -6s;
 }
 
 @keyframes dispatchPanelBreath {
   0% { transform: translate(-50%, -50%) scale(0.28); opacity: 0; }
   10% { transform: translate(-50%, -50%) scale(0.38); opacity: 0; }
-  24% { opacity: 0.7; }
-  38% { opacity: 0.55; }
+  24% { opacity: 0.8; }
+  38% { opacity: 0.62; }
   50%, 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
 }
 
@@ -1919,7 +1936,7 @@ body {
   position: relative;
   z-index: 1;
   width: min(460px, 70%);
-  height: 40px;
+  height: 34px;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
@@ -1933,9 +1950,8 @@ body {
   height: 100%;
 }
 
-.dispatch-veil-wave-back { animation: dispatchVeilWave 9s linear infinite; }
-.dispatch-veil-wave-mid { animation: dispatchVeilWave 7s linear infinite reverse; }
-.dispatch-veil-wave-front { animation: dispatchVeilWave 5.5s linear infinite; }
+.dispatch-veil-wave-back { animation: dispatchVeilWave 2.6s linear infinite; bottom: 4px; }
+.dispatch-veil-wave-front { animation: dispatchVeilWave 1.7s linear infinite reverse; }
 
 @keyframes dispatchVeilWave {
   from { transform: translateX(0); }
@@ -1989,8 +2005,6 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .dispatch-veil { display: none; }
-  .dispatch-panel-ship,
-  .dispatch-veil-wave { animation: none; }
   .dispatch-decor-fade,
   .dispatch-waiting-exit,
   .dispatch-start-enter,
