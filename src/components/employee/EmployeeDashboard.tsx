@@ -1088,7 +1088,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                   <button
                     onClick={() => setShowPasswordChange(true)}
-                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-colors hover:bg-white/10 hover:text-white active:bg-white/20"
+                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-colors hover:bg-amber-500/85 hover:text-white active:bg-amber-600"
                   >
                     <Lock className="h-3.5 w-3.5" strokeWidth={2} />
                     <span className="text-xs font-medium">{t.header.password}</span>
