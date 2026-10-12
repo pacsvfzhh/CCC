@@ -41,7 +41,7 @@ export default function SmoothHeight({ animate, outerClassName = '', innerClassN
       style={height !== null ? {
         height,
         overflow: 'hidden',
-        transition: `height ${duration}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+        transition: `height ${duration}ms cubic-bezier(0.45, 0, 0.2, 1)`,
       } : undefined}
     >
       <div ref={innerRef} className={innerClassName}>{children}</div>

@@ -146,6 +146,9 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
   const [isStartButtonPressed, setIsStartButtonPressed] = useState(false);
   const [startExiting, setStartExiting] = useState(false);
   const [waitingEnterAnim, setWaitingEnterAnim] = useState(false);
+  const [stopExiting, setStopExiting] = useState(false);
+  const [startEnterAnim, setStartEnterAnim] = useState(false);
+  const panelResizing = startExiting || waitingEnterAnim || stopExiting || startEnterAnim;
   const [showStartRipple, setShowStartRipple] = useState(false);
   const [showStartSuccess, setShowStartSuccess] = useState(false);
   const [showStopSuccess, setShowStopSuccess] = useState(false);
@@ -1414,10 +1417,21 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       } else {
         // Wait for animation to complete before updating UI state
         await animationPromise;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        const animatePanel = !isMobile && !performanceSettings.reduceTransitions;
+        if (animatePanel) setStopExiting(true);
+        await new Promise(resolve => setTimeout(resolve, animatePanel ? 320 : 100));
 
         if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
+          if (componentMountedRef.current) setStopExiting(false);
           return;
+        }
+
+        if (animatePanel) {
+          setStartEnterAnim(true);
+          setStopExiting(false);
+          setTimeout(() => {
+            if (componentMountedRef.current) setStartEnterAnim(false);
+          }, 1250);
         }
 
         // Now update the session state to trigger UI change
@@ -1472,6 +1486,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         setIsProcessing(false);
         setIsTransitioning(false);
         setTransitionType(null);
+        setStopExiting(false);
       }
     }
   };
@@ -2558,7 +2573,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
       )}
 
       {/* Work Control Panel - Premium Blue/White Design */}
-      <div className={`relative rounded-2xl md:rounded-3xl ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex h-[420px] flex-col p-0 md:h-[clamp(420px,calc(100vh_-_var(--employee-header-height,76px)_-_var(--employee-bottom-nav-height,0px)_-_48px),575px)]' : 'p-5 md:p-10'} overflow-hidden ${
+      <div className={`relative rounded-2xl md:rounded-3xl ${panelResizing ? 'dispatch-panel-resizing' : ''} ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex h-[420px] flex-col p-0 md:h-[clamp(420px,calc(100vh_-_var(--employee-header-height,76px)_-_var(--employee-bottom-nav-height,0px)_-_48px),575px)]' : 'p-5 md:p-10'} overflow-hidden ${
         waitingPanelActive
           ? 'min-h-[420px] md:min-h-0 dispatch-waiting-surface dispatch-waiting-surface-animated border-2 border-blue-200/90 shadow-[0_22px_64px_-22px_rgba(37,99,235,0.22),0_8px_28px_-12px_rgba(37,99,235,0.14)]'
           : currentOrder?.status === 'pending'
@@ -2634,8 +2649,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         {/* Content */}
         <div className={`relative z-10 ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
           <SmoothHeight
-            animate={startExiting || waitingEnterAnim}
-            duration={1100}
+            animate={panelResizing}
+            duration={1000}
             outerClassName={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : '-mx-5 -mb-5 px-5 pb-5 md:-mx-10 md:-mb-10 md:px-10 md:pb-10'}
             innerClassName={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}
           >
@@ -3112,7 +3127,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           ) : (
             <>
             {waitingPanelActive && (
-              <div className={waitingEnterAnim ? 'dispatch-waiting-enter' : undefined}>
+              <div className={waitingEnterAnim ? 'dispatch-waiting-enter' : stopExiting ? 'dispatch-waiting-exit' : undefined}>
                 <div className="relative min-h-[240px] overflow-visible py-7 md:overflow-hidden md:py-10">
                   <div className="absolute -top-4 right-0 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:hidden">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
@@ -3170,8 +3185,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
             )}
             {/* DESKTOP LAYOUT */}
             <div className={`hidden md:grid grid-cols-1 gap-4 md:gap-10 transition-all duration-500`}>
-              {/* Action Button */}
-              <div className="flex items-center justify-center">
+              <div className={`flex items-center justify-center ${startEnterAnim ? 'dispatch-start-enter' : ''}`}>
               {(!session.isWorking || (isTransitioning && transitionType === 'start')) ? (
                 <button
                   onClick={handleStartWork}

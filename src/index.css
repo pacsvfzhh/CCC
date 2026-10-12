@@ -1785,8 +1785,36 @@ body {
   animation: dispatchStartOverlayIn 900ms ease-out both;
 }
 
+.dispatch-waiting-exit {
+  animation: dispatchWaitingExit 320ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes dispatchWaitingExit {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+.dispatch-start-enter {
+  animation: dispatchStartEnter 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dispatchStartEnter {
+  0% { opacity: 0; transform: translateY(10px); }
+  45% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+.dispatch-panel-resizing.dispatch-waiting-surface-animated,
+.dispatch-panel-resizing.dispatch-waiting-surface-animated::after,
+.dispatch-panel-resizing .dispatch-panel-wave {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dispatch-decor-fade,
+  .dispatch-waiting-exit,
+  .dispatch-start-enter,
   .dispatch-start-overlay,
   .dispatch-waiting-enter > * { animation: none; }
   .dispatch-start-exit { animation: none !important; opacity: 0; }
