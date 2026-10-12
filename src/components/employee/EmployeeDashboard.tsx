@@ -1088,7 +1088,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                   <button
                     onClick={() => setShowPasswordChange(true)}
-                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-colors hover:bg-amber-500/85 hover:text-white active:bg-amber-600"
+                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-indigo-300/20 hover:text-indigo-50 hover:shadow-[inset_0_0_0_1px_rgba(165,180,252,0.35)] active:bg-indigo-300/30"
                   >
                     <Lock className="h-3.5 w-3.5" strokeWidth={2} />
                     <span className="text-xs font-medium">{t.header.password}</span>
@@ -1098,7 +1098,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                   <button
                     onClick={() => logout()}
-                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-colors hover:bg-red-500/85 hover:text-white active:bg-red-600"
+                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-rose-400/20 hover:text-rose-50 hover:shadow-[inset_0_0_0_1px_rgba(253,164,175,0.4)] active:bg-rose-400/30"
                   >
                     <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
                     <span className="text-xs font-medium">{t.header.logout}</span>
