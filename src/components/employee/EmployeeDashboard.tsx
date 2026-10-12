@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
+import { Bell, Package, Wallet, BarChart3, LogOut, User, Briefcase, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
 import { Employee, MessageWithRecipient } from '../../types';
 import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, getStoredAuth, leaveSessionForAnotherTab, logout } from '../../lib/auth';
 import { logEmployeeLogin } from '../../lib/loginHistoryService';
@@ -915,8 +915,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 pt-2 pb-2'}`}>
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
-                <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} bg-white/95 flex items-center justify-center shadow-sm flex-shrink-0`}>
-                  <Zap className={`${isMobile ? 'w-4 h-4' : isTablet ? 'w-[18px] h-[18px]' : 'w-5 h-5'} text-blue-600`} fill="currentColor" />
+                <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} relative flex flex-shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-white to-blue-50 shadow-[0_4px_12px_-4px_rgba(2,6,23,0.45)] ring-1 ring-white/60`}>
+                  <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-blue-100/70 to-transparent" aria-hidden="true"></span>
+                  <Briefcase className={`${isMobile ? 'w-4 h-4' : isTablet ? 'w-[18px] h-[18px]' : 'w-5 h-5'} relative text-blue-700`} strokeWidth={2.2} />
                 </div>
                 {!isMobile && !isTablet ? (
                   <div className="flex min-w-0 flex-1 items-center gap-4">
