@@ -1091,7 +1091,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                     className="group flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:shadow-blue-950/20 active:bg-indigo-100"
                   >
                     <Lock className="h-3.5 w-3.5" strokeWidth={2} />
-                    <span className="text-xs font-medium group-hover:font-bold">{t.header.password}</span>
+                    <span className="grid text-xs"><span className="col-start-1 row-start-1 text-center font-medium group-hover:font-bold">{t.header.password}</span><span className="invisible col-start-1 row-start-1 font-bold" aria-hidden="true">{t.header.password}</span></span>
                   </button>
 
                   <span className="h-4 w-px bg-white/15" aria-hidden="true"></span>
@@ -1101,7 +1101,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                     className="group flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-rose-50 hover:text-rose-600 hover:shadow-md hover:shadow-blue-950/20 active:bg-rose-100"
                   >
                     <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
-                    <span className="text-xs font-medium group-hover:font-bold">{t.header.logout}</span>
+                    <span className="grid text-xs"><span className="col-start-1 row-start-1 text-center font-medium group-hover:font-bold">{t.header.logout}</span><span className="invisible col-start-1 row-start-1 font-bold" aria-hidden="true">{t.header.logout}</span></span>
                   </button>
                 </div>
                 )}
