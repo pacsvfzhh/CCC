@@ -17,6 +17,12 @@
 
 ---
 
+## 2026-10-11 · 桌面端导航栏并入顶部标题栏
+- `EmployeeDashboard.tsx`（≥1025px）：导航栏从内容区移入吸顶标题栏下半部分，页面滚动时一直可用；标题栏上半部分压缩（Logo 40→36px、公司名 24→20px、上下内边距缩小）。
+- 视觉：标题栏改为深海军蓝→品牌蓝斜向渐变，叠加淡网格纹理（两端渐隐）、右侧柔和青/靛色圆角色块、旋转描边方块和左侧青色光晕，底部一条青色细光线；导航为半透明玻璃底，当前页为白色高亮块＋底部蓝青渐变短线，未选中项浅蓝文字、悬停微亮。派单页新订单/超时的橙色、红色提醒效果保留。
+- `AnnouncementBoard.tsx`：桌面公告面板高度改为按实际标题栏高度计算，避免底部留空。手机/平板布局不变。
+- 验证：1440×900、1100×800 截图（含滚动后导航仍在顶部），1024×1366 平板不变；typecheck、eslint、build 通过。
+
 ## 2026-10-11 · iPhone SE 等小屏（<360px）信息框与面板紧凑化
 - 方式：给各页面信息框加统一标记类（`emp-stat-card/icon/label/value/num`）、面板列表加 `emp-compact-panel`、派单页正文与按钮加 `emp-detail-text` / `emp-action-btn`、提现记录按钮加 `emp-compact-btn`，在 `index.css` 的 `max-width:359px` 区块统一收紧，360px 以上不受影响。
 - 信息框（Wallet 4 个、Daily Statistics 6 个、派单页统计与 AUTO-DISPATCH/REAL-TIME、订单页今日统计与列表 AMOUNT/VALUE/COMMISSION 标签）：内边距 9–10px、图标块 22px、大写标签 9.5px 且字距收窄（不再挤成两行）、数字 14px。

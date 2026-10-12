@@ -884,7 +884,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             paddingTop: 'env(safe-area-inset-top)',
             backgroundImage: isMobile
               ? 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)'
-              : 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 80%, #2563eb 100%)',
+              : isTablet
+                ? 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 80%, #2563eb 100%)'
+                : 'linear-gradient(118deg, #0b1f55 0%, #163a9a 32%, #1d4ed8 64%, #2563eb 100%)',
             border: 'none',
             borderRadius: 0,
             outline: 'none',
@@ -901,15 +903,24 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             <div className="absolute top-3 left-[40%] w-4 h-4 bg-white/[0.04] rounded-full"></div>
             <div className="absolute bottom-2 right-[45%] w-3 h-3 bg-cyan-200/[0.06] rounded-full"></div>
             <div className="absolute top-1/2 left-[60%] w-10 h-10 border border-white/[0.05] rounded-xl rotate-12 -translate-y-1/2"></div>
+            {!isMobile && !isTablet && (
+              <>
+                <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '28px 28px', maskImage: 'linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent)', WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent)' }}></div>
+                <div className="absolute -top-16 right-[8%] h-40 w-40 rotate-12 rounded-[28px] bg-gradient-to-br from-cyan-300/20 to-transparent"></div>
+                <div className="absolute -bottom-20 right-[24%] h-36 w-36 -rotate-6 rounded-[24px] bg-gradient-to-tr from-indigo-300/15 to-transparent"></div>
+                <div className="absolute -top-10 left-[30%] h-24 w-24 rotate-45 rounded-2xl border border-white/10"></div>
+                <div className="absolute -left-10 top-4 h-28 w-28 rounded-full bg-cyan-400/10 blur-2xl"></div>
+              </>
+            )}
           </div>
-          <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 py-3.5'}`}>
+          <div className={`max-w-7xl mx-auto relative border-0 border-none ${isMobile ? 'px-2 xs:px-3 py-2' : isTablet ? 'px-5 py-3' : 'px-8 pt-2.5 pb-3'}`}>
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
-                <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : isTablet ? 'w-9 h-9 rounded-xl' : 'w-10 h-10 rounded-xl'} bg-white/95 flex items-center justify-center shadow-sm flex-shrink-0`}>
+                <div className={`${isMobile ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} bg-white/95 flex items-center justify-center shadow-sm flex-shrink-0`}>
                   <Zap className={`${isMobile ? 'w-4 h-4' : isTablet ? 'w-[18px] h-[18px]' : 'w-5 h-5'} text-blue-600`} fill="currentColor" />
                 </div>
                 <div className="flex-1 min-w-0" style={{ maxWidth: isMobile ? 'calc(100vw - 140px)' : undefined }}>
-                  <h1 className={`${isMobile ? 'text-[15px]' : isTablet ? 'text-lg' : 'text-2xl'} font-bold text-white truncate tracking-tight leading-tight`}>
+                  <h1 className={`${isMobile ? 'text-[15px]' : isTablet ? 'text-lg' : 'text-xl'} font-bold text-white truncate tracking-tight leading-tight`}>
                     {companyName}
                   </h1>
                   <div className="flex items-center gap-1.5 mt-px">
@@ -1168,86 +1179,74 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 )}
               </div>
             </div>
-          </div>
-      </header>
-
-      <div className="nav-content-pt relative">
-        <div className={`max-w-7xl mx-auto ${isMobile ? 'px-3 py-0 pb-2' : isTablet ? 'px-5 py-4 pb-4' : 'px-8 py-6 pb-6'}`}>
-          {/* Navigation Tabs - Desktop: controlled by raw CSS media query */}
-          <div className="nav-desktop relative mb-8">
-            <div className="relative bg-white rounded-2xl p-1.5 shadow-sm border border-slate-200/80">
-              <div className="flex">
-                {tabs.map((tab, index) => {
+            {/* Desktop navigation, integrated into the sticky header */}
+            <nav className="nav-desktop relative mt-2.5" aria-label="Primary">
+              <div className="relative flex gap-1 rounded-xl bg-white/[0.08] p-1 ring-1 ring-inset ring-white/15 backdrop-blur-sm">
+                {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   const isDispatchTab = tab.id === 'dispatch';
                   const showNewOrderEffect = isDispatchTab && hasNewOrder;
                   const showTimeoutEffect = isDispatchTab && hasOrderTimeout;
-                  const isLast = index === tabs.length - 1;
+                  const alerting = showNewOrderEffect || showTimeoutEffect;
 
                   return (
-                    <div key={tab.id} className="flex-1 flex items-center min-w-0">
-                      <button
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`group relative w-full flex items-center justify-center gap-2 px-3 xl:px-4 py-3 rounded-xl font-semibold transition-all duration-200 overflow-hidden ${
-                          isActive
-                            ? 'text-white'
-                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        {/* New Order Effect */}
-                        {showNewOrderEffect && (
-                          <>
-                            <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl animate-pulse"></div>
-                            <div className="absolute inset-0">
-                              {[...Array(8)].map((_, i) => (
-                                <div
-                                  key={i}
-                                  className="absolute w-2 h-2 bg-white rounded-full"
-                                  style={{
-                                    left: `${(i * 12.5)}%`,
-                                    animation: `bubble-float ${2 + i * 0.2}s ease-in-out ${i * 0.3}s infinite`
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          </>
-                        )}
-
-                        {/* Timeout Effect */}
-                        {showTimeoutEffect && !showNewOrderEffect && (
-                          <>
-                            <div className="absolute inset-0 bg-gradient-to-r from-rose-600 to-red-600 rounded-xl animate-pulse-urgent"></div>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-urgent"></div>
-                          </>
-                        )}
-
-                        {/* Active background - blue gradient */}
-                        {isActive && !showNewOrderEffect && !showTimeoutEffect && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl shadow-md shadow-blue-500/20"></div>
-                        )}
-
-                        {/* Icon */}
-                        <div className="relative z-10">
-                          <Icon className="w-[18px] h-[18px]" />
-                        </div>
-
-                        {/* Label */}
-                        <span className="relative z-10 text-sm xl:text-base truncate">
-                          {tab.label}
-                        </span>
-                      </button>
-                      {/* Divider line */}
-                      {!isLast && !isActive && (
-                        <div className="w-px h-5 bg-slate-200 flex-shrink-0"></div>
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`group relative flex min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-lg px-3 py-2 font-semibold transition-all duration-200 xl:px-4 ${
+                        alerting
+                          ? 'text-white'
+                          : isActive
+                            ? 'text-blue-700'
+                            : 'text-blue-100/90 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {showNewOrderEffect && (
+                        <>
+                          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 animate-pulse"></div>
+                          <div className="absolute inset-0">
+                            {[...Array(8)].map((_, i) => (
+                              <div
+                                key={i}
+                                className="absolute h-2 w-2 rounded-full bg-white"
+                                style={{
+                                  left: `${(i * 12.5)}%`,
+                                  animation: `bubble-float ${2 + i * 0.2}s ease-in-out ${i * 0.3}s infinite`
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </>
                       )}
-                    </div>
+
+                      {showTimeoutEffect && !showNewOrderEffect && (
+                        <>
+                          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-rose-600 to-red-600 animate-pulse-urgent"></div>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-urgent"></div>
+                        </>
+                      )}
+
+                      {isActive && !alerting && (
+                        <div className="absolute inset-0 rounded-lg bg-white shadow-[0_6px_18px_-8px_rgba(15,23,42,0.55)]">
+                          <div className="absolute inset-x-6 bottom-0 h-[2px] rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500"></div>
+                        </div>
+                      )}
+
+                      <Icon className={`relative z-10 h-[17px] w-[17px] flex-shrink-0 ${isActive && !alerting ? 'text-blue-600' : ''}`} />
+                      <span className="relative z-10 truncate text-sm">{tab.label}</span>
+                    </button>
                   );
                 })}
               </div>
-            </div>
+            </nav>
           </div>
+          <div className="nav-desktop pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/60 to-transparent" aria-hidden="true"></div>
+      </header>
 
+      <div className="nav-content-pt relative">
+        <div className={`max-w-7xl mx-auto ${isMobile ? 'px-3 py-0 pb-2' : isTablet ? 'px-5 py-4 pb-4' : 'px-8 py-6 pb-6'}`}>
           <Suspense fallback={<PageLoader />}>
           <div className="space-y-3 sm:space-y-6">
             <div className="emp-tab-pane sm:max-lg:pb-[88px]" style={{ display: activeTab === 'announcements' ? 'block' : 'none' }}>

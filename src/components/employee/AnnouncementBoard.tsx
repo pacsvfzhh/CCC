@@ -799,7 +799,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         style={{
           willChange: 'auto',
           top: window.innerWidth >= 1025 ? 'auto' : 'calc(var(--employee-header-height, 64px) - 1px)',
-          height: window.innerWidth >= 1025 ? 'calc(100vh - 220px)' : undefined,
+          height: window.innerWidth >= 1025 ? 'calc(100vh - var(--employee-header-height, 128px) - 64px)' : undefined,
           background: isMobileDevice
             ? 'linear-gradient(160deg, #ffffff 0%, #f0f7ff 40%, #e8f4fd 100%)'
             : 'linear-gradient(145deg, #ffffff 0%, #f0f7ff 25%, #e6f2fe 50%, #f5faff 75%, #ffffff 100%)',
