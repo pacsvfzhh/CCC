@@ -84,6 +84,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   });
   const [loading, setLoading] = useState(false);
   const [announcementsPending, setAnnouncementsPending] = useState(true);
+  // Tab switches toggle display:none, which would replay staggered entrances and leave cards blank.
+  const [cardsEntered, setCardsEntered] = useState(false);
   const loadUserAdminRef = useRef<(() => Promise<string | null>) | null>(null);
   const loadCategoriesRef = useRef<(() => Promise<void>) | null>(null);
   const loadInitialAnnouncementsRef = useRef<(() => Promise<void>) | null>(null);
@@ -197,6 +199,12 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       setContentLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (cardsEntered || announcements.length === 0) return;
+    const timer = setTimeout(() => setCardsEntered(true), 600 + Math.min(announcements.length, 20) * 80);
+    return () => clearTimeout(timer);
+  }, [cardsEntered, announcements.length]);
 
   useEffect(() => {
     // Parallel loading for better performance
@@ -1002,12 +1010,12 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                   className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-xl bg-gradient-to-br ${cardStyle.gradient} ring-1 ${cardStyle.ring} shadow-sm ${cardStyle.hoverShadow}`}
                   style={{
                     ...(isTabletDevice ? {
-                      animation: showDesktopEffects && index < announcements.length ? `fadeInUp 0.4s ease-out ${(index % announcements.length) * 0.05}s both` : 'none',
+                      animation: showDesktopEffects && !cardsEntered && index < announcements.length ? `fadeInUp 0.4s ease-out ${(index % announcements.length) * 0.05}s both` : 'none',
                     } :
                     isMobileDevice ? {
                       willChange: 'auto',
                     } : {
-                      animation: showDesktopEffects && index < announcements.length ? `fadeInUp 0.5s ease-out ${(index % announcements.length) * 0.08}s both` : 'none',
+                      animation: showDesktopEffects && !cardsEntered && index < announcements.length ? `fadeInUp 0.5s ease-out ${(index % announcements.length) * 0.08}s both` : 'none',
                     })
                   }}
                 >
