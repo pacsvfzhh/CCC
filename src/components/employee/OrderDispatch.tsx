@@ -9,6 +9,7 @@ import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import type { Employee } from '../../types';
 import SmoothHeight from './SmoothHeight';
+import DispatchVeil from './DispatchVeil';
 
 interface DispatchAssignment {
   id: string;
@@ -150,13 +151,14 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
   const [startEnterAnim, setStartEnterAnim] = useState(false);
   const panelResizing = startExiting || waitingEnterAnim || stopExiting || startEnterAnim;
   const [panelVeil, setPanelVeil] = useState<'in' | 'out' | null>(null);
+  const [panelVeilKind, setPanelVeilKind] = useState<'start' | 'stop'>('start');
   const panelVeilTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealPanel = () => {
     setPanelVeil('out');
     if (panelVeilTimerRef.current) clearTimeout(panelVeilTimerRef.current);
     panelVeilTimerRef.current = setTimeout(() => {
       if (componentMountedRef.current) setPanelVeil(null);
-    }, 1000);
+    }, 1200);
   };
   const [showStartRipple, setShowStartRipple] = useState(false);
   const [showStartSuccess, setShowStartSuccess] = useState(false);
@@ -1212,6 +1214,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       if (!isMobile && !performanceSettings.reduceTransitions) {
         setStartExiting(true);
+        setPanelVeilKind('start');
         setPanelVeil('in');
         await new Promise(resolve => setTimeout(resolve, 320));
         revealPanel();
@@ -1431,6 +1434,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         const animatePanel = !isMobile && !performanceSettings.reduceTransitions;
         if (animatePanel) {
           setStopExiting(true);
+          setPanelVeilKind('stop');
           setPanelVeil('in');
         }
         await new Promise(resolve => setTimeout(resolve, animatePanel ? 320 : 100));
@@ -2601,9 +2605,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
         {panelVeil && (
-          <div className={`dispatch-veil ${panelVeil === 'in' ? 'dispatch-veil-in' : 'dispatch-veil-out'}`} aria-hidden="true">
-            <span className="dispatch-veil-sweep" />
-          </div>
+          <DispatchVeil phase={panelVeil} label={panelVeilKind === 'start' ? t.dispatch.startingWork : t.dispatch.endingSession} />
         )}
         {!waitingPanelActive && currentOrder?.status !== 'pending' && (
           <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />

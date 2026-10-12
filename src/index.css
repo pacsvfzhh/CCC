@@ -1823,7 +1823,7 @@ body {
 }
 
 .dispatch-veil-out {
-  animation: dispatchVeilOut 820ms cubic-bezier(0.4, 0, 0.2, 1) 160ms both;
+  animation: dispatchVeilOut 760ms cubic-bezier(0.4, 0, 0.2, 1) 380ms both;
 }
 
 @keyframes dispatchVeilIn {
@@ -1840,12 +1840,123 @@ body {
   position: absolute;
   inset: -20% -40%;
   background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 85%) 50%, transparent 62%);
-  animation: dispatchVeilSweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: dispatchVeilSweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes dispatchVeilSweep {
   from { transform: translateX(-45%); }
   to { transform: translateX(45%); }
+}
+
+.dispatch-veil-blob {
+  position: absolute;
+  border-radius: 28%;
+  filter: blur(2px);
+  animation: dispatchVeilBlob 2.4s ease-in-out infinite alternate;
+}
+
+.dispatch-veil-blob-1 { width: 120px; height: 120px; left: 8%; top: 12%; background: rgb(125 211 252 / 28%); --veil-rot: 14deg; }
+.dispatch-veil-blob-2 { width: 84px; height: 84px; right: 12%; top: 18%; background: rgb(165 180 252 / 26%); --veil-rot: -10deg; animation-delay: -0.8s; }
+.dispatch-veil-blob-3 { width: 150px; height: 150px; right: 22%; bottom: -40px; background: rgb(56 189 248 / 18%); --veil-rot: 22deg; animation-delay: -1.6s; }
+
+@keyframes dispatchVeilBlob {
+  from { transform: translateY(0) rotate(var(--veil-rot)); }
+  to { transform: translateY(-10px) rotate(calc(var(--veil-rot) + 8deg)); }
+}
+
+.dispatch-veil-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: dispatchVeilStage 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dispatchVeilStage {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.dispatch-veil-ship {
+  position: relative;
+  z-index: 2;
+  width: min(300px, 46%);
+  height: auto;
+  margin-bottom: -14px;
+  filter: drop-shadow(0 10px 18px rgb(37 99 235 / 18%));
+  animation: dispatchVeilShip 1.8s ease-in-out infinite;
+}
+
+@keyframes dispatchVeilShip {
+  0%, 100% { transform: translate(-6px, 0) rotate(-0.8deg); }
+  50% { transform: translate(6px, -5px) rotate(0.8deg); }
+}
+
+.dispatch-veil-sea {
+  position: relative;
+  z-index: 1;
+  width: min(460px, 70%);
+  height: 34px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+.dispatch-veil-wave {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 200%;
+  height: 100%;
+}
+
+.dispatch-veil-wave-back { animation: dispatchVeilWave 2.6s linear infinite; bottom: 4px; }
+.dispatch-veil-wave-front { animation: dispatchVeilWave 1.7s linear infinite reverse; }
+
+@keyframes dispatchVeilWave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.dispatch-veil-caption {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dispatch-veil-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #1e3a8a;
+}
+
+.dispatch-veil-track {
+  position: relative;
+  width: 140px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgb(37 99 235 / 12%);
+}
+
+.dispatch-veil-bar {
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, #22d3ee, #2563eb, transparent);
+  animation: dispatchVeilBar 1.1s ease-in-out infinite;
+}
+
+@keyframes dispatchVeilBar {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(230%); }
 }
 
 .dispatch-panel-resizing.dispatch-waiting-surface-animated,
