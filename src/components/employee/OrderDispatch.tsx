@@ -3155,12 +3155,12 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                 <button
                   onClick={handleStartWork}
                   disabled={isProcessing}
-                  className={`group/btn relative w-full min-h-[200px] md:min-h-[280px] bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 border border-blue-500/50 rounded-2xl md:rounded-3xl shadow-xl shadow-blue-600/20 disabled:cursor-not-allowed ${
+                  className={`group/btn relative transform-gpu w-full min-h-[200px] md:min-h-[280px] bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 border border-blue-500/50 rounded-2xl md:rounded-3xl shadow-xl shadow-blue-600/20 disabled:cursor-not-allowed ${
                     isMobile ? 'overflow-visible' : 'overflow-hidden'
                   } ${
                     performanceSettings.reduceTransitions
                       ? 'transition-all duration-200 active:scale-95'
-                      : 'transition-all duration-500 hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 hover:-translate-y-1 active:translate-y-0 active:scale-[0.99]'
+                      : 'transition-all duration-500 hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 active:scale-[0.99]'
                   } ${
                     isTransitioning && transitionType === 'start' ? 'scale-95 opacity-70' : 'scale-100 opacity-100'
                   }`}
@@ -3377,7 +3377,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                     <div className="relative">
                       {/* Glow and orbiting dots removed for performance */}
 
-                      <div className={`relative p-4 md:p-6 bg-white/15 backdrop-blur-sm rounded-full border-2 border-white/25 ${
+                      <div className={`relative p-4 md:p-6 bg-white/15 backdrop-blur-sm rounded-full border-2 border-white/25 will-change-transform ${
                         performanceSettings.reduceTransitions ? 'transition-all duration-150' : 'transition-all duration-200'
                       } ${
                         isStartButtonPressed
