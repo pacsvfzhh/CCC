@@ -143,6 +143,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
   const [isReporting, setIsReporting] = useState(false);
   const [isStartButtonPressed, setIsStartButtonPressed] = useState(false);
+  const [startExiting, setStartExiting] = useState(false);
+  const [waitingEnterAnim, setWaitingEnterAnim] = useState(false);
   const [showStartRipple, setShowStartRipple] = useState(false);
   const [showStartSuccess, setShowStartSuccess] = useState(false);
   const [showStopSuccess, setShowStopSuccess] = useState(false);
@@ -1195,6 +1197,15 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         return;
       }
 
+      if (!isMobile && !performanceSettings.reduceTransitions) {
+        setStartExiting(true);
+        await new Promise(resolve => setTimeout(resolve, 360));
+        setWaitingEnterAnim(true);
+        setTimeout(() => {
+          if (componentMountedRef.current) setWaitingEnterAnim(false);
+        }, 900);
+      }
+
       // Now update the session state to trigger UI change
       setSession(newSession);
       setUnacceptedCount(0);
@@ -1253,6 +1264,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         setIsProcessing(false);
         setIsTransitioning(false);
         setTransitionType(null);
+        setStartExiting(false);
       }
       // Release lock after a small delay to ensure state updates complete
       setTimeout(() => {
@@ -3091,7 +3103,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           ) : (
             <>
             {waitingPanelActive && (
-              <div>
+              <div className={waitingEnterAnim ? 'dispatch-waiting-enter' : undefined}>
                 <div className="relative min-h-[240px] overflow-visible py-7 md:overflow-hidden md:py-10">
                   <div className="absolute -top-4 right-0 z-20 flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:hidden">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
@@ -3163,7 +3175,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                       : 'transition-all duration-500 hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 active:scale-[0.99]'
                   } ${
                     isTransitioning && transitionType === 'start' ? 'scale-95 opacity-70' : 'scale-100 opacity-100'
-                  }`}
+                  } ${startExiting ? 'dispatch-start-exit' : ''}`}
                 >
                   {/* Mobile: Ripple Effect on Tap - Fixed z-index and visibility */}
                   {isMobile && showStartRipple && (
@@ -3281,7 +3293,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                   {/* Optimized Transition Overlay - Start Work */}
                   {isTransitioning && transitionType === 'start' && (
                     <div
-                      className="absolute inset-0 flex items-center justify-center rounded-3xl keep-animation"
+                      className="dispatch-start-overlay absolute inset-0 flex items-center justify-center rounded-3xl keep-animation"
                       style={{
                         zIndex: 50,
                         background: performanceSettings.enableComplexGradients
