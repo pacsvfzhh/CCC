@@ -1200,7 +1200,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       if (!isMobile && !performanceSettings.reduceTransitions) {
         setStartExiting(true);
-        await new Promise(resolve => setTimeout(resolve, 440));
+        await new Promise(resolve => setTimeout(resolve, 300));
         setWaitingEnterAnim(true);
         setTimeout(() => {
           if (componentMountedRef.current) setWaitingEnterAnim(false);
@@ -2581,6 +2581,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         )}
         {waitingPanelActive && (
           <>
+            <div className={waitingEnterAnim ? 'dispatch-decor-fade pointer-events-none absolute inset-0' : 'pointer-events-none absolute inset-0'} aria-hidden="true">
             <div className="dispatch-panel-waves pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
               <span className="dispatch-panel-wave" />
               <span className="dispatch-panel-wave dispatch-panel-wave-2" />
@@ -2618,7 +2619,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <rect className="md:hidden" width="100%" height="100%" fill="url(#dispatch-panel-sea-mobile)" />
               <rect className="hidden md:block" width="100%" height="100%" fill="url(#dispatch-panel-sea-desktop)" />
             </svg>
-            <div className="absolute right-5 top-5 z-20 hidden items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10 md:flex">
+            </div>
+            <div className={`absolute right-5 top-5 z-20 hidden items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10 md:flex ${waitingEnterAnim ? 'dispatch-decor-fade' : ''}`}>
               <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
               <span>{t.dispatch.autoDispatch}</span>
             </div>
@@ -2634,7 +2636,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           <SmoothHeight
             animate={startExiting || waitingEnterAnim}
             duration={1100}
-            className={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}
+            outerClassName={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : '-mx-5 -mb-5 px-5 pb-5 md:-mx-10 md:-mb-10 md:px-10 md:pb-10'}
+            innerClassName={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}
           >
           <div className={`overflow-hidden ${
             currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'hidden' : ''
