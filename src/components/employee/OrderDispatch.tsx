@@ -2632,7 +2632,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         {/* Content */}
         <div className={`relative z-10 ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
           <SmoothHeight
-            enabled={!performanceSettings.reduceTransitions && currentOrder?.status !== 'pending' && currentOrder?.status !== 'accepted'}
+            animate={startExiting || waitingEnterAnim}
             duration={1100}
             className={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}
           >
