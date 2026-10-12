@@ -1200,11 +1200,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       if (!isMobile && !performanceSettings.reduceTransitions) {
         setStartExiting(true);
-        await new Promise(resolve => setTimeout(resolve, 360));
+        await new Promise(resolve => setTimeout(resolve, 440));
         setWaitingEnterAnim(true);
         setTimeout(() => {
           if (componentMountedRef.current) setWaitingEnterAnim(false);
-        }, 900);
+        }, 1500);
       }
 
       // Now update the session state to trigger UI change
@@ -2633,6 +2633,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         <div className={`relative z-10 ${currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
           <SmoothHeight
             enabled={!performanceSettings.reduceTransitions && currentOrder?.status !== 'pending' && currentOrder?.status !== 'accepted'}
+            duration={1100}
             className={currentOrder?.status === 'pending' || currentOrder?.status === 'accepted' ? 'flex min-h-0 flex-1 flex-col' : ''}
           >
           <div className={`overflow-hidden ${

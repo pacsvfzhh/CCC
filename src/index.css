@@ -1758,7 +1758,7 @@ body {
 }
 
 .dispatch-start-exit {
-  animation: dispatchStartExit 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  animation: dispatchStartExit 460ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
   pointer-events: none;
 }
 
@@ -1768,11 +1768,11 @@ body {
 }
 
 .dispatch-waiting-enter > * {
-  animation: dispatchWaitingEnter 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: dispatchWaitingEnter 950ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .dispatch-waiting-enter > *:nth-child(2) {
-  animation-delay: 120ms;
+  animation-delay: 220ms;
 }
 
 @keyframes dispatchWaitingEnter {
