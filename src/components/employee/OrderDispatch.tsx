@@ -3160,7 +3160,7 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
                   } ${
                     performanceSettings.reduceTransitions
                       ? 'transition-all duration-200 active:scale-95'
-                      : 'transition-all duration-500 hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98]'
+                      : 'transition-all duration-500 hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 hover:-translate-y-1 active:translate-y-0 active:scale-[0.99]'
                   } ${
                     isTransitioning && transitionType === 'start' ? 'scale-95 opacity-70' : 'scale-100 opacity-100'
                   }`}
