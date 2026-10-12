@@ -149,6 +149,15 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
   const [stopExiting, setStopExiting] = useState(false);
   const [startEnterAnim, setStartEnterAnim] = useState(false);
   const panelResizing = startExiting || waitingEnterAnim || stopExiting || startEnterAnim;
+  const [panelVeil, setPanelVeil] = useState<'in' | 'out' | null>(null);
+  const panelVeilTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealPanel = () => {
+    setPanelVeil('out');
+    if (panelVeilTimerRef.current) clearTimeout(panelVeilTimerRef.current);
+    panelVeilTimerRef.current = setTimeout(() => {
+      if (componentMountedRef.current) setPanelVeil(null);
+    }, 1000);
+  };
   const [showStartRipple, setShowStartRipple] = useState(false);
   const [showStartSuccess, setShowStartSuccess] = useState(false);
   const [showStopSuccess, setShowStopSuccess] = useState(false);
@@ -1203,7 +1212,9 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
 
       if (!isMobile && !performanceSettings.reduceTransitions) {
         setStartExiting(true);
-        await new Promise(resolve => setTimeout(resolve, 300));
+        setPanelVeil('in');
+        await new Promise(resolve => setTimeout(resolve, 320));
+        revealPanel();
         setWaitingEnterAnim(true);
         setTimeout(() => {
           if (componentMountedRef.current) setWaitingEnterAnim(false);
@@ -1418,15 +1429,22 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
         // Wait for animation to complete before updating UI state
         await animationPromise;
         const animatePanel = !isMobile && !performanceSettings.reduceTransitions;
-        if (animatePanel) setStopExiting(true);
+        if (animatePanel) {
+          setStopExiting(true);
+          setPanelVeil('in');
+        }
         await new Promise(resolve => setTimeout(resolve, animatePanel ? 320 : 100));
 
         if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
-          if (componentMountedRef.current) setStopExiting(false);
+          if (componentMountedRef.current) {
+            setStopExiting(false);
+            setPanelVeil(null);
+          }
           return;
         }
 
         if (animatePanel) {
+          revealPanel();
           setStartEnterAnim(true);
           setStopExiting(false);
           setTimeout(() => {
@@ -2582,6 +2600,11 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
           ? 'bg-gradient-to-br from-white via-blue-50/80 to-white border-2 border-blue-300/70 shadow-[0_12px_48px_-8px_rgba(37,99,235,0.22),0_4px_16px_-4px_rgba(37,99,235,0.12)]'
           : 'bg-white border-2 border-blue-200 shadow-[0_8px_40px_-8px_rgba(37,99,235,0.15),0_2px_12px_-2px_rgba(0,0,0,0.08)]'
       }`}>
+        {panelVeil && (
+          <div className={`dispatch-veil ${panelVeil === 'in' ? 'dispatch-veil-in' : 'dispatch-veil-out'}`} aria-hidden="true">
+            <span className="dispatch-veil-sweep" />
+          </div>
+        )}
         {!waitingPanelActive && currentOrder?.status !== 'pending' && (
           <div className={`pointer-events-none absolute inset-0 ${session.isWorking ? 'bg-gradient-to-br from-blue-100/40 via-white to-blue-50/30' : 'bg-gradient-to-br from-blue-50/60 via-white to-blue-50/20'}`} />
         )}
