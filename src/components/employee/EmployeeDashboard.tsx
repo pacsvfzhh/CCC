@@ -1242,8 +1242,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                       )}
 
                       {isActive && !alerting && (
-                        <div className="absolute inset-0 rounded-lg bg-white shadow-[0_6px_18px_-8px_rgba(15,23,42,0.55)]">
-                          <div className="absolute inset-x-6 bottom-0 h-[2px] rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500"></div>
+                        <div className="absolute inset-0 overflow-hidden rounded-lg bg-white shadow-[0_6px_18px_-8px_rgba(15,23,42,0.55)]">
+                          <div className="absolute inset-x-0 bottom-0 h-3.5 bg-gradient-to-t from-cyan-400/25 via-blue-400/10 to-transparent"></div>
+                          <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 shadow-[0_-2px_8px_rgba(34,211,238,0.6)]"></div>
                         </div>
                       )}
 
