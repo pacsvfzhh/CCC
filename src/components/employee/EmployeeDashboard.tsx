@@ -1243,7 +1243,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                       {isActive && !alerting && (
                         <div className="absolute inset-0 rounded-lg bg-white shadow-[0_6px_18px_-8px_rgba(15,23,42,0.55)]">
-                          <div className="absolute inset-x-6 bottom-0 h-[2px] rounded-full" style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0) 0%, #3b82f6 18%, #22d3ee 50%, #3b82f6 82%, rgba(59,130,246,0) 100%)' }}></div>
+                          <div className="absolute inset-x-6 bottom-0 h-[3px] rounded-full" style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0) 0%, #3b82f6 18%, #22d3ee 50%, #3b82f6 82%, rgba(59,130,246,0) 100%)' }}></div>
                         </div>
                       )}
 
