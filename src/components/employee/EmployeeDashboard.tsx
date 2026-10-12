@@ -1088,20 +1088,20 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                   <button
                     onClick={() => setShowPasswordChange(true)}
-                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:shadow-blue-950/20 active:bg-indigo-100"
+                    className="group flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:shadow-blue-950/20 active:bg-indigo-100"
                   >
                     <Lock className="h-3.5 w-3.5" strokeWidth={2} />
-                    <span className="text-xs font-medium">{t.header.password}</span>
+                    <span className="text-xs font-medium group-hover:font-bold">{t.header.password}</span>
                   </button>
 
                   <span className="h-4 w-px bg-white/15" aria-hidden="true"></span>
 
                   <button
                     onClick={() => logout()}
-                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-rose-50 hover:text-rose-600 hover:shadow-md hover:shadow-blue-950/20 active:bg-rose-100"
+                    className="group flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-rose-50 hover:text-rose-600 hover:shadow-md hover:shadow-blue-950/20 active:bg-rose-100"
                   >
                     <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
-                    <span className="text-xs font-medium">{t.header.logout}</span>
+                    <span className="text-xs font-medium group-hover:font-bold">{t.header.logout}</span>
                   </button>
                 </div>
                 )}
@@ -1248,7 +1248,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                       )}
 
                       <Icon className={`relative z-10 h-[17px] w-[17px] flex-shrink-0 ${isActive && !alerting ? 'text-blue-600' : ''}`} />
-                      <span className="relative z-10 truncate text-sm">{tab.label}</span>
+                      <span className="relative z-10 truncate text-sm group-hover:font-bold">{tab.label}</span>
                     </button>
                   );
                 })}
