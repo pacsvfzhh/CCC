@@ -1081,27 +1081,27 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                 {/* Desktop: Language Switcher, Change Password & Logout Buttons */}
                 {!isMobile && !isTablet && (
-                <div className="flex items-center gap-2">
-                  <LanguageSwitcher variant="desktop" />
+                <div className="flex items-center gap-0.5 rounded-xl bg-white/[0.07] p-0.5 ring-1 ring-inset ring-white/15">
+                  <LanguageSwitcher variant="toolbar" />
+
+                  <span className="h-4 w-px bg-white/15" aria-hidden="true"></span>
 
                   <button
                     onClick={() => setShowPasswordChange(true)}
-                    className="px-3.5 py-2 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-white transition-all border border-white/20"
+                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-colors hover:bg-white/10 hover:text-white active:bg-white/20"
                   >
-                    <div className="flex items-center gap-2">
-                      <Lock className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      <span className="text-xs font-medium">{t.header.password}</span>
-                    </div>
+                    <Lock className="h-3.5 w-3.5" strokeWidth={2} />
+                    <span className="text-xs font-medium">{t.header.password}</span>
                   </button>
+
+                  <span className="h-4 w-px bg-white/15" aria-hidden="true"></span>
 
                   <button
                     onClick={() => logout()}
-                    className="px-3.5 py-2 rounded-lg bg-white/15 hover:bg-red-500/80 active:bg-red-600/80 text-white transition-all border border-white/20 hover:border-red-400/50"
+                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-colors hover:bg-red-500/85 hover:text-white active:bg-red-600"
                   >
-                    <div className="flex items-center gap-2">
-                      <LogOut className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      <span className="text-xs font-medium">{t.header.logout}</span>
-                    </div>
+                    <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
+                    <span className="text-xs font-medium">{t.header.logout}</span>
                   </button>
                 </div>
                 )}

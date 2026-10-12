@@ -6,7 +6,7 @@ import { LANGUAGES } from '../lib/i18n/types';
 import type { Language } from '../lib/i18n/types';
 
 interface LanguageSwitcherProps {
-  variant?: 'desktop' | 'mobile';
+  variant?: 'desktop' | 'mobile' | 'toolbar';
   onOpenModal?: () => void;
 }
 
@@ -63,9 +63,11 @@ export default function LanguageSwitcher({ variant = 'desktop', onOpenModal }: L
     <>
       <button
         onClick={handleOpen}
-        className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-white transition-all border border-white/20 flex items-center gap-1.5"
+        className={variant === 'toolbar'
+          ? 'flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-colors hover:bg-white/10 hover:text-white active:bg-white/20'
+          : 'px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-white transition-all border border-white/20 flex items-center gap-1.5'}
       >
-        <Globe className="w-3.5 h-3.5" strokeWidth={2.5} />
+        <Globe className="w-3.5 h-3.5" strokeWidth={variant === 'toolbar' ? 2 : 2.5} />
         <span className="text-xs font-medium">{currentLang?.nativeName}</span>
       </button>
 
