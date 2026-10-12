@@ -916,20 +916,18 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <div
-                  className={`${isMobile ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} relative flex flex-shrink-0 items-center justify-center overflow-hidden bg-white shadow-[0_6px_16px_-6px_rgba(2,6,23,0.6)] ring-1 ring-inset ring-slate-900/5`}
+                  className={`${isMobile ? 'h-8 w-8 min-w-8 rounded-lg' : 'h-9 w-9 min-w-9 rounded-xl'} relative flex aspect-square flex-shrink-0 items-center justify-center overflow-hidden bg-white shadow-[0_6px_16px_-6px_rgba(2,6,23,0.6)] ring-1 ring-inset ring-slate-900/5`}
                 >
                   <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-100 to-transparent" aria-hidden="true"></span>
-                  <svg viewBox="0 0 24 24" className={`${isMobile ? 'w-[18px] h-[18px]' : isTablet ? 'w-5 h-5' : 'w-[22px] h-[22px]'} relative`} fill="none" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="relative block h-[58%] w-[58%] flex-shrink-0" fill="none" aria-hidden="true">
                     <defs>
-                      <linearGradient id="employee-logo-grad" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
-                        <stop offset="0" stopColor="#06b6d4" />
+                      <linearGradient id="employee-logo-grad" x1="6" y1="2" x2="17" y2="22" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stopColor="#22d3ee" />
                         <stop offset="0.5" stopColor="#2563eb" />
-                        <stop offset="1" stopColor="#3730a3" />
+                        <stop offset="1" stopColor="#4338ca" />
                       </linearGradient>
                     </defs>
-                    <path d="M12 2.8 21 7.9 12 13 3 7.9Z" fill="url(#employee-logo-grad)" />
-                    <path d="M3.6 12.1 12 16.9l8.4-4.8" stroke="url(#employee-logo-grad)" strokeOpacity="0.85" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M3.6 16.3 12 21.1l8.4-4.8" stroke="url(#employee-logo-grad)" strokeOpacity="0.5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" fill="url(#employee-logo-grad)" stroke="url(#employee-logo-grad)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
                   </svg>
                 </div>
                 {!isMobile && !isTablet ? (
