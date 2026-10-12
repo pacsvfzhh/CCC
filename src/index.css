@@ -1588,7 +1588,7 @@ body {
 .dispatch-panel-arc-bottom-right {
   bottom: -114px;
   right: -114px;
-  border-color: rgb(253 230 138 / 19%);
+  border-color: rgb(165 180 252 / 17%);
 }
 
 @media (min-width: 768px) {
@@ -1610,7 +1610,26 @@ body {
   left: 38.2%;
   bottom: 96px;
   transform: translateX(-50%);
+  opacity: 0.42;
+  filter: drop-shadow(0 14px 24px rgb(37 99 235 / 14%));
+  animation: dispatchPanelShip 3.6s ease-in-out infinite;
 }
+
+@keyframes dispatchPanelShip {
+  0%, 100% { transform: translate(calc(-50% - 8px), 0) rotate(-0.5deg); }
+  50% { transform: translate(calc(-50% + 8px), -6px) rotate(0.5deg); }
+}
+
+.dispatch-veil-sea.dispatch-panel-sea {
+  position: absolute;
+  width: 100%;
+  opacity: 0.85;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+
+.dispatch-panel-sea .dispatch-veil-wave-back { animation-duration: 5.2s; }
+.dispatch-panel-sea .dispatch-veil-wave-front { animation-duration: 3.4s; }
 
 .dispatch-panel-sea {
   left: 0;
@@ -1651,7 +1670,7 @@ body {
   border-radius: 48% 52% 46% 54% / 56% 43% 57% 44%;
   -webkit-mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
   mask-image: radial-gradient(ellipse closest-side, #000 19%, rgb(0 0 0 / 88%) 37%, rgb(0 0 0 / 55%) 63%, rgb(0 0 0 / 18%) 83%, transparent 100%);
-  background: radial-gradient(ellipse at 48% 52%, rgb(255 255 255 / 32%) 8%, transparent 20%, rgb(255 243 170 / 74%) 35%, rgb(8 145 178 / 82%) 53%, rgb(255 255 255 / 54%) 73%, transparent 92%);
+  background: radial-gradient(ellipse at 48% 52%, rgb(255 255 255 / 32%) 8%, transparent 20%, rgb(165 243 252 / 60%) 35%, rgb(37 99 235 / 42%) 53%, rgb(255 255 255 / 50%) 73%, transparent 92%);
   opacity: 0;
   animation: dispatchPanelBreath 8s ease-out infinite;
   will-change: transform, opacity;
@@ -1659,27 +1678,27 @@ body {
 
 .dispatch-panel-wave-2 {
   border-radius: 54% 46% 58% 42% / 42% 57% 43% 58%;
-  background: radial-gradient(ellipse at 53% 48%, rgb(255 255 255 / 36%) 9%, transparent 19%, rgb(8 145 178 / 86%) 40%, rgb(255 243 170 / 72%) 58%, rgb(255 255 255 / 56%) 76%, transparent 93%);
+  background: radial-gradient(ellipse at 53% 48%, rgb(255 255 255 / 36%) 9%, transparent 19%, rgb(56 189 248 / 46%) 40%, rgb(199 210 254 / 56%) 58%, rgb(255 255 255 / 52%) 76%, transparent 93%);
   animation-delay: -2s;
 }
 
 .dispatch-panel-wave-3 {
   border-radius: 44% 56% 51% 49% / 52% 49% 51% 48%;
-  background: radial-gradient(ellipse at 45% 53%, rgb(255 255 255 / 38%) 6%, transparent 28%, rgb(255 243 170 / 76%) 46%, rgb(8 145 178 / 80%) 61%, rgb(255 255 255 / 58%) 79%, transparent 94%);
+  background: radial-gradient(ellipse at 45% 53%, rgb(255 255 255 / 38%) 6%, transparent 28%, rgb(165 243 252 / 58%) 46%, rgb(59 130 246 / 40%) 61%, rgb(255 255 255 / 52%) 79%, transparent 94%);
   animation-delay: -4s;
 }
 
 .dispatch-panel-wave-4 {
   border-radius: 58% 42% 54% 46% / 43% 54% 46% 57%;
-  background: radial-gradient(ellipse at 52% 48%, rgb(255 255 255 / 35%) 10%, transparent 25%, rgb(8 145 178 / 84%) 45%, rgb(255 243 170 / 77%) 63%, rgb(255 255 255 / 58%) 80%, transparent 95%);
+  background: radial-gradient(ellipse at 52% 48%, rgb(255 255 255 / 35%) 10%, transparent 25%, rgb(34 211 238 / 44%) 45%, rgb(191 219 254 / 58%) 63%, rgb(255 255 255 / 52%) 80%, transparent 95%);
   animation-delay: -6s;
 }
 
 @keyframes dispatchPanelBreath {
   0% { transform: translate(-50%, -50%) scale(0.28); opacity: 0; }
   10% { transform: translate(-50%, -50%) scale(0.38); opacity: 0; }
-  24% { opacity: 0.88; }
-  38% { opacity: 0.72; }
+  24% { opacity: 0.7; }
+  38% { opacity: 0.55; }
   50%, 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
 }
 
@@ -1967,6 +1986,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .dispatch-veil { display: none; }
+  .dispatch-panel-ship,
+  .dispatch-veil-wave { animation: none; }
   .dispatch-decor-fade,
   .dispatch-waiting-exit,
   .dispatch-start-enter,

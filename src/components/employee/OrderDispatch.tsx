@@ -9,7 +9,8 @@ import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import type { Employee } from '../../types';
 import SmoothHeight from './SmoothHeight';
-import DispatchVeil from './DispatchVeil';
+import DispatchVeil, { DispatchWaves } from './DispatchVeil';
+import DispatchShip from './DispatchShip';
 
 interface DispatchAssignment {
   id: string;
@@ -2634,31 +2635,8 @@ export default function OrderDispatch({ employee, onStatusChange, onSessionExpir
               <span className="dispatch-panel-arc dispatch-panel-arc-bottom-left" />
               <span className="dispatch-panel-arc dispatch-panel-arc-bottom-right" />
             </div>
-            <svg className="dispatch-panel-ship pointer-events-none absolute z-[2]" viewBox="0 0 800 300" fill="none" aria-hidden="true">
-              <path d="M93 180h640l48-18-35 65c-12 26-35 36-68 36H196c-52 0-80-14-92-40L93 180Z" fill="#258dbe" fillOpacity="0.19" />
-              <path d="M102 164h632l-2 17H94l8-17Z" fill="#0891b2" fillOpacity="0.16" />
-              <path d="M176 161v-46c0-7 6-13 13-13h147c7 0 13 6 13 13v46H176Z" fill="#3b9bc6" fillOpacity="0.19" />
-              <path d="M204 102V80c0-7 6-13 13-13h97c7 0 13 6 13 13v22H204Z" fill="#48a9cd" fillOpacity="0.19" />
-              <path d="M223 67V54h85v13h-85ZM377 162v-53h44v53h-44Z" fill="#63b7d6" fillOpacity="0.21" />
-              <path d="M386 109V88h26v21h-26Z" fill="#82c7de" fillOpacity="0.25" />
-              <path d="M445 161v-29h188l24 29H445Z" fill="#52abd0" fillOpacity="0.16" />
-              <path d="M482 132V71m-17 61 17-41 18 41" stroke="#4aa6ce" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M222 85h18m17 0h18m17 0h18M199 125h22m17 0h22m17 0h22m17 0h15" stroke="#e9faff" strokeOpacity="0.7" strokeWidth="7" strokeLinecap="round" />
-            </svg>
-            <svg className="dispatch-panel-sea pointer-events-none absolute z-[2]" aria-hidden="true">
-              <defs>
-                <pattern id="dispatch-panel-sea-mobile" width="128" height="34" patternUnits="userSpaceOnUse">
-                  <path d="M0 11 Q32 7 64 11 T128 11" fill="none" stroke="#38bdf8" strokeOpacity="0.33" strokeWidth="2.5" />
-                  <path d="M0 24 Q32 19 64 24 T128 24" fill="none" stroke="#7dd3fc" strokeOpacity="0.25" strokeWidth="1.75" />
-                </pattern>
-                <pattern id="dispatch-panel-sea-desktop" width="220" height="42" patternUnits="userSpaceOnUse">
-                  <path d="M0 13 Q55 5 110 13 T220 13" fill="none" stroke="#38bdf8" strokeOpacity="0.3" strokeWidth="2.5" />
-                  <path d="M0 30 Q55 22 110 30 T220 30" fill="none" stroke="#7dd3fc" strokeOpacity="0.23" strokeWidth="1.75" />
-                </pattern>
-              </defs>
-              <rect className="md:hidden" width="100%" height="100%" fill="url(#dispatch-panel-sea-mobile)" />
-              <rect className="hidden md:block" width="100%" height="100%" fill="url(#dispatch-panel-sea-desktop)" />
-            </svg>
+            <DispatchShip idPrefix="dispatch-panel" viewBox="0 0 800 300" className="dispatch-panel-ship pointer-events-none absolute z-[2]" />
+            <DispatchWaves segments={24} className="dispatch-panel-sea pointer-events-none absolute z-[2]" />
             </div>
             <div className={`absolute right-5 top-5 z-20 hidden items-center gap-1.5 rounded-full border border-blue-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-blue-800 shadow-[0_6px_20px_-10px_rgba(37,99,235,0.5)] backdrop-blur-sm md:right-10 md:top-10 md:flex ${waitingEnterAnim ? 'dispatch-decor-fade' : ''}`}>
               <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
