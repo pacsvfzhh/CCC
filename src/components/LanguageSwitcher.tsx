@@ -64,7 +64,7 @@ export default function LanguageSwitcher({ variant = 'desktop', onOpenModal }: L
       <button
         onClick={handleOpen}
         className={variant === 'toolbar'
-          ? 'flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-cyan-300/15 hover:text-cyan-50 hover:shadow-[inset_0_0_0_1px_rgba(103,232,249,0.3)] active:bg-cyan-300/25'
+          ? 'flex h-8 items-center gap-1.5 rounded-lg px-3 text-blue-50/90 transition-all duration-200 hover:bg-white hover:text-blue-700 hover:shadow-md hover:shadow-blue-950/20 active:bg-blue-50'
           : 'px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-white transition-all border border-white/20 flex items-center gap-1.5'}
       >
         <Globe className="w-3.5 h-3.5" strokeWidth={variant === 'toolbar' ? 2 : 2.5} />
